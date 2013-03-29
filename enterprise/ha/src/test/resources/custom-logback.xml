@@ -20,7 +20,6 @@
 
 -->
 <included>
-  <!--
   <logger name="neo4j.diagnostics" level="debug">
   </logger>
 
@@ -34,8 +33,9 @@
   </logger>
 
   <root level="debug">
+    <appender-ref ref="CONSOLE"/>
   </root>
+
   <logger name="org.neo4j.kernel.info.DiagnosticsManager" level="warn">
   </logger>
-  -->
 </included>

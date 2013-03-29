@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel;
 
+import static java.lang.String.format;
 import static org.slf4j.impl.StaticLoggerBinder.getSingleton;
 
 import java.io.File;
@@ -33,7 +34,6 @@ import java.util.concurrent.Executors;
 import javax.transaction.SystemException;
 import javax.transaction.TransactionManager;
 
-import ch.qos.logback.classic.LoggerContext;
 import org.neo4j.graphdb.DependencyResolver;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -122,6 +122,8 @@ import org.neo4j.kernel.logging.ClassicLoggingService;
 import org.neo4j.kernel.logging.LogbackService;
 import org.neo4j.kernel.logging.Logging;
 import org.neo4j.tooling.GlobalGraphOperations;
+
+import ch.qos.logback.classic.LoggerContext;
 
 /**
  * Base implementation of GraphDatabaseService. Responsible for creating services, handling dependencies between them,
@@ -262,9 +264,18 @@ public abstract class InternalAbstractGraphDatabase
                 throw txManager.getRecoveryError();
             }
         }
-        catch ( Throwable throwable )
+        catch ( final Throwable throwable )
         {
-            msgLog.logMessage( "Startup failed", throwable );
+            StringBuilder msg = new StringBuilder(  );
+            msg.append( "Startup failed" );
+            Throwable temporaryThrowable = throwable;
+            while (temporaryThrowable != null)
+            {
+                msg.append( ": " ).append( temporaryThrowable.getMessage() );
+                temporaryThrowable = temporaryThrowable.getCause();
+            }
+
+            msgLog.logMessage( msg.toString() );
 
             shutdown();
 
@@ -330,7 +341,7 @@ public abstract class InternalAbstractGraphDatabase
         config.setLogger( msgLog );
 
         this.storeLocker = life.add(new StoreLockerLifecycleAdapter(
-                new StoreLocker( config, fileSystem, msgLog ), storeDir ));
+                new StoreLocker( config, fileSystem ), storeDir ));
 
         new JvmChecker(msgLog, new JvmMetadataRepository() ).checkJvmCompatibilityAndIssueWarning();
 
@@ -896,7 +907,7 @@ public abstract class InternalAbstractGraphDatabase
     {
         if ( id < 0 || id > MAX_NODE_ID )
         {
-            throw new NotFoundException( "Node[" + id + "]" );
+            throw new NotFoundException( format( "Node %d not found", id ) );
         }
         return nodeManager.getNodeById( id );
     }
@@ -906,7 +917,7 @@ public abstract class InternalAbstractGraphDatabase
     {
         if ( id < 0 || id > MAX_RELATIONSHIP_ID )
         {
-            throw new NotFoundException( "Relationship[" + id + "]" );
+            throw new NotFoundException( format("Relationship %d not found", id));
         }
         return nodeManager.getRelationshipById( id );
     }
@@ -1215,11 +1226,9 @@ public abstract class InternalAbstractGraphDatabase
      *
      * @author ceefour
      */
-    class DependencyResolverImpl
-            implements DependencyResolver
+    class DependencyResolverImpl extends DependencyResolver.Adapter
     {
-        @Override
-        public <T> T resolveDependency( Class<T> type )
+        private <T> T resolveKnownSingleDependency( Class<T> type )
         {
             if ( type.equals( Map.class ) )
             {
@@ -1317,11 +1326,19 @@ public abstract class InternalAbstractGraphDatabase
             {
                 return (T) DependencyResolverImpl.this;
             }
-            else
-            {
-                // Try with kernel extensions
-                return kernelExtensions.resolveDependency( type );
-            }
+            return null;
+        }
+        
+        @Override
+        public <T> T resolveDependency( Class<T> type, SelectionStrategy<T> selector )
+        {
+            // Try known single dependencies
+            T result = resolveKnownSingleDependency( type );
+            if ( result != null )
+                return selector.select( type, Iterables.option( result ) );
+            
+            // Try with kernel extensions
+            return kernelExtensions.resolveDependency( type, selector );
         }
     }
 

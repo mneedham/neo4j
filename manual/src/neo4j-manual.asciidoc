@@ -3,8 +3,8 @@
 :neo4j-buildnumber: {neo4j-version}
 :neo4j-git-tag: {gitversion}
 
-:lucene-version: 3_5_0
-:lucene-version-printed: 3.5.0
+:lucene-version: 3_6_2
+:lucene-version-printed: 3.6.2
 
 :console: 0
 
@@ -17,6 +17,10 @@ include::introduction/index.asciidoc[]
 :leveloffset: 0
 
 include::tutorials/index.asciidoc[]
+
+:leveloffset: 0
+
+include::{importdir}/neo4j-cypher-docs-jar/dev/index.asciidoc[]
 
 :leveloffset: 0
 
@@ -38,10 +42,6 @@ include::community/index.asciidoc[]
 :numbered!:
 
 include::manpages.asciidoc[]
-
-:leveloffset: 0
-
-include::qanda/index.asciidoc[]
 
 ////
 :leveloffset: 0

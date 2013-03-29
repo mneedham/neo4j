@@ -44,6 +44,7 @@ import org.neo4j.kernel.impl.MyRelTypes;
 import org.neo4j.test.AbstractClusterTest;
 import org.neo4j.test.OtherThreadExecutor;
 import org.neo4j.test.OtherThreadExecutor.WorkerCommand;
+import org.neo4j.test.ha.ClusterManager;
 
 public class TransactionConstraintsIT extends AbstractClusterTest
 {
@@ -66,6 +67,8 @@ public class TransactionConstraintsIT extends AbstractClusterTest
             cluster.shutdown( cluster.getMaster() );
             assertFinishGetsTransactionFailure( tx );
         }
+
+        cluster.await( ClusterManager.masterAvailable() );
 
         // THEN
         assertEquals( db, cluster.getMaster() );
@@ -91,6 +94,8 @@ public class TransactionConstraintsIT extends AbstractClusterTest
             cluster.shutdown( cluster.getMaster() );
             assertFinishGetsTransactionFailure( tx );
         }
+
+        cluster.await( ClusterManager.masterAvailable() );
 
         // THEN
         assertFalse( db.isMaster() );
@@ -247,6 +252,7 @@ public class TransactionConstraintsIT extends AbstractClusterTest
         
         assertNotNull( writeLockFuture.get() );
         thread2.execute( new FinishTx( tx2, true ) );
+        thread2.shutdown();
     }
 
     @Ignore( "Known issue where locks acquired from Transaction#acquireXXXLock() methods doesn't get properly released when calling Lock#release() method" )

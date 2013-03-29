@@ -39,14 +39,15 @@ import org.neo4j.kernel.impl.nioneo.store.FileSystemAbstraction;
 import org.neo4j.kernel.impl.nioneo.store.NodeStore;
 import org.neo4j.kernel.impl.nioneo.store.PropertyStore;
 import org.neo4j.kernel.impl.nioneo.store.RelationshipStore;
+import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 import org.neo4j.test.impl.ChannelInputStream;
 import org.neo4j.test.impl.ChannelOutputStream;
 import org.neo4j.test.impl.EphemeralFileSystemAbstraction;
 
-public class JumpingFileSystemAbstraction implements FileSystemAbstraction
+public class JumpingFileSystemAbstraction extends LifecycleAdapter implements FileSystemAbstraction
 {
     private final int sizePerJump;
-    private final FileSystemAbstraction actualFileSystem = new EphemeralFileSystemAbstraction();
+    private final EphemeralFileSystemAbstraction actualFileSystem = new EphemeralFileSystemAbstraction();
 
     public JumpingFileSystemAbstraction( int sizePerJump )
     {
@@ -131,21 +132,15 @@ public class JumpingFileSystemAbstraction implements FileSystemAbstraction
     }
     
     @Override
-    public boolean mkdirs( File fileName )
+    public void mkdirs( File fileName )
     {
-        return actualFileSystem.mkdirs( fileName );
+        actualFileSystem.mkdirs( fileName );
     }
     
     @Override
     public boolean renameFile( File from, File to ) throws IOException
     {
         return actualFileSystem.renameFile( from, to );
-    }
-    
-    @Override
-    public void autoCreatePath( File path ) throws IOException
-    {
-        actualFileSystem.autoCreatePath( path );
     }
 
     @Override
@@ -388,5 +383,11 @@ public class JumpingFileSystemAbstraction implements FileSystemAbstraction
         {
             actual.close();
         }
+    }
+
+    @Override
+    public void shutdown()
+    {
+        actualFileSystem.shutdown();
     }
 }

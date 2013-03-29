@@ -20,12 +20,12 @@
 package org.neo4j.cluster;
 
 import static org.neo4j.graphdb.factory.GraphDatabaseSetting.ANY;
-import static org.neo4j.graphdb.factory.GraphDatabaseSetting.FALSE;
 import static org.neo4j.graphdb.factory.GraphDatabaseSetting.TRUE;
 import static org.neo4j.helpers.Settings.BOOLEAN;
 import static org.neo4j.helpers.Settings.DURATION;
 import static org.neo4j.helpers.Settings.HOSTNAME_PORT;
-import static org.neo4j.helpers.Settings.NO_DEFAULT;
+import static org.neo4j.helpers.Settings.INTEGER;
+import static org.neo4j.helpers.Settings.MANDATORY;
 import static org.neo4j.helpers.Settings.STRING;
 import static org.neo4j.helpers.Settings.illegalValueMessage;
 import static org.neo4j.helpers.Settings.list;
@@ -39,23 +39,20 @@ import org.neo4j.graphdb.factory.Description;
 import org.neo4j.helpers.HostnamePort;
 
 /**
- * Settings for high availability mode
+ * Settings for cluster members
  */
 public class ClusterSettings
 {
+    @Description( "Id for a cluster instance. Must be unique within the cluster" )
+    public static final Setting<Integer> server_id = setting( "ha.server_id", INTEGER, MANDATORY );
+
     @Description( "The name of a cluster" )
     public static final Setting<String> cluster_name = setting( "ha.cluster_name", STRING, "neo4j.ha",
-            illegalValueMessage( "Must be a valid cluster name" , matches( ANY )));
+            illegalValueMessage( "Must be a valid cluster name" , matches( ANY ) ) );
 
-    @Description( "Whether to enable cluster discovery or not" )
-    public static final Setting<Boolean> cluster_discovery_enabled = setting( "ha.discovery.enabled", BOOLEAN, FALSE );
-
-    @Description( "The URL to use if cluster discovery is enabled" )
-    public static final Setting<String> cluster_discovery_url = setting( "ha.discovery.url", STRING, NO_DEFAULT );
-
-    @Description( "If cluster discovery is disabled, use this list of potential cluster members" )
+    @Description( "This is the list of potential cluster members" )
     public static final Setting<List<HostnamePort>> initial_hosts = setting( "ha.initial_hosts",
-            list( ",", HOSTNAME_PORT ), "" );
+            list( ",", HOSTNAME_PORT ), MANDATORY );
 
     @Description( "Host name and port to use for the cluster server" )
     public static final Setting<HostnamePort> cluster_server = setting( "ha.cluster_server", HOSTNAME_PORT,

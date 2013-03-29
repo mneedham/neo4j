@@ -2407,8 +2407,92 @@ RETURN x0.name?
          RETURN new""")
 
     //THEN
-    println(result.executionPlanDescription())
     assert(result.size === 0)
     assert(result.queryStatistics().relationshipsCreated === 0)
+  }
+
+  @Test
+  def test550() {
+    //WHEN
+    val result = parseAndExecute(
+      """START p=node(0)
+        WITH p
+        START a=node(0)
+        MATCH a-->b
+        RETURN *""")
+
+    //THEN DOESN'T THROW EXCEPTION
+    assert(result.toList === List())
+  }
+
+  @Test
+  def should_allow_expression_alias_in_order_by_with_distinct() {
+    //WHEN
+    val result = parseAndExecute(
+      """START n=node(*)
+        RETURN distinct ID(n) as id
+        ORDER BY id DESC""")
+
+    //THEN DOESN'T THROW EXCEPTION
+    assert(result.toList === List(Map("id" -> 0)))
+  }
+
+  @Test
+  def shouldProduceProfileWhenUsingLimit() {
+    // GIVEN
+    createNode()
+    createNode()
+    createNode()
+    val result = engine.profile("""START n=node(*) RETURN n LIMIT 1""")
+
+    // WHEN
+    result.toList
+
+    // THEN PASS
+    result.executionPlanDescription()
+  }
+
+  @Test
+  def should_be_able_to_handle_single_node_patterns() {
+    //GIVEN
+    val n = createNode("foo" -> "bar")
+
+    //WHEN
+    val result = parseAndExecute("start n=node(1) match n where n.foo = 'bar' return n")
+
+    //THEN
+    assert(result.toList === List(Map("n" -> n)))
+  }
+
+  @Test
+  def should_be_able_to_handle_single_node_path_patterns() {
+    //GIVEN
+    val n = createNode("foo" -> "bar")
+
+    //WHEN
+    val result = parseAndExecute("start n=node(1) match p = n return p")
+
+    //THEN
+    assert(result.toList === List(Map("p" -> PathImpl(n))))
+  }
+
+  @Test
+  def should_handle_multiple_aggregates_on_the_same_node() {
+    //WHEN
+    val result = parseAndExecute("start n=node(*) return count(n), collect(n)")
+
+    //THEN
+    assert(result.toList === List(Map("count(n)" -> 1, "collect(n)" -> Seq(refNode))))
+  }
+
+  def shouldBeAbleToCallNowMS() {
+    val result = engine.execute("START n=node(*) RETURN now('ms')")
+
+    val ts:Long = result.toList.head("now('ms')") match {
+      case x:Long => x
+      case _ => 0L
+    }
+    assert(ts != 0L)
+    assert(ts <= System.currentTimeMillis)
   }
 }

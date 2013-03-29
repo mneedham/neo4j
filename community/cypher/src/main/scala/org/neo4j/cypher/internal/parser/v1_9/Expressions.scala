@@ -129,19 +129,29 @@ trait Expressions extends Base with ParserPattern with Predicates with StringLit
 
   def function: Parser[Expression] = Parser {
     case in => {
-      val inner = identity ~ parens(commaList(expression | entity))
+      val inner = identity ~ parens(opt(commaList(expression | entity)))
 
-      inner(in) match {
+      val innerResult = inner(in)
 
-        case Success(name ~ args, rest) => functions.get(name.toLowerCase) match {
-          case None => failure("unknown function", rest)
-          case Some(func) if !func.acceptsTheseManyArguments(args.size) => failure("Wrong number of parameters for function " + name, rest)
-          case Some(func) => Success(func.create(args), rest)
+      if (!innerResult.successful) {
+        innerResult.asInstanceOf[ParseResult[Nothing]]
+      } else {
+        val (name ~ args) = innerResult.get
+        val arguments: List[Expression] = args.toList.flatten
+        val funcOption = functions.get(name.toLowerCase)
+
+        if (funcOption.isEmpty) {
+          failure("unknown function", innerResult.next)
+        } else {
+          val func = funcOption.get
+          if (!func.acceptsTheseManyArguments(arguments.size)) {
+            failure("Wrong number of parameters for function " + name, innerResult.next)
+          }
+
+          Success(func.create(arguments), innerResult.next)
         }
-
-        case Failure(msg, rest) => Failure(msg, rest)
-        case Error(msg, rest) => Error(msg, rest)
       }
+
     }
   }
 
@@ -177,6 +187,7 @@ trait Expressions extends Base with ParserPattern with Predicates with StringLit
     "rtrim" -> func(1, args => RTrimFunction(args.head)),
     "trim" -> func(1, args => TrimFunction(args.head)),
     "str" -> func(1, args => StrFunction(args.head)),
+    "timestamp" -> func(0, args => TimestampFunction()),
     "shortestpath" -> Function(x => false, args => null),
     "range" -> Function(x => x == 2 || x == 3, args => {
       val step = if (args.size == 2) Literal(1) else args(2)
@@ -220,16 +231,17 @@ trait Expressions extends Base with ParserPattern with Predicates with StringLit
 
   def countStar: Parser[Expression] = ignoreCase("count") ~> parens("*") ^^^ CountStar()
 
-  def pathExpression: Parser[Expression] = usePath(translate) ^^ {//(pathPattern => PathExpression(pathPattern))
+  def pathExpression: Parser[Expression] = usePath(translate) ^^ {
     case Seq(x:ShortestPath) => ShortestPathExpression(x)
     case patterns => PathExpression(patterns)
   }
 
   private def translate(abstractPattern: AbstractPattern): Maybe[Pattern] = matchTranslator(abstractPattern) match {
-      case Yes(Seq(np)) if np.isInstanceOf[NamedPath] => No(Seq("Can't assign to an identifier in a pattern expression"))
-      case Yes(p@Seq(pattern:Pattern)) => Yes(p.asInstanceOf[Seq[Pattern]])
-      case n: No => n
-    }
+    case Yes(p) if p.size == 1 && p.head.isInstanceOf[SingleNode] => No(Seq(""))
+    case Yes(Seq(np)) if np.isInstanceOf[NamedPath]               => No(Seq("Can't assign to an identifier in a pattern expression"))
+    case Yes(p@Seq(pattern: Pattern))                             => Yes(p.asInstanceOf[Seq[Pattern]])
+    case n: No                                                    => n
+  }
 
   def matchTranslator(abstractPattern: AbstractPattern): Maybe[Any]
 }

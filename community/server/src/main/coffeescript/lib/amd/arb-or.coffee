@@ -27,5 +27,6 @@ define(
    'order!lib/arbor-graphics'
    'order!lib/arbor-tween'], 
   () ->
+    arbor.works = true
     arbor
 )

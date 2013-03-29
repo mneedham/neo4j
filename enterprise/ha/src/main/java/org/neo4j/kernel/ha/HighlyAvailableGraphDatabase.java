@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.ha;
 
+import static org.neo4j.helpers.collection.Iterables.option;
 import static org.neo4j.kernel.ha.DelegateInvocationHandler.snapshot;
 
 import java.io.File;
@@ -30,7 +31,9 @@ import java.util.Map;
 
 import javax.transaction.Transaction;
 
+import ch.qos.logback.classic.LoggerContext;
 import org.neo4j.cluster.ClusterSettings;
+import org.neo4j.cluster.InstanceId;
 import org.neo4j.cluster.client.ClusterClient;
 import org.neo4j.cluster.com.NetworkInstance;
 import org.neo4j.cluster.member.ClusterMemberAvailability;
@@ -40,7 +43,6 @@ import org.neo4j.cluster.member.paxos.PaxosClusterMemberAvailability;
 import org.neo4j.cluster.member.paxos.PaxosClusterMemberEvents;
 import org.neo4j.cluster.protocol.cluster.ClusterConfiguration;
 import org.neo4j.cluster.protocol.cluster.ClusterListener;
-import org.neo4j.kernel.ha.cluster.DefaultElectionCredentialsProvider;
 import org.neo4j.cluster.protocol.election.ElectionCredentialsProvider;
 import org.neo4j.cluster.protocol.election.NotElectableElectionCredentialsProvider;
 import org.neo4j.graphdb.DependencyResolver;
@@ -49,16 +51,11 @@ import org.neo4j.graphdb.factory.GraphDatabaseSettings;
 import org.neo4j.graphdb.index.IndexProvider;
 import org.neo4j.helpers.Predicate;
 import org.neo4j.helpers.collection.Iterables;
-import org.neo4j.kernel.ha.com.master.DefaultSlaveFactory;
-import org.neo4j.kernel.ha.com.master.Master;
-import org.neo4j.kernel.ha.com.RequestContextFactory;
-import org.neo4j.kernel.ha.com.master.Slaves;
-import org.neo4j.kernel.ha.management.ClusterDatabaseInfoProvider;
-import org.neo4j.kernel.ha.management.HighlyAvailableKernelData;
 import org.neo4j.kernel.IdGeneratorFactory;
 import org.neo4j.kernel.InternalAbstractGraphDatabase;
 import org.neo4j.kernel.KernelData;
 import org.neo4j.kernel.extension.KernelExtensionFactory;
+import org.neo4j.kernel.ha.cluster.DefaultElectionCredentialsProvider;
 import org.neo4j.kernel.ha.cluster.HighAvailabilityMemberChangeEvent;
 import org.neo4j.kernel.ha.cluster.HighAvailabilityMemberContext;
 import org.neo4j.kernel.ha.cluster.HighAvailabilityMemberListener;
@@ -69,8 +66,14 @@ import org.neo4j.kernel.ha.cluster.SimpleHighAvailabilityMemberContext;
 import org.neo4j.kernel.ha.cluster.member.ClusterMembers;
 import org.neo4j.kernel.ha.cluster.member.HighAvailabilitySlaves;
 import org.neo4j.kernel.ha.cluster.zoo.ZooKeeperHighAvailabilityEvents;
+import org.neo4j.kernel.ha.com.RequestContextFactory;
+import org.neo4j.kernel.ha.com.master.DefaultSlaveFactory;
+import org.neo4j.kernel.ha.com.master.Master;
+import org.neo4j.kernel.ha.com.master.Slaves;
 import org.neo4j.kernel.ha.id.HaIdGeneratorFactory;
 import org.neo4j.kernel.ha.lock.LockManagerModeSwitcher;
+import org.neo4j.kernel.ha.management.ClusterDatabaseInfoProvider;
+import org.neo4j.kernel.ha.management.HighlyAvailableKernelData;
 import org.neo4j.kernel.ha.switchover.Switchover;
 import org.neo4j.kernel.ha.transaction.OnDiskLastTxIdGetter;
 import org.neo4j.kernel.ha.transaction.TxHookModeSwitcher;
@@ -95,8 +98,6 @@ import org.neo4j.kernel.logging.ClassicLoggingService;
 import org.neo4j.kernel.logging.LogbackService;
 import org.neo4j.kernel.logging.Logging;
 
-import ch.qos.logback.classic.LoggerContext;
-
 public class HighlyAvailableGraphDatabase extends InternalAbstractGraphDatabase
 {
     private RequestContextFactory requestContextFactory;
@@ -105,7 +106,7 @@ public class HighlyAvailableGraphDatabase extends InternalAbstractGraphDatabase
     private DelegateInvocationHandler masterDelegateInvocationHandler;
     private LoggerContext loggerContext;
     private Master master;
-    private InstanceAccessGuard accessGuard;
+    private final InstanceAccessGuard accessGuard;
     private HighAvailabilityMemberStateMachine memberStateMachine;
     private UpdatePuller updatePuller;
     private LastUpdateTime lastUpdateTime;
@@ -137,6 +138,7 @@ public class HighlyAvailableGraphDatabase extends InternalAbstractGraphDatabase
     private DelegateInvocationHandler clusterEventsDelegateInvocationHandler;
     private DelegateInvocationHandler memberContextDelegateInvocationHandler;
     private DelegateInvocationHandler clusterMemberAvailabilityDelegateInvocationHandler;
+    private HighAvailabilityModeSwitcher highAvailabilityModeSwitcher;
 
     public HighlyAvailableGraphDatabase( String storeDir, Map<String, String> params,
                                          Iterable<IndexProvider> indexProviders,
@@ -147,16 +149,17 @@ public class HighlyAvailableGraphDatabase extends InternalAbstractGraphDatabase
         super( storeDir, params, Iterables.<Class<?>,Class<?>>iterable( GraphDatabaseSettings.class, HaSettings.class,
                 NetworkInstance.Configuration.class, ClusterSettings.class ), indexProviders, kernelExtensions,
                 cacheProviders, txInterceptorProviders );
+        accessGuard = new InstanceAccessGuard();
         run();
     }
 
+    @Override
     protected void create()
     {
         life.add( new BranchedDataMigrator( storeDir ) );
         masterDelegateInvocationHandler = new DelegateInvocationHandler();
         master = (Master) Proxy.newProxyInstance( Master.class.getClassLoader(), new Class[]{Master.class},
                 masterDelegateInvocationHandler );
-        accessGuard = new InstanceAccessGuard();
 
         super.create();
 
@@ -200,6 +203,7 @@ public class HighlyAvailableGraphDatabase extends InternalAbstractGraphDatabase
         return super.beginTx( forceMode );
     }
 
+    @Override
     protected Logging createLogging()
     {
         try
@@ -213,7 +217,7 @@ public class HighlyAvailableGraphDatabase extends InternalAbstractGraphDatabase
             return life.add( new ClassicLoggingService( config ) );
         }
     }
-    
+
     @Override
     protected TransactionStateFactory createTransactionStateFactory()
     {
@@ -233,7 +237,7 @@ public class HighlyAvailableGraphDatabase extends InternalAbstractGraphDatabase
     protected XaDataSourceManager createXaDataSourceManager()
     {
         XaDataSourceManager toReturn = new HaXaDataSourceManager( logging.getLogger( HaXaDataSourceManager.class ) );
-        requestContextFactory = new RequestContextFactory( config.get( HaSettings.server_id ), toReturn,
+        requestContextFactory = new RequestContextFactory( config.get( ClusterSettings.server_id ), toReturn,
                 dependencyResolver );
         return toReturn;
     }
@@ -261,7 +265,7 @@ public class HighlyAvailableGraphDatabase extends InternalAbstractGraphDatabase
          */
         ElectionCredentialsProvider electionCredentialsProvider = config.get( HaSettings.slave_only ) ?
                 new NotElectableElectionCredentialsProvider() :
-                new DefaultElectionCredentialsProvider( config.get( HaSettings.server_id ),
+                new DefaultElectionCredentialsProvider( config.get( ClusterSettings.server_id ),
                         new OnDiskLastTxIdGetter( new File( getStoreDir() ) ), new HighAvailabilityMemberInfoProvider()
                 {
                     @Override
@@ -273,7 +277,7 @@ public class HighlyAvailableGraphDatabase extends InternalAbstractGraphDatabase
 
         clusterClient = new ClusterClient( ClusterClient.adapt( config ), logging, electionCredentialsProvider );
         PaxosClusterMemberEvents localClusterEvents = new PaxosClusterMemberEvents( clusterClient, clusterClient,
-            clusterClient, logging, new Predicate<PaxosClusterMemberEvents.ClusterMembersSnapshot>()
+                clusterClient, clusterClient, logging, new Predicate<PaxosClusterMemberEvents.ClusterMembersSnapshot>()
         {
             @Override
             public boolean accept( PaxosClusterMemberEvents.ClusterMembersSnapshot item )
@@ -283,11 +287,11 @@ public class HighlyAvailableGraphDatabase extends InternalAbstractGraphDatabase
                     if ( member.getRoleUri().getScheme().equals( "ha" ) )
                     {
                         if ( HighAvailabilityModeSwitcher.getServerId( member.getRoleUri() ) ==
-                                config.get( HaSettings.server_id ) )
+                                config.get( ClusterSettings.server_id ) )
                         {
                             msgLog.error( String.format( "Instance %s has the same serverId as ours (%d) - will not join this cluster",
-                                    member.getRoleUri(), config.get( HaSettings.server_id ) ) );
-                            return false;
+                                    member.getRoleUri(), config.get( ClusterSettings.server_id ) ) );
+                            return true;
                         }
                     }
                 }
@@ -306,7 +310,7 @@ public class HighlyAvailableGraphDatabase extends InternalAbstractGraphDatabase
             }
 
             @Override
-            public void elected( String role, URI electedMember )
+            public void elected( String role, InstanceId instanceId, URI electedMember )
             {
                 if ( role.equals( ClusterConfiguration.COORDINATOR ) )
                 {
@@ -316,9 +320,9 @@ public class HighlyAvailableGraphDatabase extends InternalAbstractGraphDatabase
             }
         });
 
-        HighAvailabilityMemberContext localMemberContext = new SimpleHighAvailabilityMemberContext( clusterClient );
+        HighAvailabilityMemberContext localMemberContext = new SimpleHighAvailabilityMemberContext( clusterClient.getServerId() );
         PaxosClusterMemberAvailability localClusterMemberAvailability = new PaxosClusterMemberAvailability(
-            clusterClient, clusterClient, logging );
+            clusterClient.getServerId(), clusterClient, clusterClient, logging );
 
         // Here we decide whether to start in compatibility mode or mode or not
         if ( !config.get( HaSettings.coordinators ).isEmpty() &&
@@ -336,7 +340,7 @@ public class HighlyAvailableGraphDatabase extends InternalAbstractGraphDatabase
                 new ZooKeeperHighAvailabilityEvents( logging, config, switchover );
             compatibilityLifecycle.add( zkEvents );
             memberContextDelegateInvocationHandler.setDelegate(
-                    new SimpleHighAvailabilityMemberContext( zkEvents ) );
+                    new SimpleHighAvailabilityMemberContext( zkEvents.getInstanceId() ) );
             clusterEventsDelegateInvocationHandler.setDelegate( zkEvents );
             clusterMemberAvailabilityDelegateInvocationHandler.setDelegate( zkEvents );
             // Paxos Events added to life, won't be stopped because it isn't started yet
@@ -349,8 +353,10 @@ public class HighlyAvailableGraphDatabase extends InternalAbstractGraphDatabase
             clusterMemberAvailabilityDelegateInvocationHandler.setDelegate( localClusterMemberAvailability );
         }
 
-        memberStateMachine = new HighAvailabilityMemberStateMachine( memberContext, accessGuard, clusterEvents,
-            logging.getLogger( HighAvailabilityMemberStateMachine.class ) );
+        members = new ClusterMembers( clusterClient, clusterClient, clusterEvents,
+                new InstanceId( config.get( ClusterSettings.server_id ) ) );
+        memberStateMachine = new HighAvailabilityMemberStateMachine( memberContext, accessGuard, members, clusterEvents,
+                clusterClient, logging.getLogger( HighAvailabilityMemberStateMachine.class ) );
 
         if ( compatibilityMode )
         {
@@ -374,8 +380,6 @@ public class HighlyAvailableGraphDatabase extends InternalAbstractGraphDatabase
         */
         paxosLife.add( memberStateMachine );
         paxosLife.add( clusterEvents );
-        // highAvailabilityModeSwitcher left for reference, has been moved to createTxIdGenerator
-//        paxosLife.add( highAvailabilityModeSwitcher );
         paxosLife.add( clusterClient );
         paxosLife.add( localClusterMemberAvailability );
 
@@ -401,7 +405,6 @@ public class HighlyAvailableGraphDatabase extends InternalAbstractGraphDatabase
         TxIdGenerator txIdGenerator =
                 (TxIdGenerator) Proxy.newProxyInstance( TxIdGenerator.class.getClassLoader(),
                         new Class[]{TxIdGenerator.class}, txIdGeneratorDelegate );
-        members = new ClusterMembers( clusterClient, clusterClient, clusterClient, clusterEvents );
         slaves = life.add( new HighAvailabilitySlaves( members, clusterClient, new DefaultSlaveFactory(
                 xaDataSourceManager, logging, config.get( HaSettings.max_concurrent_channels_per_slave ),
                 config.get( HaSettings.com_chunk_size ).intValue() ) ) );
@@ -416,7 +419,8 @@ public class HighlyAvailableGraphDatabase extends InternalAbstractGraphDatabase
     {
 
         idGeneratorFactory = new HaIdGeneratorFactory( master, memberStateMachine, logging );
-        HighAvailabilityModeSwitcher highAvailabilityModeSwitcher = new HighAvailabilityModeSwitcher( masterDelegateInvocationHandler,
+        highAvailabilityModeSwitcher =
+                new HighAvailabilityModeSwitcher( masterDelegateInvocationHandler,
                 clusterMemberAvailability, memberStateMachine, this, (HaIdGeneratorFactory) idGeneratorFactory, config,
                 logging );
         /*
@@ -567,10 +571,10 @@ public class HighlyAvailableGraphDatabase extends InternalAbstractGraphDatabase
     @Override
     public DependencyResolver getDependencyResolver()
     {
-        return new DependencyResolver()
+        return new DependencyResolver.Adapter()
         {
             @Override
-            public <T> T resolveDependency( Class<T> type ) throws IllegalArgumentException
+            public <T> T resolveDependency( Class<T> type, SelectionStrategy<T> selector )
             {
                 T result;
                 try
@@ -608,7 +612,7 @@ public class HighlyAvailableGraphDatabase extends InternalAbstractGraphDatabase
                         throw e;
                     }
                 }
-                return result;
+                return selector.select( type, option( result ) );
             }
         };
     }
@@ -627,5 +631,4 @@ public class HighlyAvailableGraphDatabase extends InternalAbstractGraphDatabase
             accessGuard.await( stateSwitchTimeoutMillis );
         }
     }
-
 }

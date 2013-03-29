@@ -117,6 +117,9 @@ define(
           else if error.data.exception == "PropertyValueException"
             title = "Issue with property value"
             description = error.data.message
+          else if error.data.fullname.indexOf("org.neo4j.cypher") is 0
+            title = "Cypher error"
+            description = error.data.message
           else
             title = error.data.exception
             description = error.data.message
@@ -156,9 +159,11 @@ define(
         if @viewType == "visualized"
           $(ev.target).removeClass("tabular") if ev?
           @switchToTabularView()
-        else
+        else if @canVisualize()
           $(ev.target).addClass("tabular") if ev? 
           @switchToVisualizedView()
+        else 
+          alert "Apologies, while I can see you have beautiful data, I can't render any of it in this browser."
         
         @renderDataView()
           
@@ -189,4 +194,6 @@ define(
         @hideCreateRelationshipDialog()
         @dataView.remove()
 
+      canVisualize : =>
+        not ($('html').hasClass('ie7') or $('html').hasClass('ie8'))
 )
