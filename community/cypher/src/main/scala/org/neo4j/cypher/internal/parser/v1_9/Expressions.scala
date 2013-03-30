@@ -35,10 +35,10 @@ trait Expressions extends Base with ParserPattern with Predicates with StringLit
 
     result
   }
-  def range = opt(wholeNumber) ~ ".." ~ opt(wholeNumber) ^^ {
-    case Some(begin) ~ ".." ~  None => Some((Some(begin.toInt), None))
-    case Some(begin) ~ ".." ~   Some(end) => Some((Some(begin.toInt), Some(end.toInt)))
-    case None ~ ".." ~  Some(end) => Some((None, Some(end.toInt)))
+  def range = opt(expression) ~ ".." ~ opt(expression) ^^ {
+    case Some(begin) ~ ".." ~  None => Some((Some(begin), None))
+    case Some(begin) ~ ".." ~   Some(end) => Some((Some(begin), Some(end)))
+    case None ~ ".." ~  Some(end) => Some((None, Some(end)))
     case _ => None
   }
 
