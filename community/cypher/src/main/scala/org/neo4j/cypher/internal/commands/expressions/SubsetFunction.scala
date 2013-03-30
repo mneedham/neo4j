@@ -13,9 +13,14 @@ case class SubsetFunction(begin: Option[Int], end: Option[Int], collection: Expr
       null
     else
       (begin, end) match {
-        case (Some(b), Some(e)) => coll.take(e).drop(b-1)
-        case (None, Some(e)) => coll.take(e)
-        case (Some(b), None) => coll.drop(b-1)
+        case (Some(b), Some(e)) => {
+          if(e < 0 && b < 0)  coll.slice(coll.size+b,coll.size+e)
+          else if(b < 0)      coll.slice(coll.size+b,e)
+          else if (e < 0)     coll.slice(b,coll.size+e)
+          else                coll.slice(b,e)
+        }
+        case (None, Some(e)) => if(e < 0) coll.take(coll.size+e) else coll.take(e)
+        case (Some(b), None) => if(b < 0) coll.drop(coll.size+b) else coll.drop(b)
         case (None, None) => coll
       }
   }
