@@ -188,6 +188,19 @@ class FunctionsTest extends DocumentingTestBase {
       })
   }
 
+  @Test def subset() {
+    testThis(
+      title = "[..]",
+      syntax = "expression[..]",
+        arguments = List(
+        "expression" -> "This expression should return a collection of some kind."
+      ),
+      text = "+[..]+ returns the elements within the specified range in a collection",
+      queryText = "start a=node(%E%) return [1,2,3,4][..2]",
+      returns = "This returns the first two elements of the collection [1,2,3,4]",
+      assertions = p => assertEquals(Map("[1,2,3,4][..2]" -> Seq(1,2)), p.toList.head))
+  }
+
   @Test def filter() {
     testThis(
       title = "FILTER",

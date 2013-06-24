@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal.parser.v1_9
 import org.neo4j.cypher.internal.commands._
 import expressions._
 import org.neo4j.cypher.SyntaxException
+import org.neo4j.helpers.ThisShouldNotHappenError
 
 trait Expressions extends Base with ParserPattern with Predicates with StringLiteral {
   def expression: Parser[Expression] = term ~ rep("+" ~ term | "-" ~ term) ^^ {
@@ -34,8 +35,20 @@ trait Expressions extends Base with ParserPattern with Predicates with StringLit
 
     result
   }
+  def range = opt(expression) ~ ".." ~ opt(expression) ^^ {
+    case Some(begin) ~ ".." ~  None => Some((Some(begin), None))
+    case Some(begin) ~ ".." ~   Some(end) => Some((Some(begin), Some(end)))
+    case None ~ ".." ~  Some(end) => Some((None, Some(end)))
+    case _ => None
+  }
 
-  def term: Parser[Expression] = factor ~ rep("*" ~ factor | "/" ~ factor | "%" ~ factor | "^" ~ factor) ^^ {
+  def optionalSubsetFactor: Parser[Expression] = factor ~ opt("[" ~> range <~ "]") ^^ {
+    case expression ~ None => expression
+    case expression ~ Some(Some((begin, end))) => SubsetFunction(begin, end, expression)
+    case expression ~ Some(None) => SubsetFunction(None, None, expression)
+  }
+
+  def term: Parser[Expression] = optionalSubsetFactor ~ rep("*" ~ factor | "/" ~ factor | "%" ~ factor | "^" ~ factor) ^^ {
     case head ~ rest =>
       var result = head
       rest.foreach {
