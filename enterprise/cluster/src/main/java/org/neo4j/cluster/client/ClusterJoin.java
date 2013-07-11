@@ -262,14 +262,7 @@ public class ClusterJoin
 
     private String resolvePortOnlyHost( HostnamePort host )
     {
-        try
-        {
-            return host.toString( InetAddress.getLocalHost().getHostAddress() );
-        }
-        catch ( UnknownHostException e )
-        {
-            throw new RuntimeException( e );
-        }
+        return "0.0.0.0:" + host.getPort();
     }
 
     private class UnknownJoiningMemberWarning extends ClusterListener.Adapter

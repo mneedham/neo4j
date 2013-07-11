@@ -50,9 +50,43 @@ public class NetworkInstanceSendAndReceiveTest
     }
 
     @Test
+    public void shouldSendAndReceiveMessagesWhenHostNotSpecified() throws Exception {
+        // given
+
+        CountDownLatch latch = new CountDownLatch( 1 );
+
+        LifeSupport life = new LifeSupport();
+
+        Server server1 = new Server( latch, MapUtil.stringMap( ClusterSettings.server_id.name(), "1",
+                ClusterSettings.initial_hosts.name(), "localhost:1235,localhost:5001" ) );
+
+        life.add( server1 );
+
+        Server server2 = new Server( latch, MapUtil.stringMap( ClusterSettings.cluster_server.name(), "localhost:1235",
+                ClusterSettings.server_id.name(), "2",
+                ClusterSettings.initial_hosts.name(), "localhost:1235,localhost:5001" ) );
+
+        life.add( server2 );
+
+        life.start();
+
+        // when
+
+        server1.process( Message.to( TestMessage.helloWorld, URI.create( "neo4j://localhost:1235" ), "Hello World" ) );
+
+        // then
+
+        latch.await( 2, TimeUnit.SECONDS );
+
+        assertTrue( server1.processedMessage() );
+        assertTrue( server2.processedMessage() );
+
+        life.shutdown();
+    }
+
+    @Test
     public void shouldSendAMessageFromAClientWhichIsReceivedByAServer() throws Exception
     {
-
         // given
 
         CountDownLatch latch = new CountDownLatch( 1 );
@@ -75,7 +109,7 @@ public class NetworkInstanceSendAndReceiveTest
 
         // when
 
-        server1.process( Message.to( TestMessage.helloWorld, URI.create( "neo4j://127.0.0.1:1235" ), "Hello World" ) );
+        server1.process( Message.to( TestMessage.helloWorld, URI.create( "neo4j://localhost:1235" ), "Hello World" ) );
 
         // then
 
