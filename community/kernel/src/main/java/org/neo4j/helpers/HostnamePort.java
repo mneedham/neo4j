@@ -35,12 +35,7 @@ public class HostnamePort
     public HostnamePort( String hostnamePort ) throws IllegalArgumentException
     {
         String[] parts = hostnamePort.split( ":" );
-        if ( parts.length == 1 )
-        {
-            host = zeroLengthMeansNull( parts[0] );
-            ports = new int[]{0, 0};
-        }
-        else if ( parts.length == 2 )
+        if ( parts.length == 2 )
         {
             host = zeroLengthMeansNull( parts[0] );
 
@@ -61,7 +56,6 @@ public class HostnamePort
                 throw new IllegalArgumentException( format( "Cannot have more than two port ranges: %s",
                         hostnamePort ) );
             }
-
         }
         else
         {

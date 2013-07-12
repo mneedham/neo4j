@@ -188,20 +188,11 @@ public class NetworkInstance
             try
             {
                 String host = config.clusterServer().getHost();
+//                if(host == null) {
+//                    host = "0.0.0.0";
+//                }
 
-//                InetSocketAddress localAddress = new InetSocketAddress(host, checkPort);
-
-                InetSocketAddress localAddress;
-
-                if(host == null) {
-                    localAddress = new InetSocketAddress(InetAddress.getByAddress(new byte[] {0,0,0,0}), checkPort);
-                } else {
-                    localAddress = new InetSocketAddress( config.clusterServer().getHost(), checkPort );
-                }
-
-                if(localAddress.isUnresolved()) {
-                    localAddress = new InetSocketAddress(InetAddress.getByAddress(new byte[] {0,0,0,0}), checkPort);
-                }
+                InetSocketAddress localAddress = new InetSocketAddress( host, checkPort );
 
                 Channel listenChannel = serverBootstrap.bind( localAddress );
                 listeningAt( (getURI( (InetSocketAddress) listenChannel.getLocalAddress() )) );
