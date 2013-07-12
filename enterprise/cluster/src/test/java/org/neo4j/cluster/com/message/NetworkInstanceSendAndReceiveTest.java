@@ -55,79 +55,43 @@ public class NetworkInstanceSendAndReceiveTest
     }
 
     @Test
-    public void canConnectThroughAllLoopbackInterfacesOnPort5001IfClusterServerNotExplicitlySet() throws IOException {
+    public void shouldSendAndReceiveMessagesWhenHostNotSpecified() throws Exception {
+        // given
+
         CountDownLatch latch = new CountDownLatch( 1 );
+
         LifeSupport life = new LifeSupport();
+
         Server server1 = new Server( latch, MapUtil.stringMap( ClusterSettings.server_id.name(), "1",
                 ClusterSettings.initial_hosts.name(), "localhost:1235,localhost:5001" ) );
+
         life.add( server1 );
-        life.start();
 
-        NetworkInterface localLoopback = getLocalLoopbackInterface(Collections.list(NetworkInterface.getNetworkInterfaces()));
-        ArrayList<InetAddress> localLoopBackAddresses = Collections.list(localLoopback.getInetAddresses());
-        assertTrue(localLoopBackAddresses.size() > 0);
-        for (InetAddress inetAddress : localLoopBackAddresses) {
-            boolean canConnect = canConnectTo5001(inetAddress);
-            assertTrue(String.format("Failed to create socket connection to *.5001 using %s [%s]", localLoopback.getDisplayName(), inetAddress), canConnect);
-        }
-    }
-
-    @Test
-    public void canConnectThroughAtLeastOneExternalInterfaceOnPort5001IfClusterServerNotExplicitlySet() throws IOException {
-        CountDownLatch latch = new CountDownLatch( 1 );
-        LifeSupport life = new LifeSupport();
-        Server server1 = new Server( latch, MapUtil.stringMap( ClusterSettings.server_id.name(), "1",
+        Server server2 = new Server( latch, MapUtil.stringMap( ClusterSettings.cluster_server.name(), "localhost:1235",
+                ClusterSettings.server_id.name(), "2",
                 ClusterSettings.initial_hosts.name(), "localhost:1235,localhost:5001" ) );
-        life.add( server1 );
+
+        life.add( server2 );
+
         life.start();
 
-        List<NetworkInterface> nonLoopbackInterfaces = getNonLoopbackInterfaces(Collections.list(NetworkInterface.getNetworkInterfaces()));
-        assertTrue(nonLoopbackInterfaces.size() > 0);
+        // when
 
-        boolean canConnectThroughAtLeastOne = false;
-        for (NetworkInterface networkInterface : nonLoopbackInterfaces) {
-            ArrayList<InetAddress> nonLoopBackAddresses = Collections.list(networkInterface.getInetAddresses());
-            for (InetAddress inetAddress : nonLoopBackAddresses) {
-                boolean canConnect = canConnectTo5001(inetAddress);
-                System.out.println("canConnect = " + canConnect + " " + inetAddress);
-                canConnectThroughAtLeastOne |=  canConnect;
-            }
-        }
-        assertTrue(canConnectThroughAtLeastOne);
-    }
+        server1.process( Message.to( TestMessage.helloWorld, URI.create( "neo4j://localhost:1235" ), "Hello World" ) );
 
-    private List<NetworkInterface> getNonLoopbackInterfaces(ArrayList<NetworkInterface> networkInterfaces) throws SocketException {
-        List<NetworkInterface> nonLoopback = new ArrayList<NetworkInterface>();
-        for (NetworkInterface networkInterface : networkInterfaces) {
-            if(!networkInterface.isLoopback()) {
-                nonLoopback.add(networkInterface);
-            }
-        }
-        return nonLoopback;
-    }
+        // then
 
-    private boolean canConnectTo5001(InetAddress inetAddress) throws IOException {
-        try {
-            new Socket(inetAddress, 5001);
-            return true;
-        } catch(ConnectException ex) {
-            return false;
-        }
-    }
+        latch.await( 2, TimeUnit.SECONDS );
 
-    private NetworkInterface getLocalLoopbackInterface(ArrayList<NetworkInterface> networkInterfaces) throws SocketException {
-        for (NetworkInterface networkInterface : networkInterfaces) {
-            if(networkInterface.isLoopback()) {
-                return networkInterface;
-            }
-        }
-        throw new RuntimeException("No loopback interface");
+        assertTrue( server1.processedMessage() );
+        assertTrue( server2.processedMessage() );
+
+        life.shutdown();
     }
 
     @Test
     public void shouldSendAMessageFromAClientWhichIsReceivedByAServer() throws Exception
     {
-
         // given
 
         CountDownLatch latch = new CountDownLatch( 1 );
@@ -150,7 +114,7 @@ public class NetworkInstanceSendAndReceiveTest
 
         // when
 
-        server1.process( Message.to( TestMessage.helloWorld, URI.create( "neo4j://127.0.0.1:1235" ), "Hello World" ) );
+        server1.process( Message.to( TestMessage.helloWorld, URI.create( "neo4j://localhost:1235" ), "Hello World" ) );
 
         // then
 
@@ -162,7 +126,7 @@ public class NetworkInstanceSendAndReceiveTest
         life.shutdown();
     }
 
-    private static class Server
+    public static class Server
             implements Lifecycle, MessageProcessor
     {
         protected NetworkInstance networkInstance;
@@ -170,7 +134,7 @@ public class NetworkInstanceSendAndReceiveTest
         private final LifeSupport life = new LifeSupport();
         private boolean processedMessage = false;
 
-        private Server( final CountDownLatch latch, final Map<String, String> config )
+        public Server(final CountDownLatch latch, final Map<String, String> config)
         {
             final Config conf = new Config( config, ClusterSettings.class );
             networkInstance = new NetworkInstance( new NetworkInstance.Configuration()

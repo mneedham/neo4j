@@ -135,9 +135,9 @@ public class NetworkInstance
         // Listen for incoming connections
         nioChannelFactory = new NioServerSocketChannelFactory(
                 Executors.newCachedThreadPool( new NamedThreadFactory( "Cluster boss" ) ),
-                Executors.newFixedThreadPool( 2, new NamedThreadFactory( "Cluster worker" ) ), 2 );
+                Executors.newFixedThreadPool(2, new NamedThreadFactory("Cluster worker")), 2 );
         serverBootstrap = new ServerBootstrap( nioChannelFactory );
-        serverBootstrap.setOption( "child.tcpNoDelay", true );
+        serverBootstrap.setOption("child.tcpNoDelay", true);
         serverBootstrap.setPipelineFactory( new NetworkNodePipelineFactory() );
 
         int[] ports = config.clusterServer().getPorts();
@@ -187,18 +187,21 @@ public class NetworkInstance
         {
             try
             {
-                InetAddress host;
-                String address = config.clusterServer().getHost();
-                if ( address == null )
-                {
-                    host = InetAddress.getLocalHost();
-                }
-                else
-                {
-                    host = InetAddress.getByName( address );
+                String host = config.clusterServer().getHost();
+
+//                InetSocketAddress localAddress = new InetSocketAddress(host, checkPort);
+
+                InetSocketAddress localAddress;
+
+                if(host == null) {
+                    localAddress = new InetSocketAddress(InetAddress.getByAddress(new byte[] {0,0,0,0}), checkPort);
+                } else {
+                    localAddress = new InetSocketAddress( config.clusterServer().getHost(), checkPort );
                 }
 
-                InetSocketAddress localAddress = new InetSocketAddress( host, checkPort );
+                if(localAddress.isUnresolved()) {
+                    localAddress = new InetSocketAddress(InetAddress.getByAddress(new byte[] {0,0,0,0}), checkPort);
+                }
 
                 Channel listenChannel = serverBootstrap.bind( localAddress );
                 listeningAt( (getURI( (InetSocketAddress) listenChannel.getLocalAddress() )) );
@@ -418,7 +421,7 @@ public class NetworkInstance
 
     public void addNetworkChannelsListener( NetworkChannelsListener listener )
     {
-        listeners = Listeners.addListener( listener, listeners );
+        listeners = Listeners.addListener(listener, listeners);
     }
 
     private Channel openChannel( URI clusterUri )
