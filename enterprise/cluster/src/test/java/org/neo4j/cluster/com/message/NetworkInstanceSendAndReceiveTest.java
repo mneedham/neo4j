@@ -20,21 +20,14 @@
 package org.neo4j.cluster.com.message;
 
 import java.net.URI;
-import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
 import org.neo4j.cluster.ClusterSettings;
-import org.neo4j.cluster.com.NetworkInstance;
-import org.neo4j.helpers.HostnamePort;
 import org.neo4j.helpers.collection.MapUtil;
-import org.neo4j.kernel.configuration.Config;
 import org.neo4j.kernel.lifecycle.LifeSupport;
-import org.neo4j.kernel.lifecycle.Lifecycle;
-import org.neo4j.kernel.lifecycle.LifecycleAdapter;
-import org.neo4j.kernel.logging.DevNullLoggingService;
 
 import static org.junit.Assert.assertTrue;
 
@@ -50,9 +43,43 @@ public class NetworkInstanceSendAndReceiveTest
     }
 
     @Test
+    public void shouldSendAMessageFromAClientToAServerWhenTheServerDoesNotExplicitlySetItsClusterServer() throws Exception {
+        // given
+
+        CountDownLatch latch = new CountDownLatch( 1 );
+
+        LifeSupport life = new LifeSupport();
+
+        Server server1 = new Server( latch, MapUtil.stringMap( ClusterSettings.cluster_server.name(),
+                "localhost:1234", ClusterSettings.server_id.name(), "1",
+                ClusterSettings.initial_hosts.name(), "localhost:1234,localhost:1235" ) );
+
+        life.add( server1 );
+
+        Server serverWithoutExplicitServerName = new Server( latch, MapUtil.stringMap( ClusterSettings.server_id.name(), "2",
+                ClusterSettings.initial_hosts.name(), "localhost:1234,localhost:1235" ) );
+
+        life.add( serverWithoutExplicitServerName );
+
+        life.start();
+
+        // when
+
+        server1.process( Message.to( TestMessage.helloWorld, URI.create( "neo4j://127.0.0.1:5001" ), "Hello World" ) );
+
+        // then
+
+        latch.await( 2, TimeUnit.SECONDS );
+
+        assertTrue( server1.processedMessage() );
+        assertTrue(serverWithoutExplicitServerName.processedMessage());
+
+        life.shutdown();
+    }
+
+    @Test
     public void shouldSendAMessageFromAClientWhichIsReceivedByAServer() throws Exception
     {
-
         // given
 
         CountDownLatch latch = new CountDownLatch( 1 );
@@ -87,87 +114,4 @@ public class NetworkInstanceSendAndReceiveTest
         life.shutdown();
     }
 
-    private static class Server
-            implements Lifecycle, MessageProcessor
-    {
-        protected NetworkInstance networkInstance;
-
-        private final LifeSupport life = new LifeSupport();
-        private boolean processedMessage = false;
-
-        private Server( final CountDownLatch latch, final Map<String, String> config )
-        {
-            final Config conf = new Config( config, ClusterSettings.class );
-            networkInstance = new NetworkInstance( new NetworkInstance.Configuration()
-            {
-                @Override
-                public HostnamePort clusterServer()
-                {
-                    return conf.get( ClusterSettings.cluster_server );
-                }
-
-                @Override
-                public int defaultPort()
-                {
-                    return 5001;
-                }
-            }, new DevNullLoggingService() );
-
-            life.add( networkInstance );
-            life.add( new LifecycleAdapter()
-            {
-                @Override
-                public void start() throws Throwable
-                {
-                    networkInstance.addMessageProcessor( new MessageProcessor()
-                    {
-                        @Override
-                        public boolean process( Message<? extends MessageType> message )
-                        {
-                            // server receives a message
-                            latch.countDown();
-                            processedMessage = true;
-                            return true;
-                        }
-                    } );
-                }
-            } );
-        }
-
-        @Override
-        public void init() throws Throwable
-        {
-        }
-
-        @Override
-        public void start() throws Throwable
-        {
-
-            life.start();
-        }
-
-        @Override
-        public void stop() throws Throwable
-        {
-            life.stop();
-        }
-
-        @Override
-        public void shutdown() throws Throwable
-        {
-        }
-
-        @Override
-        public boolean process( Message<? extends MessageType> message )
-        {
-            // server sends a message
-            this.processedMessage = true;
-            return networkInstance.process( message );
-        }
-
-        public boolean processedMessage()
-        {
-            return this.processedMessage;
-        }
-    }
 }

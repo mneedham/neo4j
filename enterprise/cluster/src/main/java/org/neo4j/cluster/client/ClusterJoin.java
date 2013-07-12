@@ -262,6 +262,7 @@ public class ClusterJoin
 
     private String resolvePortOnlyHost( HostnamePort host )
     {
+//        return "0.0.0.0";
         try
         {
             return host.toString( InetAddress.getLocalHost().getHostAddress() );

@@ -150,7 +150,7 @@ public class NetworkInstance
                 Executors.newSingleThreadExecutor( new NamedThreadFactory( "Cluster client boss" ) ),
                 Executors.newFixedThreadPool( 2, new NamedThreadFactory( "Cluster client worker" ) ), 2 ) );
         clientBootstrap.setOption( "tcpNoDelay", true );
-        clientBootstrap.setPipelineFactory( new NetworkNodePipelineFactory() );
+        clientBootstrap.setPipelineFactory(new NetworkNodePipelineFactory());
         clientBootstrap.setOption("tcpNoDelay", true);
 
         // Try all ports in the given range
@@ -188,18 +188,11 @@ public class NetworkInstance
         {
             try
             {
-                InetAddress host;
-                String address = config.clusterServer().getHost();
-                if ( address == null )
-                {
-                    host = InetAddress.getLocalHost();
+                String host = config.clusterServer().getHost();
+                if(host == null) {
+                    host = "0.0.0.0";
                 }
-                else
-                {
-                    host = InetAddress.getByName( address );
-                }
-
-                InetSocketAddress localAddress = new InetSocketAddress( host, checkPort );
+                InetSocketAddress localAddress = new InetSocketAddress(host, checkPort );
 
                 Channel listenChannel = serverBootstrap.bind( localAddress );
                 listeningAt( (getURI( (InetSocketAddress) listenChannel.getLocalAddress() )) );
