@@ -161,9 +161,10 @@ body {
 #facebox {
     /* overlay is hidden before loading */
     display:none;
- 
+
     /* standard decorations */
-    width:400px;
+    width:512px;
+    height:331px;
     border:10px solid #666;
  
     /* for modern browsers use semi-transparent color on the border. nice! */
@@ -176,7 +177,7 @@ body {
  
 #facebox div {
     padding:10px;
-    border:1px solid #3B5998;
+    border:1px solid #ffffff;
     background-color:#fff;
     font-family:"lucida grande",tahoma,verdana,arial,sans-serif
 }
@@ -185,8 +186,23 @@ body {
     margin:-11px;
     margin-bottom:0px;
     color:#fff;
-    background-color:#6D84B4;
+    background-color:#11114E;
     padding:5px 10px;
-    border:1px solid #3B5998;
+    border:1px solid #ffffff;
     font-size:20px;
+}
+
+#facebox h4, p {
+  padding: 5px;
+}
+
+input[type=submit]{
+    
+cursor:pointer;
+font-family:Verdana,Arial,Helvetica;
+font-size:22px;
+font-weight:bold;
+height:22px;
+padding:10px;
+width:184px;
 }

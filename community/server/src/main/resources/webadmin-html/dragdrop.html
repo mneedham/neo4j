@@ -61,7 +61,7 @@
         			$("#import-progress").append(".")
         			setTimeout(function() { pollJob(pollingUri); }, 2000);	
         		} else {
-        			$("#import-progress").html("Done");
+        			$("#import-progress").html("Done. Hurrah!");
         			$("#correlationId").val(new Date().getTime());
         			nodes.removeAllFiles();
         			rels.removeAllFiles();        			
@@ -126,10 +126,13 @@
 					<input type="file" name="relationships" id="relationships">
 				</div>
 			</div>
-		
-			<input id="process-import" type="submit" name="submit" value="Import Data">
+			<div style="padding-top:10px">
+				<input id="process-import" type="submit" name="submit" value="Import Data">
+			</div>
 			<div id="facebox">
 				<h2>Import In Progress y'all</h2>
+
+				<p>Importing your nodes and relationships. Current Status:</p>
 
 				<h4 id="import-progress">Importing...</h4>
 			</div>
