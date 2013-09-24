@@ -25,14 +25,12 @@
 				
 		Dropzone.options.nodes = {
 		  paramName: "nodes", 
-		  maxFiles: 1,
 		  dictDefaultMessage: "Drop nodes file here or click to find file",
 		  success: function(file, done) {
 			file.previewElement.querySelector("[data-dz-file]").textContent = done.fileType; 			
 		  	lastNodesFile.name = file.name;
 		  	lastNodesFile.enumFileType = done.enumFileType;
-		  },
-		  	  
+		  }, 	  
 		};
 
 		Dropzone.options.relationships = {
@@ -77,12 +75,17 @@
 		    $("#import-progress").html("The Neo4j importer monkeys are hard at work...");
 		    $("#facebox").overlay().load();
 
+		    var files = [];
+		    files.push({"name": lastNodesFile.name, "type": lastNodesFile.enumFileType});
+		    files.push({"name": lastRelationshipsFile.name, "type": lastRelationshipsFile.enumFileType});
+
 			var uri = "http://localhost:7474/tools/import/incremental";
 			uri += "?lastNodesFile=" + lastNodesFile.name;
 			uri += "&lastNodesFileType=" + lastNodesFile.enumFileType;
 			uri += "&lastRelationshipsFile=" + lastRelationshipsFile.name;
 			uri += "&lastRelationshipsFileType=" + lastRelationshipsFile.enumFileType;
 			uri += "&correlationId=" + correlationId;
+			uri += "&files=" + JSON.stringify(files);
 
 			$.ajax({
 				url: uri,
@@ -97,7 +100,7 @@
 	</script>
 </head>
 	<body>
-		<h3>Neo4j Web Importer</h3>
+		<h1>Neo4j Web Importer</h1>
 
 		<p>
 		To import data into your neo4j database you need to supply two files:
