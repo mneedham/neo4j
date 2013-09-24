@@ -11,27 +11,26 @@
 	<script type="text/javascript">
 	Dropzone.autoDiscover = false;
 
-	$(document).ready(function() {		
+	$(document).ready(function() {				
+		var lastNodesFile = { "name" : "nodes.csv" };
+		var lastRelationshipsFile = { "name" : "relationships.csv" };
+		var correlationId = new Date().getTime();
+
 		$("#facebox").overlay({
 			top: 260, 
-			mask: {
-				color: '#fff',
-				loadSpeed: 200				
-			},
+			mask: { color: '#fff', loadSpeed: 200, opacity: 0.9 },
 			closeOnClick: true,
 			load: false
 		});
-
-		$("#correlationId").val(new Date().getTime());
-		var lastNodesFile = "nodes.csv";
-		var lastRelationshipsFile = "relationships.csv";
-
+				
 		Dropzone.options.nodes = {
 		  paramName: "nodes", 
 		  maxFiles: 1,
 		  dictDefaultMessage: "Drop nodes file here or click to find file",
 		  success: function(file, done) {
-		  	lastNodesFile = file.name;
+			file.previewElement.querySelector("[data-dz-file]").textContent = done.fileType; 			
+		  	lastNodesFile.name = file.name;
+		  	lastNodesFile.enumFileType = done.enumFileType;
 		  },
 		  	  
 		};
@@ -41,17 +40,19 @@
 		  maxFiles: 1,
 		  dictDefaultMessage: "Drop relationships file here or click to find file",
 		  success: function(file, done) {
-		    lastRelationshipsFile = file.name;
+		  	file.previewElement.querySelector("[data-dz-file]").textContent = done.fileType;
+		    lastRelationshipsFile.name = file.name;
+		    lastRelationshipsFile.enumFileType = done.enumFileType;
 		  }
 		};		
 	
 		var nodes = new Dropzone("#nodes", { 
-			url: "http://localhost:7474/tools/import/nodes?correlationId=" + $("#correlationId").val(),
+			url: "http://localhost:7474/tools/import/nodes?correlationId=" + correlationId,
 			addRemoveLinks: true,
 		});
 
 		var rels = new Dropzone("#relationships", { 
-			url: "http://localhost:7474/tools/import/relationships?correlationId=" + $("#correlationId").val(),
+			url: "http://localhost:7474/tools/import/relationships?correlationId=" + correlationId,
 			addRemoveLinks: true, 			
 		});
 
@@ -61,8 +62,11 @@
         			$("#import-progress").append(".")
         			setTimeout(function() { pollJob(pollingUri); }, 2000);	
         		} else {
-        			$("#import-progress").html("Done. Hurrah!");
-        			$("#correlationId").val(new Date().getTime());
+        			$("#import-progress").html("Done. Hurrah! We will feed the monkeys to thank them for their hard work");
+        			correlationId = new Date().getTime();
+        			rels.options.url = "http://localhost:7474/tools/import/relationships?correlationId=" + correlationId;
+        			nodes.options.url = "http://localhost:7474/tools/import/nodes?correlationId=" + correlationId;
+
         			nodes.removeAllFiles();
         			rels.removeAllFiles();        			
         		}        		
@@ -70,14 +74,15 @@
 		}
 
 		$("#import-all-the-things").submit(function(e) {
-			console.log("post form")
-		    $("#import-progress").html("Importing...");
+		    $("#import-progress").html("The Neo4j importer monkeys are hard at work...");
 		    $("#facebox").overlay().load();
 
 			var uri = "http://localhost:7474/tools/import/incremental";
-			uri += "?lastNodesFile=" + lastNodesFile;
-			uri += "&lastRelationshipsFile=" + lastRelationshipsFile;
-			uri += "&correlationId=" + $("#correlationId").val();
+			uri += "?lastNodesFile=" + lastNodesFile.name;
+			uri += "&lastNodesFileType=" + lastNodesFile.enumFileType;
+			uri += "&lastRelationshipsFile=" + lastRelationshipsFile.name;
+			uri += "&lastRelationshipsFileType=" + lastRelationshipsFile.enumFileType;
+			uri += "&correlationId=" + correlationId;
 
 			$.ajax({
 				url: uri,
@@ -110,9 +115,6 @@
 		</p>
 
 		<form id="import-all-the-things" action="http://localhost:7474/tools/import" method="POST" enctype="multipart/form-data">
-
-			<input type="hidden" id="correlationId" />
-			
 			<div id="nodes" class="dropzone" style="padding: 25px; display: inline-block; width: 50%; height:250px; float:left">
 				<div class="fallback">
 					<label for="nodes">Nodes:</label>
@@ -132,9 +134,12 @@
 			<div id="facebox">
 				<h2>Import In Progress y'all</h2>
 
-				<p>Importing your nodes and relationships. Current Status:</p>
+				<p>Importing your nodes and relationships.</p> 
 
-				<h4 id="import-progress">Importing...</h4>
+				<p>Current Status:
+					<h4 id="import-progress">The Neo4j importer monkeys are hard at work...</h4>
+				</p>
+				
 			</div>
 		</form>
 
