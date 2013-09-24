@@ -1407,9 +1407,7 @@ require.register("dropzone/lib/dropzone.js", function(exports, require, module){
         file = files[_l];
         formData.append("" + this.options.paramName + (this.options.uploadMultiple ? "[]" : ""), file, file.name);
       }
-
-      console.log(formData);
-
+    
       return xhr.send(formData);
     };
 

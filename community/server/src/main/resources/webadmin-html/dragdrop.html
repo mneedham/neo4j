@@ -4,6 +4,7 @@
 	<title>Import all the things</title>
 	<script src="js/dropzone.js"></script>
 	<script src="js/lib/jquery.js"></script>
+	<script src="js/lib/jquery.tools.min.js"></script>
 	<link rel="stylesheet" type="text/css" href="css/basic.css">
 	<link rel="stylesheet" type="text/css" href="css/dropzone.css">
 
@@ -11,6 +12,18 @@
 	Dropzone.autoDiscover = false;
 
 	$(document).ready(function() {
+		console.log($("#facebox"));
+		// $("#facebox").overlay({
+		// 	top: 260, 
+		// 	mask: {
+		// 		color: '#fff',
+		// 		loadSpeed: 200,
+		// 		opacity: 0.5
+		// 	},
+		// 	closeOnClick: false,
+		// 	load: true
+		// });
+
 		$("#correlationId").val(new Date().getTime());
 		var lastNodesFile = "nodes.csv";
 		var lastRelationshipsFile = "relationships.csv";
@@ -33,10 +46,7 @@
 		    lastRelationshipsFile = file.name;
 		  }
 		};		
-
-		// add hooks to capture the last uploaded nodes/rels files
-		// store that somewhere client side
-
+	
 		var nodes = new Dropzone("#nodes", { 
 			url: "http://localhost:7474/tools/import/nodes?correlationId=" + $("#correlationId").val(),
 			addRemoveLinks: true,
@@ -47,17 +57,34 @@
 			addRemoveLinks: true, 			
 		});
 
+		var pollJob = function(pollingUri){
+    		$.get(pollingUri, function(data) {   
+        		if(!data.finished) {
+        			$("#import-progress").append(".")
+        			setTimeout(function() { pollJob(pollingUri); }, 2000);	
+        		} else {
+        			$("#import-progress").html("Done")
+        		}        		
+    		});
+		}
+
 		$("#import-all-the-things").submit(function(e) {
+			// console.log("importing")
+			// $("#facebox").click();
+
+
+		    $("#import-progress").html("Importing...")
+
 			var uri = "http://localhost:7474/tools/import/incremental";
 			uri += "?lastNodesFile=" + lastNodesFile;
 			uri += "&lastRelationshipsFile=" + lastRelationshipsFile;
 			uri += "&correlationId=" + $("#correlationId").val();
-			
+
 			$.ajax({
 				url: uri,
 				type: 'POST',
-				success: function(response) {
-					console.log(response);
+				success: function(response, status, xhr) {										
+					pollJob(xhr.getResponseHeader("Location"));
 				}
 			});
 			e.preventDefault();
@@ -87,16 +114,12 @@
 
 			<input type="hidden" id="correlationId" />
 			
-			<p>
 			<div id="nodes" class="dropzone" style="padding: 25px; display: inline-block; width: 50%; height:250px; float:left">
 				<div class="fallback">
 					<label for="nodes">Nodes:</label>
 					<input type="file" name="nodes" id="nodes">
 				</div>
 			</div>	
-			</p>		
-
-			<p>
 
 			<div id="relationships" class="dropzone"  style="padding: 25px;display: inline-block; width: 50%; height:250px;">
 				<div class="fallback">
@@ -104,9 +127,15 @@
 					<input type="file" name="relationships" id="relationships">
 				</div>
 			</div>
-			</p>
 		
 			<input id="process-import" type="submit" name="submit" value="Import Data">
+			<div id="import-progress">
+				<!-- <h2>Import In Progress y'all</h2> -->
+
+				<!-- <p id="import-progress">Importing...</p> -->
+
+				<!-- <button class="close">Close</button> -->
+			</div>
 		</form>
 
 	</body>
