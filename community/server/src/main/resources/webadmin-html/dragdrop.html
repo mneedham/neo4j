@@ -11,18 +11,16 @@
 	<script type="text/javascript">
 	Dropzone.autoDiscover = false;
 
-	$(document).ready(function() {
-		console.log($("#facebox"));
-		// $("#facebox").overlay({
-		// 	top: 260, 
-		// 	mask: {
-		// 		color: '#fff',
-		// 		loadSpeed: 200,
-		// 		opacity: 0.5
-		// 	},
-		// 	closeOnClick: false,
-		// 	load: true
-		// });
+	$(document).ready(function() {		
+		$("#facebox").overlay({
+			top: 260, 
+			mask: {
+				color: '#fff',
+				loadSpeed: 200				
+			},
+			closeOnClick: true,
+			load: false
+		});
 
 		$("#correlationId").val(new Date().getTime());
 		var lastNodesFile = "nodes.csv";
@@ -63,17 +61,18 @@
         			$("#import-progress").append(".")
         			setTimeout(function() { pollJob(pollingUri); }, 2000);	
         		} else {
-        			$("#import-progress").html("Done")
+        			$("#import-progress").html("Done");
+        			$("#correlationId").val(new Date().getTime());
+        			nodes.removeAllFiles();
+        			rels.removeAllFiles();        			
         		}        		
     		});
 		}
 
 		$("#import-all-the-things").submit(function(e) {
-			// console.log("importing")
-			// $("#facebox").click();
-
-
-		    $("#import-progress").html("Importing...")
+			console.log("post form")
+		    $("#import-progress").html("Importing...");
+		    $("#facebox").overlay().load();
 
 			var uri = "http://localhost:7474/tools/import/incremental";
 			uri += "?lastNodesFile=" + lastNodesFile;
@@ -83,7 +82,7 @@
 			$.ajax({
 				url: uri,
 				type: 'POST',
-				success: function(response, status, xhr) {										
+				success: function(response, status, xhr) {					
 					pollJob(xhr.getResponseHeader("Location"));
 				}
 			});
@@ -129,12 +128,10 @@
 			</div>
 		
 			<input id="process-import" type="submit" name="submit" value="Import Data">
-			<div id="import-progress">
-				<!-- <h2>Import In Progress y'all</h2> -->
+			<div id="facebox">
+				<h2>Import In Progress y'all</h2>
 
-				<!-- <p id="import-progress">Importing...</p> -->
-
-				<!-- <button class="close">Close</button> -->
+				<h4 id="import-progress">Importing...</h4>
 			</div>
 		</form>
 
