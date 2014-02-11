@@ -22,7 +22,9 @@ package org.neo4j.backup;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.io.RandomAccessFile;
+import java.io.StringWriter;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
@@ -91,9 +93,13 @@ class BackupService
         }
     }
 
+    private StringLogger logger = StringLogger.SYSTEM;
+
     BackupOutcome doFullBackup( String sourceHostNameOrIp, int sourcePort, String targetDirectory,
                                 boolean checkConsistency, Config tuningConfiguration )
     {
+        logger.logMessage( "Starting full backup" );
+
         if ( directoryContainsDb( targetDirectory ) )
         {
             throw new RuntimeException( targetDirectory + " already contains a database" );
@@ -107,16 +113,20 @@ class BackupService
         boolean consistent = !checkConsistency; // default to true if we're not checking consistency
         try
         {
+            logger.logMessage( "Copying store files" );
             Response<Void> response = client.fullBackup( decorateWithProgressIndicator(
                     new ToFileStoreWriter( new File( targetDirectory ) ) ) );
+            logger.logMessage( "Copied store files" );
             GraphDatabaseAPI targetDb = startTemporaryDb( targetDirectory,
                     VerificationLevel.NONE /* run full check instead */ );
             try
             {
                 // First, receive all txs pending
+                logger.logMessage( "Replaying transactions that happened during backup" );
                 lastCommittedTxs = unpackResponse( response,
                         targetDb.getDependencyResolver().resolveDependency( XaDataSourceManager.class ),
                         ServerUtil.txHandlerForFullCopy() );
+                logger.logMessage( "Replayed transactions that happened during backup" );
                 // Then go over all datasources, try to extract the latest tx
                 Set<String> noTxPresent = new HashSet<String>();
                 for ( XaDataSource ds : dsManager( targetDb ).getAllRegisteredDataSources() )
@@ -243,11 +253,18 @@ class BackupService
                 }
             }
         }
+        catch(Throwable e) {
+            StringWriter errors = new StringWriter();
+            e.printStackTrace(new PrintWriter(errors));
+            logger.logMessage( errors.toString() );
+        }
         finally
         {
             try
             {
+                logger.logMessage( "Stopping client" );
                 client.stop();
+                logger.logMessage( "Stopped client" );
             }
             catch ( Throwable throwable )
             {
@@ -255,6 +272,11 @@ class BackupService
             }
         }
         return new BackupOutcome( lastCommittedTxs, consistent );
+    }
+
+    private void log( String message )
+    {
+        System.out.println( message );
     }
 
     BackupOutcome doIncrementalBackup( String sourceHostNameOrIp, int sourcePort, String targetDirectory,
