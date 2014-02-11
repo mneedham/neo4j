@@ -52,9 +52,11 @@ import org.neo4j.helpers.Settings;
 import org.neo4j.helpers.Triplet;
 import org.neo4j.helpers.progress.ProgressListener;
 import org.neo4j.helpers.progress.ProgressMonitorFactory;
+import org.neo4j.kernel.DefaultFileSystemAbstraction;
 import org.neo4j.kernel.GraphDatabaseAPI;
 import org.neo4j.kernel.configuration.Config;
 import org.neo4j.kernel.configuration.ConfigParam;
+import org.neo4j.kernel.impl.nioneo.store.FileSystemAbstraction;
 import org.neo4j.kernel.impl.nioneo.store.NeoStore;
 import org.neo4j.kernel.impl.transaction.XaDataSourceManager;
 import org.neo4j.kernel.impl.transaction.xaframework.LogIoUtils;
@@ -67,8 +69,20 @@ import org.neo4j.kernel.monitoring.Monitors;
 
 import static java.util.Collections.emptyMap;
 
-class BackupService
+public class BackupService
 {
+    private FileSystemAbstraction fileSystem;
+
+    public BackupService() {
+        this.fileSystem = new DefaultFileSystemAbstraction();
+    }
+
+
+    public BackupService( FileSystemAbstraction fileSystem )
+    {
+        this.fileSystem = fileSystem;
+    }
+
     class BackupOutcome
     {
         private final Map<String, Long> lastCommittedTxs;
@@ -91,7 +105,7 @@ class BackupService
         }
     }
 
-    BackupOutcome doFullBackup( String sourceHostNameOrIp, int sourcePort, String targetDirectory,
+    public BackupOutcome doFullBackup( String sourceHostNameOrIp, int sourcePort, String targetDirectory,
                                 boolean checkConsistency, Config tuningConfiguration )
     {
         if ( directoryContainsDb( targetDirectory ) )

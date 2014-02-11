@@ -19,6 +19,8 @@
  */
 package org.neo4j.backup;
 
+import java.util.concurrent.CountDownLatch;
+
 import org.neo4j.com.RequestContext;
 import org.neo4j.com.Response;
 import org.neo4j.com.ServerUtil;
@@ -42,17 +44,21 @@ class BackupImpl implements TheBackupInterface
     private SPI spi;
     private final XaDataSourceManager xaDataSourceManager;
     private final KernelPanicEventGenerator kpeg;
+    private CountDownLatch countDownLatch;
 
-    public BackupImpl( StringLogger logger, SPI spi, XaDataSourceManager xaDataSourceManager, KernelPanicEventGenerator kpeg )
+    public BackupImpl( StringLogger logger, SPI spi, XaDataSourceManager xaDataSourceManager,
+                       KernelPanicEventGenerator kpeg, CountDownLatch countDownLatch )
     {
         this.logger = logger;
         this.spi = spi;
         this.xaDataSourceManager = xaDataSourceManager;
         this.kpeg = kpeg;
+        this.countDownLatch = countDownLatch;
     }
     
     public Response<Void> fullBackup( StoreWriter writer )
     {
+        countDownLatch.countDown();
         RequestContext context = ServerUtil.rotateLogsAndStreamStoreFiles( spi.getStoreDir(),
                 xaDataSourceManager,
                 kpeg, logger, false, writer, new DefaultFileSystemAbstraction() );

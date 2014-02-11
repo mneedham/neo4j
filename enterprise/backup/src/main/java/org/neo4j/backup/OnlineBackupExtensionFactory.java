@@ -19,6 +19,8 @@
  */
 package org.neo4j.backup;
 
+import java.util.concurrent.CountDownLatch;
+
 import org.neo4j.helpers.Service;
 import org.neo4j.kernel.GraphDatabaseAPI;
 import org.neo4j.kernel.configuration.Config;
@@ -65,6 +67,6 @@ public class OnlineBackupExtensionFactory extends KernelExtensionFactory<OnlineB
     {
         return new OnlineBackupKernelExtension( dependencies.getConfig(), dependencies.getGraphDatabaseAPI(),
                 dependencies.xaDataSourceManager(), dependencies.kpeg(), dependencies.logging(),
-                dependencies.monitors() );
+                dependencies.monitors(), new CountDownLatch( 1 ) );
     }
 }

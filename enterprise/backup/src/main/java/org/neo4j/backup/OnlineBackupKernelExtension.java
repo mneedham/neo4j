@@ -20,6 +20,7 @@
 package org.neo4j.backup;
 
 import java.net.URI;
+import java.util.concurrent.CountDownLatch;
 
 import org.neo4j.cluster.BindingListener;
 import org.neo4j.cluster.InstanceId;
@@ -51,11 +52,13 @@ public class OnlineBackupKernelExtension implements Lifecycle
     private KernelPanicEventGenerator kpeg;
     private Logging logging;
     private final Monitors monitors;
+    private CountDownLatch countDownLatch;
     private BackupServer server;
     private volatile URI me;
 
     public OnlineBackupKernelExtension( Config config, GraphDatabaseAPI graphDatabaseAPI, XaDataSourceManager
-            xaDataSourceManager, KernelPanicEventGenerator kpeg, Logging logging, Monitors monitors )
+            xaDataSourceManager, KernelPanicEventGenerator kpeg, Logging logging, Monitors monitors, CountDownLatch
+            countDownLatch )
     {
         this.config = config;
         this.graphDatabaseAPI = graphDatabaseAPI;
@@ -63,6 +66,7 @@ public class OnlineBackupKernelExtension implements Lifecycle
         this.kpeg = kpeg;
         this.logging = logging;
         this.monitors = monitors;
+        this.countDownLatch = countDownLatch;
     }
 
     @Override
@@ -88,7 +92,7 @@ public class OnlineBackupKernelExtension implements Lifecycle
                 {
                     return graphDatabaseAPI.storeId();
                 }
-            }, xaDataSourceManager, kpeg );
+            }, xaDataSourceManager, kpeg, countDownLatch );
             try
             {
                 server = new BackupServer( backup,
