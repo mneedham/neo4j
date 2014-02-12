@@ -32,6 +32,7 @@ import org.neo4j.kernel.api.properties.DefinedProperty;
 import org.neo4j.kernel.impl.api.index.UpdateMode;
 import org.neo4j.kernel.impl.api.index.IndexUpdates;
 import org.neo4j.kernel.impl.core.IteratingPropertyReceiver;
+import org.neo4j.kernel.impl.nioneo.store.InvalidRecordException;
 import org.neo4j.kernel.impl.nioneo.store.NodeRecord;
 import org.neo4j.kernel.impl.nioneo.store.NodeStore;
 import org.neo4j.kernel.impl.nioneo.store.PropertyRecord;
@@ -130,9 +131,17 @@ class LazyIndexUpdates implements IndexUpdates
                  * We can actually (if we disregard any potential inconsistencies) just assume that
                  * if this happens and we're in recovery mode that the node in question will be deleted
                  * in an upcoming transaction, so just skip this update.
-                 */
-                NodeRecord nodeRecord = nodeStore.getRecord( after.getNodeId() );
-                nodeLabelsBefore = nodeLabelsAfter = parseLabelsField( nodeRecord ).get( nodeStore );
+//                 */
+                try
+                {
+                    NodeRecord nodeRecord = nodeStore.getRecord( after.getNodeId() );
+                    nodeLabelsBefore = nodeLabelsAfter = parseLabelsField( nodeRecord ).get( nodeStore );
+                }
+                catch ( InvalidRecordException ex )
+                {
+                    System.out.println( "Node Id: " + after.getNodeId() );
+                    continue;
+                }
             }
 
             for ( NodePropertyUpdate update :

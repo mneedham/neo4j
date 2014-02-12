@@ -20,6 +20,7 @@
 package org.neo4j.graphdb.factory;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.neo4j.helpers.Service;
@@ -41,7 +42,8 @@ public class GraphDatabaseFactoryState
             kernelExtensions.add( factory );
         }
         cacheProviders = Iterables.toList( Service.load( CacheProvider.class ) );
-        txInterceptorProviders = Iterables.toList( Service.load( TransactionInterceptorProvider.class ) );
+        txInterceptorProviders = Collections.emptyList();
+//        txInterceptorProviders = Iterables.toList( Service.load( TransactionInterceptorProvider.class ) );
     }
 
     public GraphDatabaseFactoryState( GraphDatabaseFactoryState previous )
