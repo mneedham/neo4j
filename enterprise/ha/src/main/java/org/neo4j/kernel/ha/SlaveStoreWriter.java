@@ -103,8 +103,10 @@ public class SlaveStoreWriter
         // Apply pending transactions
         try
         {
+            console.log("Apply received transactions");
             ServerUtil.applyReceivedTransactions( response, copiedDb.getDependencyResolver()
                     .resolveDependency( XaDataSourceManager.class ), ServerUtil.txHandlerForFullCopy() );
+            console.log("Applied received transactions");
         }
         finally
         {
@@ -112,6 +114,7 @@ public class SlaveStoreWriter
             response.close();
         }
 
+        console.log("Moving over to real store directory");
         // All is well, move to the real store directory
         for ( File candidate : tempStore.listFiles( new FileFilter()
         {

@@ -20,6 +20,8 @@
 package org.neo4j.kernel.ha.cluster;
 
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -631,8 +633,15 @@ public class HighAvailabilityModeSwitcher implements HighAvailabilityMemberListe
             console.log( "Copying store from master" );
             new SlaveStoreWriter( config, kernelExtensions, console ).copyStore( copyMaster );
 
+            console.log("Starting services again");
             startServicesAgain();
             console.log( "Finished copying store from master" );
+        }
+        catch ( Throwable e )
+        {
+            StringWriter errors = new StringWriter();
+            e.printStackTrace( new PrintWriter( errors ) );
+            console.log( errors.toString() );
         }
         finally
         {
