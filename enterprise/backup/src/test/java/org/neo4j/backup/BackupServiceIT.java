@@ -30,6 +30,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import javax.transaction.xa.XAException;
+
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.junit.Before;
@@ -46,12 +48,23 @@ import org.neo4j.helpers.Pair;
 import org.neo4j.kernel.DefaultFileSystemAbstraction;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.GraphDatabaseAPI;
+import org.neo4j.kernel.TransactionInterceptorProviders;
 import org.neo4j.kernel.configuration.Config;
 import org.neo4j.kernel.impl.nioneo.store.FileSystemAbstraction;
 import org.neo4j.kernel.impl.nioneo.store.NeoStore;
+import org.neo4j.kernel.impl.nioneo.store.StoreFactory;
+import org.neo4j.kernel.impl.nioneo.xa.NeoStoreXaDataSource;
 import org.neo4j.kernel.impl.storemigration.StoreFiles;
+import org.neo4j.kernel.impl.transaction.LockManager;
+import org.neo4j.kernel.impl.transaction.TransactionStateFactory;
 import org.neo4j.kernel.impl.transaction.XaDataSourceManager;
+import org.neo4j.kernel.impl.transaction.XidImpl;
+import org.neo4j.kernel.impl.transaction.xaframework.LogPruneStrategies;
+import org.neo4j.kernel.impl.transaction.xaframework.LogPruneStrategy;
 import org.neo4j.kernel.impl.transaction.xaframework.XaDataSource;
+import org.neo4j.kernel.impl.transaction.xaframework.XaFactory;
+import org.neo4j.kernel.impl.transaction.xaframework.XaLogicalLog;
+import org.neo4j.kernel.impl.util.StringLogger;
 import org.neo4j.kernel.logging.DevNullLoggingService;
 import org.neo4j.kernel.monitoring.BackupMonitor;
 import org.neo4j.kernel.monitoring.Monitors;
@@ -197,6 +210,117 @@ public class BackupServiceIT
         assertEquals( DbRepresentation.of( storeDir ), DbRepresentation.of( backupDir ) );
 
         assertNotNull( getLastMasterForCommittedTx( DEFAULT_NAME ) );
+    }
+
+    @Test
+    public void shouldBeAbleToCompleteBackup() throws IOException, XAException
+    {
+        // given
+        Map<String, String> params = defaultBackupPortHostParams();
+        params.put("keep_logical_logs", "false");
+
+        GraphDatabaseAPI db = createDb( storeDir, params );
+        for ( int i = 0; i < 10; i++ )
+        {
+            createAndIndexNode( db, i );
+        }
+        db.shutdown();
+
+        createStartDonePairInLogicalLog( params, db );
+        pruneLogicalLogs( params, db );
+
+        // when
+        db = createDb( storeDir, params );
+        BackupService backupService = new BackupService( fileSystem );
+        backupService.doFullBackup( BACKUP_HOST, backupPort, backupDir.getAbsolutePath(), false,
+                new Config( defaultBackupPortHostParams() ) );
+        db.shutdown();
+
+        // then
+        assertEquals( DbRepresentation.of( storeDir ), DbRepresentation.of( backupDir ) );
+
+        assertNotNull( getLastMasterForCommittedTx( DEFAULT_NAME ) );
+    }
+
+    private void pruneLogicalLogs( Map<String, String> params, GraphDatabaseAPI db ) throws IOException, XAException
+    {
+        NeoStoreXaDataSource neoStoreXaDataSource = getNeoStoreXaDataSource( params, db );
+        neoStoreXaDataSource.start();
+
+        LogPruneStrategy pruner = LogPruneStrategies.transactionTimeSpan( fileSystem, 1, TimeUnit.MILLISECONDS );
+
+        XaLogicalLog logicalLog = neoStoreXaDataSource.getXaContainer().getLogicalLog();
+
+        pruner.prune( logicalLog );
+
+        neoStoreXaDataSource.stop();
+    }
+
+    private void createStartDonePairInLogicalLog( Map<String, String> params, GraphDatabaseAPI db ) throws IOException, XAException
+    {
+        NeoStoreXaDataSource neoStoreXaDataSource = getNeoStoreXaDataSource( params, db );
+        neoStoreXaDataSource.start();
+
+        XaLogicalLog logicalLog = neoStoreXaDataSource.getXaContainer().getLogicalLog();
+        logicalLog.start(new XidImpl( new byte[] {}, new byte[] {} ), 1, 1);
+        logicalLog.done( 2 );
+
+        neoStoreXaDataSource.stop();
+    }
+
+    private NeoStoreXaDataSource getNeoStoreXaDataSource( Map<String, String> params, GraphDatabaseAPI db ) throws IOException
+    {
+        XaFactory xaFactory = db.getDependencyResolver().resolveDependency( XaFactory.class );
+        StoreFactory storeFactory = db.getDependencyResolver().resolveDependency( StoreFactory.class );
+        LockManager lockManager  = db.getDependencyResolver().resolveDependency( LockManager.class );
+        TransactionStateFactory stateFactory  = db.getDependencyResolver().resolveDependency( TransactionStateFactory
+                .class );
+
+        TransactionInterceptorProviders providers = db.getDependencyResolver().resolveDependency( TransactionInterceptorProviders.class);
+
+        params.put( "store_dir", storeDir.getAbsolutePath()  );
+        params.put( "neo_store", "neostore" );
+        Config config = new Config(params);
+
+
+        return new NeoStoreXaDataSource( config, storeFactory, lockManager,
+                StringLogger.DEV_NULL, xaFactory, stateFactory, providers, db.getDependencyResolver() );
+    }
+
+    private BackupMonitor emptyBackupMonitor()
+    {
+        return new BackupMonitor()
+{
+    @Override
+    public void startCopyingFiles()
+    {
+
+    }
+
+    @Override
+    public void finishedCopyingStoreFiles()
+    {
+
+    }
+
+    @Override
+    public void finishedRotatingLogicalLogs()
+    {
+
+    }
+
+    @Override
+    public void streamedFile( File storefile )
+    {
+
+    }
+
+    @Override
+    public void streamingFile( File storefile )
+    {
+
+    }
+};
     }
 
     @Test
