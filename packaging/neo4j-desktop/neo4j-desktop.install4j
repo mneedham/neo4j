@@ -637,6 +637,16 @@ return "${APPDATA}" + context.getVariable("sys.fileSeparator") + context.getComp
       <excludedComponents />
       <includedDownloadableComponents />
     </windows>
+    <macosArchive name="Mac OS X Single Bundle Archive" id="444" customizedId="" mediaFileName="" installDir="neo4j-community" overridePrincipalLanguage="false" jreBitType="all" runPostProcessor="false" postProcessor="" failOnPostProcessorError="false" useLegacyMediaFileIds="false" legacyMediaFileIds="" includedJRE="macosx-amd64-1.7.0_45" manualJREEntry="false" appleJre="false" launcherId="24">
+      <excludedBeans />
+      <overriddenPrincipalLanguage id="en" customLocalizationFile="" />
+      <exclude />
+      <variables />
+      <autoUpdate useMinUpdatableVersion="false" minUpdatableVersion="" useMaxUpdatableVersion="false" maxUpdatableVersion="">
+        <commentFiles />
+        <customAttributes />
+      </autoUpdate>
+    </macosArchive>
   </mediaSets>
   <buildIds buildAll="false">
     <mediaSet refId="27" />
