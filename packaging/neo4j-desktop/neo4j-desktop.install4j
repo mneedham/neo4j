@@ -611,7 +611,7 @@ return "${APPDATA}" + context.getVariable("sys.fileSeparator") + context.getComp
     </applications>
   </installerGui>
   <mediaSets>
-    <windows name="Windows64" id="25" customizedId="" mediaFileName="" installDir="Neo4j Community" overridePrincipalLanguage="false" jreBitType="64" runPostProcessor="false" postProcessor="" failOnPostProcessorError="false" useLegacyMediaFileIds="false" legacyMediaFileIds="" includedJRE="windows-amd64-1.7.0_45" manualJREEntry="false" bundleType="1" jreURL="" jreShared="false" directDownload="false" installOnlyIfNecessary="true" customInstallBaseDir="" contentFilesType="1" downloadURL="" verifyIntegrity="true">
+    <windows name="Windows64" id="25" customizedId="" mediaFileName="" installDir="Neo4j Community" overridePrincipalLanguage="false" jreBitType="64" runPostProcessor="false" postProcessor="" failOnPostProcessorError="false" useLegacyMediaFileIds="false" legacyMediaFileIds="" includedJRE="windows-amd64-1.7.0_51" manualJREEntry="false" bundleType="1" jreURL="" jreShared="false" directDownload="false" installOnlyIfNecessary="true" customInstallBaseDir="" contentFilesType="1" downloadURL="" verifyIntegrity="true">
       <excludedLaunchers />
       <excludedBeans />
       <overriddenPrincipalLanguage id="en" customLocalizationFile="" />
@@ -624,7 +624,7 @@ return "${APPDATA}" + context.getVariable("sys.fileSeparator") + context.getComp
       <excludedComponents />
       <includedDownloadableComponents />
     </windows>
-    <windows name="Windows32" id="26" customizedId="" mediaFileName="" installDir="Neo4j Community" overridePrincipalLanguage="false" jreBitType="32" runPostProcessor="false" postProcessor="" failOnPostProcessorError="false" useLegacyMediaFileIds="false" legacyMediaFileIds="" includedJRE="windows-x86-1.7.0_45" manualJREEntry="false" bundleType="1" jreURL="" jreShared="false" directDownload="false" installOnlyIfNecessary="true" customInstallBaseDir="" contentFilesType="1" downloadURL="" verifyIntegrity="true">
+    <windows name="Windows32" id="26" customizedId="" mediaFileName="" installDir="Neo4j Community" overridePrincipalLanguage="false" jreBitType="32" runPostProcessor="false" postProcessor="" failOnPostProcessorError="false" useLegacyMediaFileIds="false" legacyMediaFileIds="" includedJRE="windows-x86-1.7.0_51" manualJREEntry="false" bundleType="1" jreURL="" jreShared="false" directDownload="false" installOnlyIfNecessary="true" customInstallBaseDir="" contentFilesType="1" downloadURL="" verifyIntegrity="true">
       <excludedLaunchers />
       <excludedBeans />
       <overriddenPrincipalLanguage id="en" customLocalizationFile="" />
@@ -637,7 +637,7 @@ return "${APPDATA}" + context.getVariable("sys.fileSeparator") + context.getComp
       <excludedComponents />
       <includedDownloadableComponents />
     </windows>
-    <macosArchive name="Mac OS X Single Bundle Archive" id="444" customizedId="" mediaFileName="" installDir="neo4j-community" overridePrincipalLanguage="false" jreBitType="all" runPostProcessor="false" postProcessor="" failOnPostProcessorError="false" useLegacyMediaFileIds="false" legacyMediaFileIds="" includedJRE="macosx-amd64-1.7.0_45" manualJREEntry="false" appleJre="false" launcherId="24">
+    <macosArchive name="Mac OS X Single Bundle Archive" id="444" customizedId="" mediaFileName="" installDir="neo4j-community" overridePrincipalLanguage="false" jreBitType="all" runPostProcessor="false" postProcessor="" failOnPostProcessorError="false" useLegacyMediaFileIds="false" legacyMediaFileIds="" includedJRE="macosx-amd64-1.7.0_51" manualJREEntry="false" appleJre="false" launcherId="24">
       <excludedBeans />
       <overriddenPrincipalLanguage id="en" customLocalizationFile="" />
       <exclude />
