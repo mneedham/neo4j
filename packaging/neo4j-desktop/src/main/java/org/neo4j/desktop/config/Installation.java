@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.net.URISyntaxException;
 
+import org.neo4j.desktop.config.osx.UIControls;
 import org.neo4j.desktop.ui.OpenFileDialog;
 
 /**
@@ -105,5 +106,5 @@ public interface Installation
      */
     File getInstallationBinDirectory() throws URISyntaxException;
 
-    OpenFileDialog getOpenFileDialog();
+    UIControls getUIControls();
 }

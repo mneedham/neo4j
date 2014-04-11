@@ -22,6 +22,7 @@ package org.neo4j.desktop;
 import org.neo4j.desktop.config.Installation;
 import org.neo4j.desktop.config.OperatingSystemFamily;
 import org.neo4j.desktop.config.osx.DarwinInstallation;
+import org.neo4j.desktop.config.osx.UIControls;
 import org.neo4j.desktop.config.unix.UnixInstallation;
 import org.neo4j.desktop.config.windows.WindowsInstallation;
 import org.neo4j.desktop.runtime.DatabaseActions;
@@ -62,9 +63,9 @@ public final class Neo4jDesktop
             DatabaseActions databaseActions = new DatabaseActions( model );
             addShutdownHook( databaseActions );
 
-            OpenFileDialog openFileDialog = installation.getOpenFileDialog();
+            UIControls uiControls = installation.getUIControls();
 
-            MainWindow window = new MainWindow( databaseActions, model, openFileDialog );
+            MainWindow window = new MainWindow( databaseActions, model, uiControls );
             window.display();
         }
         catch ( Exception e )

@@ -26,6 +26,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.neo4j.desktop.config.Installation;
+import org.neo4j.desktop.config.osx.DefaultUIControls;
+import org.neo4j.desktop.config.osx.UIControls;
 
 import static java.lang.String.format;
 
@@ -179,5 +181,11 @@ public abstract class PortableInstallation implements Installation
     private InputStream getResourceStream( String defaultDatabaseConfigResourceName )
     {
         return PortableInstallation.class.getResourceAsStream( defaultDatabaseConfigResourceName );
+    }
+
+    @Override
+    public UIControls getUIControls()
+    {
+        return new DefaultUIControls();
     }
 }

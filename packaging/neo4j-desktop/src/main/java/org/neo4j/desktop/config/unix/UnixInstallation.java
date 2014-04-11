@@ -56,12 +56,6 @@ public class UnixInstallation extends PortableInstallation
     }
 
     @Override
-    public OpenFileDialog getOpenFileDialog()
-    {
-        return new DefaultOpenFileDialog();
-    }
-
-    @Override
     protected File getDefaultDirectory()
     {
         return new File( System.getProperty( "user.home" ) );

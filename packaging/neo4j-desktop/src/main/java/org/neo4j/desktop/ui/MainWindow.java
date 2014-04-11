@@ -36,6 +36,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 
+import org.neo4j.desktop.config.osx.UIControls;
 import org.neo4j.desktop.runtime.DatabaseActions;
 
 import static java.lang.String.format;
@@ -76,7 +77,7 @@ public class MainWindow
 
     private DatabaseStatus databaseStatus;
 
-    public MainWindow( final DatabaseActions databaseActions, DesktopModel model, OpenFileDialog openFileDialog )
+    public MainWindow( final DatabaseActions databaseActions, DesktopModel model, UIControls uiControls )
     {
         this.model = model;
         this.debugWindow = new SystemOutDebugWindow();
@@ -87,7 +88,7 @@ public class MainWindow
         this.sysTray = SysTray.install( new SysTrayActions(), frame );
 
         this.directoryDisplay = createUnmodifiableTextField( model.getDatabaseDirectory().getAbsolutePath() );
-        this.browseButton = createBrowseButton(openFileDialog);
+        this.browseButton = createBrowseButton(uiControls);
         this.statusPanelLayout = new CardLayout();
         this.statusPanel = createStatusPanel( statusPanelLayout );
         this.startButton = createStartButton();
@@ -184,9 +185,9 @@ public class MainWindow
         return panel;
     }
 
-    private JButton createBrowseButton( OpenFileDialog openFileDialog )
+    private JButton createBrowseButton( UIControls uiControls )
     {
-        ActionListener actionListener = new BrowseForDatabaseActionListener( frame, directoryDisplay, model, openFileDialog );
+        ActionListener actionListener = new BrowseForDatabaseActionListener( frame, directoryDisplay, model, uiControls.getOpenFileDialog() );
         return Components.createTextButton( ellipsis( "Browse" ), actionListener );
     }
 

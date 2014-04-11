@@ -74,10 +74,4 @@ public class WindowsInstallation extends PortableInstallation
     {
         return new File( getConfigurationDirectory(), NEO4J_SERVER_PROPERTIES_FILENAME );
     }
-
-    @Override
-    public OpenFileDialog getOpenFileDialog()
-    {
-        return new DefaultOpenFileDialog();
-    }
 }
