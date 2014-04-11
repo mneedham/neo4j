@@ -25,6 +25,8 @@ import java.util.Properties;
 
 import org.neo4j.desktop.config.Environment;
 import org.neo4j.desktop.config.portable.PortableInstallation;
+import org.neo4j.desktop.ui.DefaultOpenFileDialog;
+import org.neo4j.desktop.ui.OpenFileDialog;
 
 import static javax.swing.filechooser.FileSystemView.getFileSystemView;
 
@@ -71,5 +73,11 @@ public class WindowsInstallation extends PortableInstallation
     public File getServerConfigurationsFile()
     {
         return new File( getConfigurationDirectory(), NEO4J_SERVER_PROPERTIES_FILENAME );
+    }
+
+    @Override
+    public OpenFileDialog getOpenFileDialog()
+    {
+        return new DefaultOpenFileDialog();
     }
 }

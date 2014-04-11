@@ -42,13 +42,12 @@ public class DesktopModel
     private final DesktopConfigurator serverConfigurator;
     private final List<DesktopModelListener> listeners = new ArrayList<>();
     private final Installation installation;
+    private OpenFileDialog openFileDialog;
 
     public DesktopModel( Installation installation )
     {
         this.installation = installation;
         this.serverConfigurator = new DesktopConfigurator( installation );
-
-
         serverConfigurator.setDatabaseDirectory( installation.getDatabaseDirectory() );
     }
 

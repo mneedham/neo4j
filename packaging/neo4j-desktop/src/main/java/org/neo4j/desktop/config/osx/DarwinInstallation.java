@@ -22,6 +22,8 @@ package org.neo4j.desktop.config.osx;
 import java.io.File;
 
 import org.neo4j.desktop.config.unix.UnixInstallation;
+import org.neo4j.desktop.ui.MacOSXOpenFileDialog;
+import org.neo4j.desktop.ui.OpenFileDialog;
 
 public class DarwinInstallation extends UnixInstallation
 {
@@ -31,5 +33,11 @@ public class DarwinInstallation extends UnixInstallation
     {
         // cf. http://stackoverflow.com/questions/567874/how-do-i-find-the-users-documents-folder-with-java-in-os-x
         return new File( new File( System.getProperty( "user.home" ) ), "Documents" );
+    }
+
+    @Override
+    public OpenFileDialog getOpenFileDialog()
+    {
+        return new MacOSXOpenFileDialog();
     }
 }

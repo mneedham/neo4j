@@ -19,6 +19,8 @@
  */
 package org.neo4j.desktop.ui;
 
+import java.awt.FileDialog;
+import java.awt.Frame;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
@@ -32,6 +34,7 @@ import static javax.swing.JFileChooser.DIRECTORIES_ONLY;
 import static javax.swing.JOptionPane.CANCEL_OPTION;
 import static javax.swing.JOptionPane.ERROR_MESSAGE;
 import static javax.swing.JOptionPane.OK_CANCEL_OPTION;
+
 import static org.neo4j.desktop.ui.ScrollableOptionPane.showWrappedConfirmDialog;
 
 class BrowseForDatabaseActionListener implements ActionListener
@@ -39,49 +42,20 @@ class BrowseForDatabaseActionListener implements ActionListener
     private final JFrame frame;
     private final JTextField directoryDisplay;
     private final DesktopModel model;
+    private OpenFileDialog openFileDialog;
 
-    public BrowseForDatabaseActionListener( JFrame frame, JTextField directoryDisplay, DesktopModel model )
+    public BrowseForDatabaseActionListener( JFrame frame, JTextField directoryDisplay, DesktopModel model,
+                                            OpenFileDialog openFileDialog )
     {
         this.frame = frame;
         this.directoryDisplay = directoryDisplay;
         this.model = model;
+        this.openFileDialog = openFileDialog;
     }
 
     @Override
     public void actionPerformed( ActionEvent e )
     {
-        JFileChooser jFileChooser = new JFileChooser();
-        jFileChooser.setFileSelectionMode( DIRECTORIES_ONLY );
-        jFileChooser.setCurrentDirectory( new File( directoryDisplay.getText() ) );
-        jFileChooser.setDialogTitle( "Select database" );
-        jFileChooser.setDialogType( CUSTOM_DIALOG );
-
-        while ( true )
-        {
-            int choice = jFileChooser.showOpenDialog( frame );
-
-            if ( choice != APPROVE_OPTION )
-            {
-                return;
-            }
-
-            File selectedFile = jFileChooser.getSelectedFile();
-            try
-            {
-                model.setDatabaseDirectory( selectedFile );
-                directoryDisplay.setText( model.getDatabaseDirectory().getAbsolutePath() );
-                return;
-            }
-            catch ( UnsuitableDirectoryException error )
-            {
-                int result = showWrappedConfirmDialog(
-                        frame, error.getMessage() + "\nPlease choose a different folder.",
-                        "Invalid folder selected", OK_CANCEL_OPTION, ERROR_MESSAGE );
-                if ( result == CANCEL_OPTION )
-                {
-                    return;
-                }
-            }
-        }
+        openFileDialog.open(e, frame, directoryDisplay, model);
     }
 }

@@ -76,7 +76,7 @@ public class MainWindow
 
     private DatabaseStatus databaseStatus;
 
-    public MainWindow( final DatabaseActions databaseActions, DesktopModel model )
+    public MainWindow( final DatabaseActions databaseActions, DesktopModel model, OpenFileDialog openFileDialog )
     {
         this.model = model;
         this.debugWindow = new SystemOutDebugWindow();
@@ -87,7 +87,7 @@ public class MainWindow
         this.sysTray = SysTray.install( new SysTrayActions(), frame );
 
         this.directoryDisplay = createUnmodifiableTextField( model.getDatabaseDirectory().getAbsolutePath() );
-        this.browseButton = createBrowseButton();
+        this.browseButton = createBrowseButton(openFileDialog);
         this.statusPanelLayout = new CardLayout();
         this.statusPanel = createStatusPanel( statusPanelLayout );
         this.startButton = createStartButton();
@@ -184,9 +184,9 @@ public class MainWindow
         return panel;
     }
 
-    private JButton createBrowseButton()
+    private JButton createBrowseButton( OpenFileDialog openFileDialog )
     {
-        ActionListener actionListener = new BrowseForDatabaseActionListener( frame, directoryDisplay, model );
+        ActionListener actionListener = new BrowseForDatabaseActionListener( frame, directoryDisplay, model, openFileDialog );
         return Components.createTextButton( ellipsis( "Browse" ), actionListener );
     }
 

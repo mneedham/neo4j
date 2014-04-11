@@ -27,6 +27,7 @@ import org.neo4j.desktop.config.windows.WindowsInstallation;
 import org.neo4j.desktop.runtime.DatabaseActions;
 import org.neo4j.desktop.ui.DesktopModel;
 import org.neo4j.desktop.ui.MainWindow;
+import org.neo4j.desktop.ui.OpenFileDialog;
 import org.neo4j.desktop.ui.PlatformUI;
 
 import static org.neo4j.desktop.ui.Components.alert;
@@ -61,7 +62,9 @@ public final class Neo4jDesktop
             DatabaseActions databaseActions = new DatabaseActions( model );
             addShutdownHook( databaseActions );
 
-            MainWindow window = new MainWindow( databaseActions, model );
+            OpenFileDialog openFileDialog = installation.getOpenFileDialog();
+
+            MainWindow window = new MainWindow( databaseActions, model, openFileDialog );
             window.display();
         }
         catch ( Exception e )

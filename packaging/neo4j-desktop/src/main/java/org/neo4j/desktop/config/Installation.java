@@ -23,6 +23,8 @@ import java.io.File;
 import java.io.InputStream;
 import java.net.URISyntaxException;
 
+import org.neo4j.desktop.ui.OpenFileDialog;
+
 /**
  * The Installation represents the "static" part of the configuration on a particular system. It abstracts away
  * operating system specifics.
@@ -102,4 +104,6 @@ public interface Installation
      * Get the directory where the neo4j-desktop.jar file has been installed into.
      */
     File getInstallationBinDirectory() throws URISyntaxException;
+
+    OpenFileDialog getOpenFileDialog();
 }

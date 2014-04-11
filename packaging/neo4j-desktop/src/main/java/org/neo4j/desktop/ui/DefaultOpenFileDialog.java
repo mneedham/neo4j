@@ -1,0 +1,57 @@
+package org.neo4j.desktop.ui;
+
+import java.awt.event.ActionEvent;
+import java.io.File;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JTextField;
+
+import static javax.swing.JFileChooser.APPROVE_OPTION;
+import static javax.swing.JFileChooser.CUSTOM_DIALOG;
+import static javax.swing.JFileChooser.DIRECTORIES_ONLY;
+import static javax.swing.JOptionPane.CANCEL_OPTION;
+import static javax.swing.JOptionPane.ERROR_MESSAGE;
+import static javax.swing.JOptionPane.OK_CANCEL_OPTION;
+
+import static org.neo4j.desktop.ui.ScrollableOptionPane.showWrappedConfirmDialog;
+
+public class DefaultOpenFileDialog implements  OpenFileDialog {
+
+    @Override
+    public void open( ActionEvent e, JFrame frame, JTextField directoryDisplay, DesktopModel model )
+    {
+        JFileChooser jFileChooser = new JFileChooser();
+        jFileChooser.setFileSelectionMode( DIRECTORIES_ONLY );
+        jFileChooser.setCurrentDirectory( new File( directoryDisplay.getText() ) );
+        jFileChooser.setDialogTitle( "Select database" );
+        jFileChooser.setDialogType( CUSTOM_DIALOG );
+
+        while ( true )
+        {
+            int choice = jFileChooser.showOpenDialog( frame );
+
+            if ( choice != APPROVE_OPTION )
+            {
+                return;
+            }
+
+            File selectedFile = jFileChooser.getSelectedFile();
+            try
+            {
+                model.setDatabaseDirectory( selectedFile );
+                directoryDisplay.setText( model.getDatabaseDirectory().getAbsolutePath() );
+                return;
+            }
+            catch ( UnsuitableDirectoryException error )
+            {
+                int result = showWrappedConfirmDialog(
+                        frame, error.getMessage() + "\nPlease choose a different folder.",
+                        "Invalid folder selected", OK_CANCEL_OPTION, ERROR_MESSAGE );
+                if ( result == CANCEL_OPTION )
+                {
+                    return;
+                }
+            }
+        }
+    }
+}
