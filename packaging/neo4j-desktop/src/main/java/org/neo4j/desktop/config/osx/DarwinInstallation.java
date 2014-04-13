@@ -51,26 +51,8 @@ public class DarwinInstallation extends UnixInstallation
     @Override
     public void setDatabaseDirectory( File location )
     {
-        String plistFileLocation = getPListFileLocation();
-        try
-        {
-            XMLPropertyListConfiguration plist = new XMLPropertyListConfiguration();
-
-            if ( plist.containsKey( "databaseDirectory" ) )
-            {
-                plist.setProperty( "databaseDirectory", location.getAbsolutePath() );
-            }
-            else
-            {
-                plist.addProperty( "databaseDirectory", location.getAbsolutePath() );
-            }
-
-            plist.save( new File(plistFileLocation) );
-        }
-        catch ( ConfigurationException e )
-        {
-            e.printStackTrace();
-        }
+        PList plist = PList.create( new File(getPListFileLocation()) );
+        plist.save( "databaseDirectory", location.getAbsolutePath() );
     }
 
     private String getPListFileLocation()
@@ -91,32 +73,9 @@ public class DarwinInstallation extends UnixInstallation
         }
         else
         {
-            Map<String, String> plist = toPlistMap( pListFileLocation );
-            return new File(plist.get("databaseDirectory"));
+            PList plist = PList.create( new File(pListFileLocation) );
+            return new File(plist.load( "databaseDirectory" ));
         }
-    }
-
-    private Map<String, String> toPlistMap( String pListFileLocation )
-    {
-        Map<String, String> map = new HashMap<>(  );
-
-        try
-        {
-            XMLPropertyListConfiguration plist = new XMLPropertyListConfiguration(pListFileLocation);
-
-            Iterator<String> keys = plist.getKeys();
-            while (keys.hasNext()) {
-
-                String key = keys.next();
-                map.put( key, plist.getString( key ));
-            }
-        }
-        catch ( ConfigurationException e )
-        {
-            e.printStackTrace();
-        }
-
-        return map;
     }
 
     @Override
