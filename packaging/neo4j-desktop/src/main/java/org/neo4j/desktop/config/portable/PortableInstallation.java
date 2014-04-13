@@ -103,9 +103,7 @@ public abstract class PortableInstallation implements Installation
         }
     }
 
-
-
-    protected File getDefaultDatabaseDirectory()
+    private File getDefaultDatabaseDirectory()
     {
         List<File> locations = new ArrayList<>();
 
@@ -212,9 +210,15 @@ public abstract class PortableInstallation implements Installation
     public File getDatabaseDirectory()
     {
         Preferences preferences = Preferences.userNodeForPackage( DarwinInstallation.class );
-        String databaseDirectory = preferences.get( "databaseDirectory", getDefaultDatabaseDirectory().getAbsolutePath() );
 
-        setDatabaseDirectory( new File(databaseDirectory) );
+        String databaseDirectory = preferences.get( "databaseDirectory", null );
+
+        if ( databaseDirectory == null )
+        {
+            File defaultDatabaseDirectory = getDefaultDatabaseDirectory();
+            setDatabaseDirectory( defaultDatabaseDirectory );
+            return defaultDatabaseDirectory;
+        }
 
         return new File( databaseDirectory );
     }
