@@ -23,8 +23,7 @@ import java.io.File;
 import java.io.InputStream;
 import java.net.URISyntaxException;
 
-import org.neo4j.desktop.config.osx.UIControls;
-import org.neo4j.desktop.ui.OpenFileDialog;
+import org.neo4j.desktop.ui.UIControls;
 
 /**
  * The Installation represents the "static" part of the configuration on a particular system. It abstracts away
@@ -49,6 +48,11 @@ public interface Installation
      * Get the directory wherein the database will put its store files.
      */
     File getDatabaseDirectory();
+
+    /**
+     * Set the directory wherein the database will put its store files.
+     */
+    void setDatabaseDirectory(File location);
 
     /**
      * Get the directory where the configuration properties files are located.

@@ -36,7 +36,6 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 
-import org.neo4j.desktop.config.osx.UIControls;
 import org.neo4j.desktop.runtime.DatabaseActions;
 
 import static java.lang.String.format;

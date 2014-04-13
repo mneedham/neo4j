@@ -22,13 +22,12 @@ package org.neo4j.desktop;
 import org.neo4j.desktop.config.Installation;
 import org.neo4j.desktop.config.OperatingSystemFamily;
 import org.neo4j.desktop.config.osx.DarwinInstallation;
-import org.neo4j.desktop.config.osx.UIControls;
+import org.neo4j.desktop.ui.UIControls;
 import org.neo4j.desktop.config.unix.UnixInstallation;
 import org.neo4j.desktop.config.windows.WindowsInstallation;
 import org.neo4j.desktop.runtime.DatabaseActions;
 import org.neo4j.desktop.ui.DesktopModel;
 import org.neo4j.desktop.ui.MainWindow;
-import org.neo4j.desktop.ui.OpenFileDialog;
 import org.neo4j.desktop.ui.PlatformUI;
 
 import static org.neo4j.desktop.ui.Components.alert;

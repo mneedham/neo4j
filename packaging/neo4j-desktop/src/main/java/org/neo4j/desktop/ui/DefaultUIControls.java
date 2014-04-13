@@ -19,10 +19,6 @@
  */
 package org.neo4j.desktop.ui;
 
-import org.neo4j.desktop.config.UIControls;
-import org.neo4j.desktop.ui.DefaultOpenFileDialog;
-import org.neo4j.desktop.ui.OpenFileDialog;
-
 public class DefaultUIControls implements UIControls
 {
 

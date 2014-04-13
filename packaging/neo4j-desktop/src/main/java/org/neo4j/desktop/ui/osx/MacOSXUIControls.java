@@ -20,7 +20,6 @@
 package org.neo4j.desktop.ui.osx;
 
 import org.neo4j.desktop.ui.UIControls;
-import org.neo4j.desktop.ui.MacOSXOpenFileDialog;
 import org.neo4j.desktop.ui.OpenFileDialog;
 
 public class MacOSXUIControls implements UIControls

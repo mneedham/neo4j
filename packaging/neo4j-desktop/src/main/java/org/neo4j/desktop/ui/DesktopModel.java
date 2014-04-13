@@ -42,7 +42,6 @@ public class DesktopModel
     private final DesktopConfigurator serverConfigurator;
     private final List<DesktopModelListener> listeners = new ArrayList<>();
     private final Installation installation;
-    private OpenFileDialog openFileDialog;
 
     public DesktopModel( Installation installation )
     {
@@ -79,6 +78,7 @@ public class DesktopModel
     {
         verifyGraphDirectory(databaseDirectory);
         serverConfigurator.setDatabaseDirectory( databaseDirectory );
+        installation.setDatabaseDirectory( databaseDirectory );
     }
 
 

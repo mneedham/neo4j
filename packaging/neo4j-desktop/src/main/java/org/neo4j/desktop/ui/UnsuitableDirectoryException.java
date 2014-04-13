@@ -23,7 +23,7 @@ import java.io.File;
 
 import static java.lang.String.format;
 
-class UnsuitableDirectoryException extends Exception
+public class UnsuitableDirectoryException extends Exception
 {
     UnsuitableDirectoryException(String message, File dir)
     {

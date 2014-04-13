@@ -26,8 +26,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.neo4j.desktop.config.Installation;
-import org.neo4j.desktop.config.osx.DefaultUIControls;
-import org.neo4j.desktop.config.osx.UIControls;
+import org.neo4j.desktop.ui.DefaultUIControls;
+import org.neo4j.desktop.ui.UIControls;
 
 import static java.lang.String.format;
 
@@ -102,6 +102,17 @@ public abstract class PortableInstallation implements Installation
 
     @Override
     public File getDatabaseDirectory()
+    {
+        return getDefaultDatabaseDirectory();
+    }
+
+    @Override
+    public void setDatabaseDirectory( File location )
+    {
+
+    }
+
+    protected File getDefaultDatabaseDirectory()
     {
         List<File> locations = new ArrayList<>();
 
