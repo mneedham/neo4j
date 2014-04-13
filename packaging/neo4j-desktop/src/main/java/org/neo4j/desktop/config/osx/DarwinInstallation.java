@@ -20,15 +20,11 @@
 package org.neo4j.desktop.config.osx;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.prefs.BackingStoreException;
+import java.util.prefs.Preferences;
 
-import org.apache.commons.configuration.ConfigurationException;
-import org.apache.commons.configuration.plist.XMLPropertyListConfiguration;
-
-import org.neo4j.desktop.ui.UIControls;
 import org.neo4j.desktop.config.unix.UnixInstallation;
+import org.neo4j.desktop.ui.UIControls;
 import org.neo4j.desktop.ui.osx.MacOSXUIControls;
 
 public class DarwinInstallation extends UnixInstallation
@@ -46,36 +42,6 @@ public class DarwinInstallation extends UnixInstallation
     {
         // cf. http://stackoverflow.com/questions/567874/how-do-i-find-the-users-documents-folder-with-java-in-os-x
         return new File( new File( userHomeDirectory ), "Documents" );
-    }
-
-    @Override
-    public void setDatabaseDirectory( File location )
-    {
-        PList plist = PList.create( new File(getPListFileLocation()) );
-        plist.save( "databaseDirectory", location.getAbsolutePath() );
-    }
-
-    private String getPListFileLocation()
-    {
-        return String.format( "%s/Library/Preferences/org.neo4j.desktop.config.plist", userHomeDirectory );
-    }
-
-    @Override
-    public File getDatabaseDirectory()
-    {
-        String pListFileLocation = getPListFileLocation();
-
-        if ( !new File( pListFileLocation ).exists() )
-        {
-            File defaultDatabaseDirectory = getDefaultDatabaseDirectory();
-            setDatabaseDirectory( defaultDatabaseDirectory );
-            return defaultDatabaseDirectory;
-        }
-        else
-        {
-            PList plist = PList.create( new File(pListFileLocation) );
-            return new File(plist.load( "databaseDirectory" ));
-        }
     }
 
     @Override

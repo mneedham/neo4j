@@ -24,8 +24,11 @@ import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.prefs.BackingStoreException;
+import java.util.prefs.Preferences;
 
 import org.neo4j.desktop.config.Installation;
+import org.neo4j.desktop.config.osx.DarwinInstallation;
 import org.neo4j.desktop.ui.DefaultUIControls;
 import org.neo4j.desktop.ui.UIControls;
 
@@ -100,17 +103,7 @@ public abstract class PortableInstallation implements Installation
         }
     }
 
-    @Override
-    public File getDatabaseDirectory()
-    {
-        return getDefaultDatabaseDirectory();
-    }
 
-    @Override
-    public void setDatabaseDirectory( File location )
-    {
-
-    }
 
     protected File getDefaultDatabaseDirectory()
     {
@@ -198,5 +191,31 @@ public abstract class PortableInstallation implements Installation
     public UIControls getUIControls()
     {
         return new DefaultUIControls();
+    }
+
+    @Override
+    public void setDatabaseDirectory( File location )
+    {
+        try
+        {
+            Preferences preferences = Preferences.userNodeForPackage( DarwinInstallation.class );
+            preferences.put( "databaseDirectory", location.getAbsolutePath() );
+            preferences.flush();
+        }
+        catch ( BackingStoreException e )
+        {
+            throw new RuntimeException( e );
+        }
+    }
+
+    @Override
+    public File getDatabaseDirectory()
+    {
+        Preferences preferences = Preferences.userNodeForPackage( DarwinInstallation.class );
+        String databaseDirectory = preferences.get( "databaseDirectory", getDefaultDatabaseDirectory().getAbsolutePath() );
+
+        setDatabaseDirectory( new File(databaseDirectory) );
+
+        return new File( databaseDirectory );
     }
 }

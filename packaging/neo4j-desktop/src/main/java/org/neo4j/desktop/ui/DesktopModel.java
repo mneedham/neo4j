@@ -81,7 +81,6 @@ public class DesktopModel
         installation.setDatabaseDirectory( databaseDirectory );
     }
 
-
     public File getVmOptionsFile()
     {
         return installation.getVmOptionsFile();
