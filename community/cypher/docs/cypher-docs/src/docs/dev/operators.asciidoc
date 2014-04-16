@@ -1,0 +1,19 @@
+[[query-operators]]
+= Execution Plans =
+
+Cypher is a declarative query language.
+That means that a statement describes what should be done, and not how to actually do it.
+To actually be able to run a query, it needs to be transformed to an imperative solution for the statement.
+This solution is called an execution plan.
+An execution plan is a tree composed of operators, each non-leaf feeding from one or two children.
+To analyze a query for performance improvements, it's essential to be able to understand how Neo4j is running your Cypher statements.
+
+These are some of the operators you will see if you look at execution plans.
+
+[width="70%"]
+|=======
+| <<operator-all-nodes-scan>> | <<operator-apply>>| <<operator-cartesian-product>> | <<operator-directed-relationship-by-id-seek>> | <<operator-expand>>
+| <<operator-node-by-id-seek>> | <<operator-node-by-label-scan>> | <<operator-node-hash-join>> | <<operator-node-index-seek>> | <<operator-node-unique-index-seek>>
+| <<operator-optional>> | <<operator-optional-expand>> | <<operator-projection>> | <<operator-selection>> | <<operator-single-row>>
+| <<operator-undirected-relationship-by-id-seek>> | | | |
+|=======

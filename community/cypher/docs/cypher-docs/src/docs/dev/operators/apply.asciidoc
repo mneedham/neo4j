@@ -1,0 +1,5 @@
+[[operator-apply]]
+= Apply =
+
+Apply is used to run the operator tree on the right hand side once per row produced by the left hand side.
+

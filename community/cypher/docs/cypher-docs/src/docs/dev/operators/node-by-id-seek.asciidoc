@@ -1,0 +1,4 @@
+[[operator-node-by-id-seek]]
+= Node by id seek =
+
+Reads one or more nodes by id from the node store.
