@@ -3,17 +3,17 @@
 title="Neo4j"
 backgroundPictureName="graph_background.png"
 applicationName="Neo4j Community"
-finalDMGName="Neo4j.dmg"
+templateDMGName="Neo4j.template.dmg"
 
-rm -rf target/dmg && mkdir -p target/dmg
-tar -C target/dmg -xf target/install4j/neo4j-community_macos_2_1-SNAPSHOT.tgz
-cp -r src/main/distribution/.background target/dmg
-ln -s /Applications target/dmg
+rm -rf target/dmg-template && mkdir -p target/dmg-template
+tar -C target/dmg-template -xf target/install4j/neo4j-community_macos_2_1-SNAPSHOT.tgz
+cp -r src/main/distribution/.background target/dmg-template
+ln -s /Applications target/dmg-template
 
 pushd target
 
-hdiutil create -volname ${title} -size 200m -srcfolder dmg/ -ov -format UDRW pack.temp.dmg
-device=$(hdiutil attach -readwrite -noverify -noautoopen "pack.temp.dmg" | egrep '^/dev/' | sed 1q | awk '{print $1}')
+hdiutil create -volname ${title} -size 200m -srcfolder dmg-template/ -ov -format UDRW ${templateDMGName}
+device=$(hdiutil attach -readwrite -noverify -noautoopen "${templateDMGName}" | egrep '^/dev/' | sed 1q | awk '{print $1}')
 
 sleep 5
 
@@ -37,9 +37,3 @@ echo '
      end tell
    end tell
 ' | osascript
-
-sleep 5
-
-# hdiutil detach ${device}
-# hdiutil convert "pack.temp.dmg" -ov -format UDZO -imagekey zlib-level=9 -o "${finalDMGName}"
-# rm -f pack.temp.dmg
