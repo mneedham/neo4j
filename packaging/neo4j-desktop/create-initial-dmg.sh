@@ -4,16 +4,22 @@ title="Neo4j"
 backgroundPictureName="graph_background.png"
 applicationName="Neo4j Community"
 templateDMGName="Neo4j.template.dmg"
+templateZipName="Neo4j.template.zip"
 
-rm -rf target/dmg-template && mkdir -p target/dmg-template
-tar -C target/dmg-template -xf target/install4j/neo4j-community_macos_2_1-SNAPSHOT.tgz
-cp -r src/main/distribution/.background target/dmg-template
-ln -s /Applications target/dmg-template
+if [ -f target/${templateDMGName} ] 
+  then
+  rm target/${templateDMGName}
+fi
 
-pushd target
+if [ -d target/dmg-template ] 
+  then
+  rm -rf target/dmg-template && mkdir -p target/dmg-template
+fi
 
-hdiutil create -volname ${title} -size 200m -srcfolder dmg-template/ -ov -format UDRW ${templateDMGName}
-device=$(hdiutil attach -readwrite -noverify -noautoopen "${templateDMGName}" | egrep '^/dev/' | sed 1q | awk '{print $1}')
+cp -R src/main/distribution/dmg-template target/
+
+hdiutil create -volname ${title} -size 200m -srcfolder target/dmg-template/ -ov -format UDRW target/${templateDMGName}
+device=$(hdiutil attach -readwrite -noverify -noautoopen "target/${templateDMGName}" | egrep '^/dev/' | sed 1q | awk '{print $1}')
 
 sleep 5
 
@@ -37,3 +43,5 @@ echo '
      end tell
    end tell
 ' | osascript
+
+zip target/${templateZipName} target/${templateDMGName}

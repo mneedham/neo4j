@@ -10,10 +10,8 @@ tar -C target/dmg -xf target/install4j/neo4j-community_macos_2_1-SNAPSHOT.tgz
 cp -r src/main/distribution/.background target/dmg
 ln -s /Applications target/dmg
 
-pushd target
-
-hdiutil create -volname ${title} -size 200m -srcfolder dmg/ -ov -format UDRW pack.temp.dmg
-device=$(hdiutil attach -readwrite -noverify -noautoopen "pack.temp.dmg" | egrep '^/dev/' | sed 1q | awk '{print $1}')
+hdiutil create -volname ${title} -size 200m -srcfolder target/dmg/ -ov -format UDRW target/pack.temp.dmg
+device=$(hdiutil attach -readwrite -noverify -noautoopen "target/pack.temp.dmg" | egrep '^/dev/' | sed 1q | awk '{print $1}')
 
 sleep 5
 
@@ -40,6 +38,6 @@ echo '
 
 sleep 5
 
-# hdiutil detach ${device}
+
 # hdiutil convert "pack.temp.dmg" -ov -format UDZO -imagekey zlib-level=9 -o "${finalDMGName}"
 # rm -f pack.temp.dmg
