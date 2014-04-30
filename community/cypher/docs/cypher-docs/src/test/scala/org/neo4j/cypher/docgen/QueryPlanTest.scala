@@ -27,17 +27,45 @@ import org.neo4j.visualization.graphviz.AsciiDocSimpleStyle
 
 class QueryPlanTest extends DocumentingTestBase {
   override val setupQueries = List(
-    "CREATE (me {name:'me'})")
+    """CREATE (me:Person {name:'me'})
+       CREATE (neo4j:Database {name:'Neo4j'})
+    """.stripMargin)
+
+  override val setupConstraintQueries = List(
+    "CREATE INDEX ON :Database(name)".stripMargin
+  )
+
+
 
   def section = "Query Plan"
 
-  @Test def returnNode() {
+  @Test def allNodesScan() {
     profileQuery(
-      title = "Profile something",
-      text = "To return a node, list it in the `RETURN` statement.",
-      queryText = """match (n {name: "me"}) return n.name""",
-      optionalResultExplanation = """The example will return the node.""",
-      assertions = (p) => assertEquals(List(Map("n.name" -> "me")), p.toList))
+      title = "All Nodes Scan",
+      text = "This query will return all nodes. It's not a good idea to run a query like this on a production database.",
+      queryText = """MATCH (n) RETURN n""",
+      optionalResultExplanation = """""",
+      assertions = (p) => assertEquals(List(), List()))
+  }
+
+  @Test def nodeByLabelScan() {
+    profileQuery(
+      title = "Node by label scan",
+      text = """This query will return all nodes which have label 'Person' where the property 'name' has the value 'me'
+                via a scan of the Person labelindex""",
+      queryText = """MATCH (person:Person {name: "me"}) return person""",
+      optionalResultExplanation = """""",
+      assertions = (p) => assertEquals(true, true))
+  }
+
+  @Test def nodeByIndexSeek() {
+    profileQuery(
+      title = "Node index seek",
+      text = """This query will return all nodes which have label 'Company' where the property 'name' has the value
+                'neo4j' using the Company index.""",
+      queryText = """MATCH (neo4j:Database {name: "neo4j"}) return neo4j""",
+      optionalResultExplanation = """""",
+      assertions = (p) => assertEquals(true, true))
   }
 
 }
