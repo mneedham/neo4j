@@ -28,14 +28,15 @@ import org.neo4j.visualization.graphviz.AsciiDocSimpleStyle
 class QueryPlanTest extends DocumentingTestBase {
   override val setupQueries = List(
     """CREATE (me:Person {name:'me'})
-       CREATE (neo4j:Database {name:'Neo4j'})
+       CREATE (andres:Person {name:'Andres'})
+       CREATE (andreas:Person {name:'Andreas'})
+       CREATE (malmo:Location {name:'Malmo'})
+       CREATE (london:Location {name:'London'})
     """.stripMargin)
 
   override val setupConstraintQueries = List(
-    "CREATE INDEX ON :Database(name)".stripMargin
+    "CREATE INDEX ON :Location(name)".stripMargin
   )
-
-
 
   def section = "Query Plan"
 
@@ -52,8 +53,8 @@ class QueryPlanTest extends DocumentingTestBase {
     profileQuery(
       title = "Node by label scan",
       text = """This query will return all nodes which have label 'Person' where the property 'name' has the value 'me'
-                via a scan of the Person labelindex""",
-      queryText = """MATCH (person:Person {name: "me"}) return person""",
+                via a scan of the Person label index""",
+      queryText = """MATCH (person:Person {name: "me"}) RETURN person""",
       optionalResultExplanation = """""",
       assertions = (p) => assertEquals(true, true))
   }
@@ -62,10 +63,41 @@ class QueryPlanTest extends DocumentingTestBase {
     profileQuery(
       title = "Node index seek",
       text = """This query will return all nodes which have label 'Company' where the property 'name' has the value
-                'neo4j' using the Company index.""",
-      queryText = """MATCH (neo4j:Database {name: "neo4j"}) return neo4j""",
+                'Malmo' using the Location index.""",
+      queryText = """MATCH (location:Location {name: "Malmo"}) RETURN location""",
       optionalResultExplanation = """""",
       assertions = (p) => assertEquals(true, true))
   }
 
+  @Test def projection() {
+    profileQuery(
+      title = "Projection",
+      text = """This query will produce one row with the value 'hello'.""",
+      queryText = """RETURN "hello" AS greeting""",
+      optionalResultExplanation = """""",
+      assertions = (p) => assertEquals(true, true))
+  }
+
+  @Test def selection() {
+    profileQuery(
+      title = "Selection",
+      text =
+        """This query will look for nodes with the label 'Person' and filter those whose name
+           begins with the letter 'a'.""",
+      queryText = """MATCH (p:Person) WHERE p.name =~ "^a.*" RETURN p""",
+      optionalResultExplanation = """""",
+      assertions = (p) => assertEquals(true, true))
+  }
+
+  @Test def cartesianProduct() {
+    profileQuery(
+      title = "Cartesian Product",
+      text =
+        """This query will join all the people with all the locations and return the cartesian product of the nodes
+          with those labels.
+        """.stripMargin,
+      queryText = """MATCH (p:Person), (l:Location) RETURN p, l""",
+      optionalResultExplanation = """""",
+      assertions = (p) => assertEquals(true, true))
+  }
 }
