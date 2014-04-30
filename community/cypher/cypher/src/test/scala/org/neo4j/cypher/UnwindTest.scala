@@ -77,10 +77,31 @@ class UnwindTest extends ExecutionEngineFunSuite {
     result.columnAs[Int]("x").toList should equal (List(1,2))
   }
 
-  test("unwind a collection of collections") {
+  test("double unwinding a collection of collections returns one row per item") {
     val result = execute(
       "WITH [[1,2,3], [4,5,6]] AS coc UNWIND coc AS x UNWIND x AS y RETURN y"
     )
     result.columnAs[Int]("y").toList should equal (List(1,2,3,4,5,6))
+  }
+
+  test("no rows for unwinding an empty collection") {
+    val result = execute(
+      "UNWIND [] AS empty RETURN empty"
+    )
+    result.columnAs[Int]("empty").toList should equal (List())
+  }
+
+  test("no rows for unwinding null") {
+    val result = execute(
+      "UNWIND null AS empty RETURN empty"
+    )
+    result.columnAs[Int]("empty").toList should equal (List())
+  }
+
+  test("one row per item of a collection even with duplicates") {
+    val result = execute(
+      "UNWIND [1,1,2,2,3,3,4,4,5,5] AS duplicate RETURN duplicate"
+    )
+    result.columnAs[Int]("duplicate").toList should equal (List(1,1,2,2,3,3,4,4,5,5))
   }
 }
