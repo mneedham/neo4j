@@ -2,3 +2,5 @@
 = Cartesian Product =
 
 Produces a cross product of the two inputs - each row coming from the left child, will be matched with all the rows from the right child operator.
+
+include::cartesian-product.asciidoc[]

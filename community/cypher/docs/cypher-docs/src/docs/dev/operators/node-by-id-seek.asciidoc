@@ -2,3 +2,5 @@
 = Node by id seek =
 
 Reads one or more nodes by id from the node store.
+
+include::node-by-id-seek.asciidoc[]

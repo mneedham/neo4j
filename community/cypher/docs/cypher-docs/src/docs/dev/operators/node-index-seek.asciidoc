@@ -2,3 +2,5 @@
 = Node index seek =
 
 Finds nodes using an index seek. The node identifier and the index used is shown in the arguments of the operator.
+
+include::node-index-seek.asciidoc[]

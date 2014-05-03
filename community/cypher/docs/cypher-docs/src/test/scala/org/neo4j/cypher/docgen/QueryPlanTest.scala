@@ -46,7 +46,7 @@ class QueryPlanTest extends DocumentingTestBase {
       text = "This query will return all nodes. It's not a good idea to run a query like this on a production database.",
       queryText = """MATCH (n) RETURN n""",
       optionalResultExplanation = """""",
-      assertions = (p) => assertEquals(List(), List()))
+      assertions = (p) => assertTrue(p.executionPlanDescription().toString.contains("AllNodesScan")))
   }
 
   @Test def nodeByLabelScan() {
@@ -56,7 +56,7 @@ class QueryPlanTest extends DocumentingTestBase {
                 via a scan of the Person label index""",
       queryText = """MATCH (person:Person {name: "me"}) RETURN person""",
       optionalResultExplanation = """""",
-      assertions = (p) => assertEquals(true, true))
+      assertions = (p) => assertTrue(p.executionPlanDescription().toString.contains("LabelScan")))
   }
 
   @Test def nodeByIndexSeek() {
@@ -66,7 +66,16 @@ class QueryPlanTest extends DocumentingTestBase {
                 'Malmo' using the Location index.""",
       queryText = """MATCH (location:Location {name: "Malmo"}) RETURN location""",
       optionalResultExplanation = """""",
-      assertions = (p) => assertEquals(true, true))
+      assertions = (p) => assertTrue(p.executionPlanDescription().toString.contains("NodeIndexSeek")))
+  }
+
+  @Test def nodeByIdSeek() {
+    profileQuery(
+      title = "Node by Id seek",
+      text = """This query will return the node which has nodeId 0""",
+      queryText = """MATCH n WHERE id(n) = 0 RETURN n""",
+      optionalResultExplanation = """""",
+      assertions = (p) => assertTrue(p.executionPlanDescription().toString.contains("NodeByIdSeek")))
   }
 
   @Test def projection() {
@@ -75,7 +84,7 @@ class QueryPlanTest extends DocumentingTestBase {
       text = """This query will produce one row with the value 'hello'.""",
       queryText = """RETURN "hello" AS greeting""",
       optionalResultExplanation = """""",
-      assertions = (p) => assertEquals(true, true))
+      assertions = (p) => assertTrue(p.executionPlanDescription().toString.contains("Projection")))
   }
 
   @Test def selection() {
@@ -86,7 +95,7 @@ class QueryPlanTest extends DocumentingTestBase {
            begins with the letter 'a'.""",
       queryText = """MATCH (p:Person) WHERE p.name =~ "^a.*" RETURN p""",
       optionalResultExplanation = """""",
-      assertions = (p) => assertEquals(true, true))
+      assertions = (p) => assertTrue(p.executionPlanDescription().toString.contains("Selection")))
   }
 
   @Test def cartesianProduct() {
@@ -98,6 +107,6 @@ class QueryPlanTest extends DocumentingTestBase {
         """.stripMargin,
       queryText = """MATCH (p:Person), (l:Location) RETURN p, l""",
       optionalResultExplanation = """""",
-      assertions = (p) => assertEquals(true, true))
+      assertions = (p) => assertTrue(p.executionPlanDescription().toString.contains("CartesianProduct")))
   }
 }
