@@ -205,7 +205,7 @@ abstract class DocumentingTestBase extends CypherJUnitSuite with DocumentationHe
       writer.println()
 
       writer.append(".Query Plan\n")
-      writer.append(AsciidocHelper.createQueryResultSnippet(result.executionPlanDescription().toString))
+      writer.append(AsciidocHelper.createOutputSnippet(result.executionPlanDescription().toString))
 
       writer.flush()
       writer.close()

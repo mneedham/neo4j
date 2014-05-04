@@ -40,3 +40,6 @@ include::schema.asciidoc[]
 
 include::{importdir}/neo4j-examples-docs-jar/dev/examples/from-sql-to-cypher.asciidoc[]
 
+:leveloffset: 1
+
+include::operators.asciidoc[]

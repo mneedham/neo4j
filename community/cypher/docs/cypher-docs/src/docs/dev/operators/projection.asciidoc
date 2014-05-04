@@ -2,3 +2,5 @@
 = Projection =
 
 For each row from it's input, projection executes a set of expressions and produces a row with the results of the expressions.
+
+include::../ql/query-plan/projection.asciidoc[]

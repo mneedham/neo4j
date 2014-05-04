@@ -3,4 +3,4 @@
 
 Reads all nodes from the node store. The identifier that will contain the nodes is seen in the arguments.
 
-include::all-nodes-scan.asciidoc[]
+include::../ql/query-plan/all-nodes-scan.asciidoc[]

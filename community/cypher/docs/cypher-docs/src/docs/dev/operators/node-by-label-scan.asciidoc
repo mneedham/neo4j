@@ -3,4 +3,4 @@
 
 Using the label index, fetches all nodes with a specific label on them.
 
-include::node-by-label-scan.asciidoc[]
+include::../ql/query-plan/node-by-label-scan.asciidoc[]

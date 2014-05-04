@@ -3,4 +3,4 @@
 
 Reads one or more nodes by id from the node store.
 
-include::node-by-id-seek.asciidoc[]
+include::../ql/query-plan/node-by-id-seek.asciidoc[]

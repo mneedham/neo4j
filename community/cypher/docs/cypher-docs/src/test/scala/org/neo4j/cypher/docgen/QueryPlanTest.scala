@@ -95,7 +95,8 @@ class QueryPlanTest extends DocumentingTestBase {
            begins with the letter 'a'.""",
       queryText = """MATCH (p:Person) WHERE p.name =~ "^a.*" RETURN p""",
       optionalResultExplanation = """""",
-      assertions = (p) => assertTrue(p.executionPlanDescription().toString.contains("Selection")))
+      assertions = (p) => assertTrue(p.executionPlanDescription().toString.contains("Filter")))
+//      assertions = (p) => assertTrue(p.executionPlanDescription().toString.contains("Selection")))
   }
 
   @Test def cartesianProduct() {
