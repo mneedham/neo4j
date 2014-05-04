@@ -204,7 +204,7 @@ class QueryPlanTest extends DocumentingTestBase {
         """This query will find all the people who aren't my friend.
         """.stripMargin,
       queryText =
-        """MATCH (p:Person {name: "me"}), (other:Person)
+        """MATCH (me:Person {name: "me"}), (other:Person)
            WHERE NOT((me)-[:FRIENDS_WITH]->(other))
            RETURN other""",
       optionalResultExplanation = """""",
@@ -213,4 +213,22 @@ class QueryPlanTest extends DocumentingTestBase {
         assertTrue(p.executionPlanDescription().toString.contains("SelectOrSemiApply"))
       })
   }
+
+  @Test def antiSemiApply() {
+    profileQuery(
+      title = "Anti Semi Apply",
+      text =
+        """This query will find all the people who aren't my friend.
+        """.stripMargin,
+      queryText =
+        """MATCH (me:Person {name: "me"}), (other:Person)
+           WHERE NOT((me)-[:FRIENDS_WITH]->(other))
+           RETURN other""",
+      optionalResultExplanation = """""",
+      assertions = (p) =>  {
+        println(p.executionPlanDescription().toString)
+        assertTrue(p.executionPlanDescription().toString.contains("AntiSemiApply"))
+      })
+  }
+
 }
