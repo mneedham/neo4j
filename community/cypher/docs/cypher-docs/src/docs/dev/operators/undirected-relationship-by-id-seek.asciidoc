@@ -1,4 +1,4 @@
-[[operator-undirected-relationship-by-id]]
+[[operator-undirected-relationship-by-id-seek]]
 = Undirected relationship by id =
 
 Reads one or more relationships by id from the relationship store.

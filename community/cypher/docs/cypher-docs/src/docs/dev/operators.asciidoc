@@ -18,13 +18,14 @@ These are some of the operators you will see if you look at execution plans.
 | <<operator-undirected-relationship-by-id-seek, Undirected Relationship By Id Seek>> | | | |
 |=======
 
-:leveloffset: 1
+:leveloffset: 2
 
 include::operators/all-nodes-scan.asciidoc[]
 include::operators/apply.asciidoc[]
 include::operators/cartesian-product.asciidoc[]
 include::operators/directed-relationship-by-id-seek.asciidoc[]
 include::operators/expand.asciidoc[]
+include::operators/limit.asciidoc[]
 include::operators/node-by-id-seek.asciidoc[]
 include::operators/node-by-label-scan.asciidoc[]
 include::operators/node-index-seek.asciidoc[]
@@ -35,6 +36,8 @@ include::operators/optional-expand.asciidoc[]
 include::operators/projection.asciidoc[]
 include::operators/selection.asciidoc[]
 include::operators/single-row.asciidoc[]
+include::operators/sort.asciidoc[]
+include::operators/sorted-limit.asciidoc[]
 include::operators/undirected-relationship-by-id-seek.asciidoc[]
 
 

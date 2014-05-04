@@ -32,10 +32,16 @@ class QueryPlanTest extends DocumentingTestBase {
        CREATE (andreas:Person {name:'Andreas'})
        CREATE (malmo:Location {name:'Malmo'})
        CREATE (london:Location {name:'London'})
+       CREATE (field:Team {name:'Field'})
+       CREATE (engineering:Team {name:'Engineering'})
+       CREATE (me)-[:WORKS_IN]->(london)
+       CREATE (me)-[:FRIENDS_WITH]->(andres)
+       CREATE (andres)-[:FRIENDS_WITH]->(andreas)
     """.stripMargin)
 
   override val setupConstraintQueries = List(
-    "CREATE INDEX ON :Location(name)".stripMargin
+    "CREATE INDEX ON :Location(name)".stripMargin,
+    "CREATE CONSTRAINT ON (team:Team) ASSERT team.name is UNIQUE".stripMargin
   )
 
   def section = "Query Plan"
@@ -67,6 +73,16 @@ class QueryPlanTest extends DocumentingTestBase {
       queryText = """MATCH (location:Location {name: "Malmo"}) RETURN location""",
       optionalResultExplanation = """""",
       assertions = (p) => assertTrue(p.executionPlanDescription().toString.contains("NodeIndexSeek")))
+  }
+
+  @Test def nodeByUniqueIndexSeek() {
+    profileQuery(
+      title = "Node unique index seek",
+      text = """This query will return all nodes which have label 'Team' where the property 'name' has the value
+                'Field' using the Team unique index.""",
+      queryText = """MATCH (team:Team {name: "Field"}) RETURN team""",
+      optionalResultExplanation = """""",
+      assertions = (p) => assertTrue(p.executionPlanDescription().toString.contains("NodeUniqueIndexSeek")))
   }
 
   @Test def nodeByIdSeek() {
@@ -109,5 +125,92 @@ class QueryPlanTest extends DocumentingTestBase {
       queryText = """MATCH (p:Person), (l:Location) RETURN p, l""",
       optionalResultExplanation = """""",
       assertions = (p) => assertTrue(p.executionPlanDescription().toString.contains("CartesianProduct")))
+  }
+
+  @Test def optionalMatch() {
+    profileQuery(
+      title = "Optional Match",
+      text =
+        """This query will find all the people and the location they work in if there is one.
+        """.stripMargin,
+      queryText = """MATCH (p:Person) OPTIONAL MATCH (p)-[:WORKS_IN]->(l) RETURN p, l""",
+      optionalResultExplanation = """""",
+      assertions = (p) =>  {
+        println(p.executionPlanDescription().toString)
+        assertTrue(p.executionPlanDescription().toString.contains("Optional"))
+      })
+  }
+
+  @Test def sort() {
+    profileQuery(
+      title = "Sort",
+      text =
+        """This query will find all the people and return them sorted alphabetically by name.
+        """.stripMargin,
+      queryText = """MATCH (p:Person) RETURN p ORDER BY p.name""",
+      optionalResultExplanation = """""",
+      assertions = (p) =>  {
+        println(p.executionPlanDescription().toString)
+        assertTrue(p.executionPlanDescription().toString.contains("Sort"))
+      })
+  }
+
+  @Test def sortedLimit() {
+    profileQuery(
+      title = "Sorted Limit",
+      text =
+        """This query will find the first 2 people sorted alphabetically by name.
+        """.stripMargin,
+      queryText = """MATCH (p:Person) RETURN p ORDER BY p.name LIMIT 2""",
+      optionalResultExplanation = """""",
+      assertions = (p) =>  {
+        println(p.executionPlanDescription().toString)
+        assertTrue(p.executionPlanDescription().toString.contains("SortedLimit"))
+      })
+  }
+
+  @Test def limit() {
+    profileQuery(
+      title = "Limit",
+      text =
+        """This query will return the first 3 people in an arbitrary order.
+        """.stripMargin,
+      queryText = """MATCH (p:Person) RETURN p LIMIT 3""",
+      optionalResultExplanation = """""",
+      assertions = (p) =>  {
+        println(p.executionPlanDescription().toString)
+        assertTrue(p.executionPlanDescription().toString.contains("Limit"))
+      })
+  }
+
+  @Test def expand() {
+    profileQuery(
+      title = "Expand",
+      text =
+        """This query will return my friends of friends.
+        """.stripMargin,
+      queryText = """MATCH (p:Person {name: "me"})-[:FRIENDS_WITH*2]->(fof) RETURN fof""",
+      optionalResultExplanation = """""",
+      assertions = (p) =>  {
+        println(p.executionPlanDescription().toString)
+        assertTrue(p.executionPlanDescription().toString.contains("Expand"))
+      })
+  }
+
+  @Test def selectOrSemiApply() {
+    profileQuery(
+      title = "Select Or Semi Apply",
+      text =
+        """This query will find all the people who aren't my friend.
+        """.stripMargin,
+      queryText =
+        """MATCH (p:Person {name: "me"}), (other:Person)
+           WHERE NOT((me)-[:FRIENDS_WITH]->(other))
+           RETURN other""",
+      optionalResultExplanation = """""",
+      assertions = (p) =>  {
+        println(p.executionPlanDescription().toString)
+        assertTrue(p.executionPlanDescription().toString.contains("SelectOrSemiApply"))
+      })
   }
 }

@@ -1,0 +1,6 @@
+[[operator-sort]]
+= Sort =
+
+Sorts rows by a provided key.
+
+include::../ql/query-plan/sort.asciidoc[]

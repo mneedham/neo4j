@@ -1,4 +1,4 @@
-[[operator-directed-relationship-by-id]]
+[[operator-directed-relationship-by-id-seek]]
 = Directed relationship by id =
 
 Reads one or more relationships by id from the relationship store.

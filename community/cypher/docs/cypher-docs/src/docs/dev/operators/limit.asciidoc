@@ -1,0 +1,6 @@
+[[operator-limit]]
+= Limit =
+
+Returns the first 'n' rows.
+
+include::../ql/query-plan/limit.asciidoc[]

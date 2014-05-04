@@ -1,0 +1,6 @@
+[[operator-sorted-limit]]
+= Sorted Limit =
+
+Returns the first 'n' rows sorted by a provided key.
+
+include::../ql/query-plan/sorted-limit.asciidoc[]
