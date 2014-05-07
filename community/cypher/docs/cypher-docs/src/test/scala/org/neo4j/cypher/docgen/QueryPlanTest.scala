@@ -32,6 +32,7 @@ class QueryPlanTest extends DocumentingTestBase {
        CREATE (andreas:Person {name:'Andreas'})
        CREATE (malmo:Location {name:'Malmo'})
        CREATE (london:Location {name:'London'})
+       CREATE (england:Country {name:'England'})
        CREATE (field:Team {name:'Field'})
        CREATE (engineering:Team {name:'Engineering'})
        CREATE (me)-[:WORKS_IN]->(london)
@@ -120,7 +121,9 @@ class QueryPlanTest extends DocumentingTestBase {
           |The following query will look for nodes with the label 'Person' and filter those whose name begins with the letter 'a'.""".stripMargin,
       queryText = """MATCH (p:Person) WHERE p.name =~ "^a.*" RETURN p""",
       optionalResultExplanation = """""",
-      assertions = (p) => assertTrue(p.executionPlanDescription().toString.contains("Filter")))
+      assertions = (p) => {
+        assertTrue(p.executionPlanDescription().toString.contains("Filter"))
+      })
 //      assertions = (p) => assertTrue(p.executionPlanDescription().toString.contains("Selection")))
   }
 
@@ -139,9 +142,9 @@ class QueryPlanTest extends DocumentingTestBase {
 
   @Test def optionalMatch() {
     profileQuery(
-      title = "Optional Match",
+      title = "Optional",
       text =
-        """Takes the input from it's leaf and passes it on.If the input is empty, a single empty row is generated instead.
+        """Takes the input from it's leaf and passes it on. If the input is empty, a single empty row is generated instead.
           |
           |The following query will find all the people and the location they work in if there is one.
         """.stripMargin,
@@ -149,8 +152,7 @@ class QueryPlanTest extends DocumentingTestBase {
       optionalResultExplanation = """""",
       assertions = (p) =>  {
         println(p.executionPlanDescription().toString)
-//        assertTrue(p.executionPlanDescription().toString.contains("Optional"))
-        assertTrue(true)
+        assertTrue(p.executionPlanDescription().toString.contains("Expand"))
       })
   }
 
@@ -165,7 +167,6 @@ class QueryPlanTest extends DocumentingTestBase {
       queryText = """MATCH (p:Person) RETURN p ORDER BY p.name""",
       optionalResultExplanation = """""",
       assertions = (p) =>  {
-        println(p.executionPlanDescription().toString)
         assertTrue(p.executionPlanDescription().toString.contains("Sort"))
       })
   }
@@ -181,7 +182,6 @@ class QueryPlanTest extends DocumentingTestBase {
       queryText = """MATCH (p:Person) RETURN p ORDER BY p.name LIMIT 2""",
       optionalResultExplanation = """""",
       assertions = (p) =>  {
-        println(p.executionPlanDescription().toString)
         assertTrue(p.executionPlanDescription().toString.contains("Top"))
       })
   }
@@ -197,7 +197,6 @@ class QueryPlanTest extends DocumentingTestBase {
       queryText = """MATCH (p:Person) RETURN p LIMIT 3""",
       optionalResultExplanation = """""",
       assertions = (p) =>  {
-        println(p.executionPlanDescription().toString)
         assertTrue(p.executionPlanDescription().toString.contains("Limit"))
       })
   }
@@ -213,9 +212,7 @@ class QueryPlanTest extends DocumentingTestBase {
       queryText = """MATCH (p:Person {name: "me"})-[:FRIENDS_WITH*2]->(fof) RETURN fof""",
       optionalResultExplanation = """""",
       assertions = (p) =>  {
-        println(p.executionPlanDescription().toString)
-        assertTrue(true)
-//        assertTrue(p.executionPlanDescription().toString.contains("Expand"))
+        assertTrue(p.executionPlanDescription().toString.contains("expand"))
       })
   }
 
@@ -233,8 +230,25 @@ class QueryPlanTest extends DocumentingTestBase {
            RETURN other""",
       optionalResultExplanation = """""",
       assertions = (p) =>  {
-        println(p.executionPlanDescription().toString)
         assertTrue(p.executionPlanDescription().toString.contains("SemiApply"))
+      })
+  }
+
+  @Test def selectOrSemiApply() {
+    profileQuery(
+      title = "Select Or Semi Apply",
+      text =
+        """Tests for the existence of a pattern predicate and evaluates a property.
+          |
+          |The following query will find all the people who have a friend or are older than 25.
+        """.stripMargin,
+      queryText =
+        """MATCH (other:Person)
+           WHERE other.age > 25 OR (other)-[:FRIENDS_WITH]->()
+           RETURN other""",
+      optionalResultExplanation = """""",
+      assertions = (p) =>  {
+        assertTrue(p.executionPlanDescription().toString.contains("SelectOrSemiApply"))
       })
   }
 
@@ -252,8 +266,43 @@ class QueryPlanTest extends DocumentingTestBase {
            RETURN other""",
       optionalResultExplanation = """""",
       assertions = (p) =>  {
-        println(p.executionPlanDescription().toString)
         assertTrue(p.executionPlanDescription().toString.contains("AntiSemiApply"))
+      })
+  }
+
+  @Test def selectOrAntiSemiApply() {
+    profileQuery(
+      title = "Select Or Anti Semi Apply",
+      text =
+        """Tests for the absence of a pattern predicate and evaluates a property.
+          |
+          |The following query will find all the people who don't have a friend or are older than 25.
+        """.stripMargin,
+      queryText =
+        """MATCH (other:Person)
+           WHERE other.age > 25 OR NOT((other)-[:FRIENDS_WITH]->())
+           RETURN other""",
+      optionalResultExplanation = """""",
+      assertions = (p) =>  {
+        assertTrue(p.executionPlanDescription().toString.contains("SelectOrAntiSemiApply"))
+      })
+  }
+
+  @Test def nodeHashJoin() {
+    profileQuery(
+      title = "Select Or Anti Semi Apply",
+      text =
+        """Using a hash table, a node hash join joins the inputs coming from the left with the inputs coming from the right. The join key is specific in the arguments of the operator.
+          |
+          |The following query will find the people who work in London and the country which London belongs to.
+        """.stripMargin,
+      queryText =
+        """MATCH (person)-[:WORKS_IN]->(location:Location {name: "London"})<-[:CONTAINS]-(country)
+           RETURN country, location, person""",
+      optionalResultExplanation = """""",
+      assertions = (p) =>  {
+        println(p.executionPlanDescription().toString)
+        assertTrue(p.executionPlanDescription().toString.contains("NodeHashJoin"))
       })
   }
 

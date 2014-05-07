@@ -1,7 +1,0 @@
-[[operator-select-or-semi-apply]]
-= Select Or Semi Apply =
-
-Check with Andres for description
-
-
-
