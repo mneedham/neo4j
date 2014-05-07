@@ -1,6 +1,0 @@
-[[operator-selection]]
-= Selection =
-
-Filters each row coming from the child operator, only passing through rows that evaluate the predicates to true.
-
-include::../ql/query-plan/selection.asciidoc[]

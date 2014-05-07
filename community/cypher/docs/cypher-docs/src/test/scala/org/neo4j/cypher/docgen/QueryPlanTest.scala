@@ -49,7 +49,9 @@ class QueryPlanTest extends DocumentingTestBase {
   @Test def allNodesScan() {
     profileQuery(
       title = "All Nodes Scan",
-      text = "This query will return all nodes. It's not a good idea to run a query like this on a production database.",
+      text =
+        """Reads all nodes from the node store. The identifier that will contain the nodes is seen in the arguments.
+          |The following query will return all nodes. It's not a good idea to run a query like this on a production database.""".stripMargin,
       queryText = """MATCH (n) RETURN n""",
       optionalResultExplanation = """""",
       assertions = (p) => assertTrue(p.executionPlanDescription().toString.contains("AllNodesScan")))
@@ -58,8 +60,8 @@ class QueryPlanTest extends DocumentingTestBase {
   @Test def nodeByLabelScan() {
     profileQuery(
       title = "Node by label scan",
-      text = """This query will return all nodes which have label 'Person' where the property 'name' has the value 'me'
-                via a scan of the Person label index""",
+      text = """Using the label index, fetches all nodes with a specific label on them.
+                |The following query will return all nodes which have label 'Person' where the property 'name' has the value 'me' via a scan of the Person label index""".stripMargin,
       queryText = """MATCH (person:Person {name: "me"}) RETURN person""",
       optionalResultExplanation = """""",
       assertions = (p) => assertTrue(p.executionPlanDescription().toString.contains("LabelScan")))
@@ -68,8 +70,8 @@ class QueryPlanTest extends DocumentingTestBase {
   @Test def nodeByIndexSeek() {
     profileQuery(
       title = "Node index seek",
-      text = """This query will return all nodes which have label 'Company' where the property 'name' has the value
-                'Malmo' using the Location index.""",
+      text = """Finds nodes using an index seek. The node identifier and the index used is shown in the arguments of the operator.
+                |The following query will return all nodes which have label 'Company' where the property 'name' has the value 'Malmo' using the Location index.""".stripMargin,
       queryText = """MATCH (location:Location {name: "Malmo"}) RETURN location""",
       optionalResultExplanation = """""",
       assertions = (p) => assertTrue(p.executionPlanDescription().toString.contains("NodeIndexSeek")))
@@ -78,9 +80,10 @@ class QueryPlanTest extends DocumentingTestBase {
   @Test def nodeByUniqueIndexSeek() {
     profileQuery(
       title = "Node unique index seek",
-      text = """This query will return all nodes which have label 'Team' where the property 'name' has the value
-                'Field' using the Team unique index.""",
-      queryText = """MATCH (team:Team {name: "Field"}) RETURN team""",
+      text =
+        """Finds nodes using an index seek on a unique index. The node identifier and the index used is shown in the arguments of the operator.
+          |The following query will return all nodes which have label 'Team' where the property 'name' has the value 'Field' using the Team unique index.""",
+      queryText = """MATCH (team:Team {name: "Field"}) RETURN team""".stripMargin,
       optionalResultExplanation = """""",
       assertions = (p) => assertTrue(p.executionPlanDescription().toString.contains("NodeUniqueIndexSeek")))
   }
@@ -88,7 +91,9 @@ class QueryPlanTest extends DocumentingTestBase {
   @Test def nodeByIdSeek() {
     profileQuery(
       title = "Node by Id seek",
-      text = """This query will return the node which has nodeId 0""",
+      text =
+        """Reads one or more nodes by id from the node store.
+          |The following query will return the node which has nodeId 0""".stripMargin,
       queryText = """MATCH n WHERE id(n) = 0 RETURN n""",
       optionalResultExplanation = """""",
       assertions = (p) => assertTrue(p.executionPlanDescription().toString.contains("NodeByIdSeek")))
@@ -97,7 +102,10 @@ class QueryPlanTest extends DocumentingTestBase {
   @Test def projection() {
     profileQuery(
       title = "Projection",
-      text = """This query will produce one row with the value 'hello'.""",
+      text =
+        """For each row from it's input, projection executes a set of expressions and produces a row with the results of the expressions.
+
+          |The following query will produce one row with the value 'hello'.""".stripMargin,
       queryText = """RETURN "hello" AS greeting""",
       optionalResultExplanation = """""",
       assertions = (p) => assertTrue(p.executionPlanDescription().toString.contains("Projection")))
@@ -107,8 +115,9 @@ class QueryPlanTest extends DocumentingTestBase {
     profileQuery(
       title = "Selection",
       text =
-        """This query will look for nodes with the label 'Person' and filter those whose name
-           begins with the letter 'a'.""",
+        """Filters each row coming from the child operator, only passing through rows that evaluate the predicates to true.
+          |
+          |The following query will look for nodes with the label 'Person' and filter those whose name begins with the letter 'a'.""".stripMargin,
       queryText = """MATCH (p:Person) WHERE p.name =~ "^a.*" RETURN p""",
       optionalResultExplanation = """""",
       assertions = (p) => assertTrue(p.executionPlanDescription().toString.contains("Filter")))
@@ -119,8 +128,9 @@ class QueryPlanTest extends DocumentingTestBase {
     profileQuery(
       title = "Cartesian Product",
       text =
-        """This query will join all the people with all the locations and return the cartesian product of the nodes
-          with those labels.
+        """Produces a cross product of the two inputs - each row coming from the left child, will be matched with all the rows from the right child operator.
+          |
+          |The following query will join all the people with all the locations and return the cartesian product of the nodes with those labels.
         """.stripMargin,
       queryText = """MATCH (p:Person), (l:Location) RETURN p, l""",
       optionalResultExplanation = """""",
@@ -131,7 +141,9 @@ class QueryPlanTest extends DocumentingTestBase {
     profileQuery(
       title = "Optional Match",
       text =
-        """This query will find all the people and the location they work in if there is one.
+        """Takes the input from it's leaf and passes it on.If the input is empty, a single empty row is generated instead.
+          |
+          |The following query will find all the people and the location they work in if there is one.
         """.stripMargin,
       queryText = """MATCH (p:Person) OPTIONAL MATCH (p)-[:WORKS_IN]->(l) RETURN p, l""",
       optionalResultExplanation = """""",
@@ -146,7 +158,9 @@ class QueryPlanTest extends DocumentingTestBase {
     profileQuery(
       title = "Sort",
       text =
-        """This query will find all the people and return them sorted alphabetically by name.
+        """Sorts rows by a provided key.
+          |
+          |The following query will find all the people and return them sorted alphabetically by name.
         """.stripMargin,
       queryText = """MATCH (p:Person) RETURN p ORDER BY p.name""",
       optionalResultExplanation = """""",
@@ -160,7 +174,9 @@ class QueryPlanTest extends DocumentingTestBase {
     profileQuery(
       title = "Sorted Limit",
       text =
-        """This query will find the first 2 people sorted alphabetically by name.
+        """Returns the first 'n' rows sorted by a provided key. The physical operator is called 'Top'.
+          |
+          |The following query will find the first 2 people sorted alphabetically by name.
         """.stripMargin,
       queryText = """MATCH (p:Person) RETURN p ORDER BY p.name LIMIT 2""",
       optionalResultExplanation = """""",
@@ -174,7 +190,9 @@ class QueryPlanTest extends DocumentingTestBase {
     profileQuery(
       title = "Limit",
       text =
-        """This query will return the first 3 people in an arbitrary order.
+        """Returns the first 'n' rows.
+          |
+          |The following query will return the first 3 people in an arbitrary order.
         """.stripMargin,
       queryText = """MATCH (p:Person) RETURN p LIMIT 3""",
       optionalResultExplanation = """""",
@@ -188,7 +206,9 @@ class QueryPlanTest extends DocumentingTestBase {
     profileQuery(
       title = "Expand",
       text =
-        """This query will return my friends of friends.
+        """Given a start node, expand will follow relationships coming in or out, depending on the pattern relationship. Can also handle variable length pattern relationships.
+          |
+          |The following query will return my friends of friends.
         """.stripMargin,
       queryText = """MATCH (p:Person {name: "me"})-[:FRIENDS_WITH*2]->(fof) RETURN fof""",
       optionalResultExplanation = """""",
@@ -199,15 +219,17 @@ class QueryPlanTest extends DocumentingTestBase {
       })
   }
 
-  @Test def selectOrSemiApply() {
+  @Test def semiApply() {
     profileQuery(
-      title = "Select Or Semi Apply",
+      title = "Semi Apply",
       text =
-        """This query will find all the people who aren't my friend.
+        """Tests for the existence of a pattern predicate.
+          |
+          |The following query will find all the people who have a friend.
         """.stripMargin,
       queryText =
-        """MATCH (me:Person {name: "me"}), (other:Person)
-           WHERE ((me)-[:FRIENDS_WITH]->(other))
+        """MATCH (other:Person)
+           WHERE (other)-[:FRIENDS_WITH]->()
            RETURN other""",
       optionalResultExplanation = """""",
       assertions = (p) =>  {
@@ -220,7 +242,9 @@ class QueryPlanTest extends DocumentingTestBase {
     profileQuery(
       title = "Anti Semi Apply",
       text =
-        """This query will find all the people who aren't my friend.
+        """Tests for the absence of a pattern predicate.
+
+           The following query will find all the people who aren't my friend.
         """.stripMargin,
       queryText =
         """MATCH (me:Person {name: "me"}), (other:Person)

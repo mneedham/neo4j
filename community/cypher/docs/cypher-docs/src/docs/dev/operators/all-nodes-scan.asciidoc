@@ -1,6 +1,0 @@
-[[operator-all-nodes-scan]]
-= All Nodes Scan =
-
-Reads all nodes from the node store. The identifier that will contain the nodes is seen in the arguments.
-
-include::../ql/query-plan/all-nodes-scan.asciidoc[]

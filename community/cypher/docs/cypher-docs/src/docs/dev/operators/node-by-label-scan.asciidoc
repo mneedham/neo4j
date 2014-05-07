@@ -1,6 +1,0 @@
-[[operator-node-by-label-scan]]
-= Node by label scan =
-
-Using the label index, fetches all nodes with a specific label on them.
-
-include::../ql/query-plan/node-by-label-scan.asciidoc[]

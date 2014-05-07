@@ -3,5 +3,5 @@
 
 Check with Andres for description
 
-include::operators/select-or-semi-apply.asciidoc[]
+
 

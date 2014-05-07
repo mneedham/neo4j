@@ -1,7 +1,0 @@
-[[operator-expand]]
-= Expand =
-
-Given a start node, expand will follow relationships coming in or out, depending on the pattern relationship.
-Can also handle variable length pattern relationships.
-
-include::../ql/query-plan/expand.asciidoc[]

@@ -1,5 +1,0 @@
-[[operator-optional]]
-= Optional =
-
-Optional takes the input from it's leaf and passes it on.
-If the input is empty, a single empty row is generated instead.

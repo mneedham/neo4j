@@ -10,34 +10,30 @@ To analyze a query for performance improvements, it's essential to be able to un
 
 These are some of the operators you will see if you look at execution plans.
 
-[width="70%"]
-|=======
-| <<operator-all-nodes-scan, All Nodes Scan>> | <<operator-apply, Apply>>| <<operator-cartesian-product, Cartesian Product>> | <<operator-directed-relationship-by-id-seek, Directed Relationship By Id Seek>> | <<operator-expand, Expand>>
-| <<operator-node-by-id-seek, Node By Id Seek>> | <<operator-node-by-label-scan, Node By Label Scan>> | <<operator-node-hash-join, Node Hash Join>> | <<operator-node-index-seek, Node Index Seek>> | <<operator-node-unique-index-seek, Node Unique Index Seek>>
-| <<operator-optional, Optional>> | <<operator-optional-expand, Optional Expand>> | <<operator-projection, Projection>> | <<operator-selection, Selection>> | <<operator-single-row, Single Row>>
-| <<operator-undirected-relationship-by-id-seek, Undirected Relationship By Id Seek>> | | | |
-|=======
+:leveloffset: 1
 
-:leveloffset: 2
+include::ql/query-plan/anti-semi-apply.asciidoc[]
+include::ql/query-plan/all-nodes-scan.asciidoc[]
+include::ql/query-plan/cartesian-product.asciidoc[]
+include::ql/query-plan/expand.asciidoc[]
+include::ql/query-plan/limit.asciidoc[]
+include::ql/query-plan/node-by-label-scan.asciidoc[]
+include::ql/query-plan/node-by-id-seek.asciidoc[]
+include::ql/query-plan/node-index-seek.asciidoc[]
+include::ql/query-plan/node-unique-index-seek.asciidoc[]
+include::ql/query-plan/optional-match.asciidoc[]
+include::ql/query-plan/projection.asciidoc[]
+include::ql/query-plan/selection.asciidoc[]
+include::ql/query-plan/semi-apply.asciidoc[]
+include::ql/query-plan/sort.asciidoc[]
+include::ql/query-plan/sorted-limit.asciidoc[]
 
-include::operators/all-nodes-scan.asciidoc[]
+////
 include::operators/apply.asciidoc[]
-include::operators/cartesian-product.asciidoc[]
 include::operators/directed-relationship-by-id-seek.asciidoc[]
-include::operators/expand.asciidoc[]
-include::operators/limit.asciidoc[]
-include::operators/node-by-id-seek.asciidoc[]
-include::operators/node-by-label-scan.asciidoc[]
-include::operators/node-index-seek.asciidoc[]
 include::operators/node-outer-hash-join.asciidoc[]
-include::operators/node-unique-index-seek.asciidoc[]
-include::operators/optional.asciidoc[]
 include::operators/optional-expand.asciidoc[]
-include::operators/projection.asciidoc[]
-include::operators/selection.asciidoc[]
 include::operators/single-row.asciidoc[]
-include::operators/sort.asciidoc[]
-include::operators/sorted-limit.asciidoc[]
 include::operators/undirected-relationship-by-id-seek.asciidoc[]
-
+////
 

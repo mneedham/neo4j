@@ -1,6 +1,0 @@
-[[operator-sorted-limit]]
-= Sorted Limit =
-
-Returns the first 'n' rows sorted by a provided key. The physical operator is called 'Top'.
-
-include::../ql/query-plan/sorted-limit.asciidoc[]
