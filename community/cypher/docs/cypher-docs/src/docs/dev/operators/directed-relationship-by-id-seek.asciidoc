@@ -1,5 +1,0 @@
-[[operator-directed-relationship-by-id-seek]]
-= Directed relationship by id =
-
-Reads one or more relationships by id from the relationship store.
-Produces both the relationship and the nodes on either side.

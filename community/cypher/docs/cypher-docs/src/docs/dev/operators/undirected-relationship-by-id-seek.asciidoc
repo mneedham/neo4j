@@ -1,5 +1,0 @@
-[[operator-undirected-relationship-by-id-seek]]
-= Undirected relationship by id =
-
-Reads one or more relationships by id from the relationship store.
-For each relationship, two rows are produced, with the end nodes in two different locations.
