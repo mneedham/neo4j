@@ -153,15 +153,14 @@ class QueryPlanTest extends DocumentingTestBase {
           |
           |If no matching relationships are found, a single row with null for the relationship and end node identifier is produced.
           |
-          |The following query will find all the people and the location they work in as long as they'vee worked there for more than 180 days.
+          |The following query will find all the people and the location they work in as long as they've worked there for more than 180 days.
         """.stripMargin,
       queryText =
         """MATCH (p:Person)
            OPTIONAL MATCH (p)-[works_in:WORKS_IN]->(l) WHERE works_in.duration > 180
            RETURN p, l""",
       assertions = (p) =>  {
-        println(p.executionPlanDescription().toString)
-        assertTrue(p.executionPlanDescription().toString.contains("Expand"))
+        assertTrue(p.executionPlanDescription().toString.contains("OptionalExpand"))
       })
   }
 
