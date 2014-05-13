@@ -152,11 +152,11 @@ abstract class DocumentingTestBase extends CypherJUnitSuite with DocumentationHe
     internalTestQuery(title, text, queryText, optionalResultExplanation, None, Some(() => prepare), assertions: _*)
   }
 
-  def profileQuery(title: String, text: String, queryText: String, optionalResultExplanation: String, assertions: (ExecutionResult => Unit)*) {
-    internalProfileQuery(title, text, queryText, optionalResultExplanation, None, None, assertions: _*)
+  def profileQuery(title: String, text: String, queryText: String, assertions: (ExecutionResult => Unit)*) {
+    internalProfileQuery(title, text, queryText, None, None, assertions: _*)
   }
 
-  private def internalProfileQuery(title: String, text: String, queryText: String, optionalResultExplanation: String, expectedException: Option[ClassTag[_ <: CypherException]], prepare: Option[() => Any], assertions: (ExecutionResult => Unit)*) {
+  private def internalProfileQuery(title: String, text: String, queryText: String, expectedException: Option[ClassTag[_ <: CypherException]], prepare: Option[() => Any], assertions: (ExecutionResult => Unit)*) {
     parameters = null
     preparationQueries = List()
 
@@ -201,7 +201,6 @@ abstract class DocumentingTestBase extends CypherJUnitSuite with DocumentationHe
       output.append(createCypherSnippet(query))
       writer.println(AsciiDocGenerator.dumpToSeparateFile(dir, testId + ".query", output.toString()))
       writer.println()
-      writer.println(optionalResultExplanation)
       writer.println()
 
       writer.append(".Query Plan\n")
@@ -220,7 +219,7 @@ abstract class DocumentingTestBase extends CypherJUnitSuite with DocumentationHe
         val expectedExceptionType = expectedException.get
         e match {
           case expectedExceptionType(typedE) =>
-            dumpToFile(dir, writer, title, query, optionalResultExplanation, text, typedE, consoleData)
+            dumpToFile(dir, writer, title, query, "", text, typedE, consoleData)
           case _ => fail(s"Expected an exception of type $expectedException but got ${e.getClass}", e)
         }
     }

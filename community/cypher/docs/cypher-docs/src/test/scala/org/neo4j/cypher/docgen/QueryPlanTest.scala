@@ -32,7 +32,7 @@ class QueryPlanTest extends DocumentingTestBase {
        CREATE (england:Country {name:'England'})
        CREATE (field:Team {name:'Field'})
        CREATE (engineering:Team {name:'Engineering'})
-       CREATE (me)-[:WORKS_IN]->(london)
+       CREATE (me)-[:WORKS_IN {duration: 190}]->(london)
        CREATE (me)-[:FRIENDS_WITH]->(andres)
        CREATE (andres)-[:FRIENDS_WITH]->(andreas)
     """.stripMargin)
@@ -51,7 +51,6 @@ class QueryPlanTest extends DocumentingTestBase {
         """Reads all nodes from the node store. The identifier that will contain the nodes is seen in the arguments.
           |The following query will return all nodes. It's not a good idea to run a query like this on a production database.""".stripMargin,
       queryText = """MATCH (n) RETURN n""",
-      optionalResultExplanation = """""",
       assertions = (p) => assertTrue(p.executionPlanDescription().toString.contains("AllNodesScan")))
   }
 
@@ -61,7 +60,6 @@ class QueryPlanTest extends DocumentingTestBase {
       text = """Using the label index, fetches all nodes with a specific label on them.
                 |The following query will return all nodes which have label 'Person' where the property 'name' has the value 'me' via a scan of the Person label index""".stripMargin,
       queryText = """MATCH (person:Person {name: "me"}) RETURN person""",
-      optionalResultExplanation = """""",
       assertions = (p) => assertTrue(p.executionPlanDescription().toString.contains("LabelScan")))
   }
 
@@ -71,7 +69,6 @@ class QueryPlanTest extends DocumentingTestBase {
       text = """Finds nodes using an index seek. The node identifier and the index used is shown in the arguments of the operator.
                 |The following query will return all nodes which have label 'Company' where the property 'name' has the value 'Malmo' using the Location index.""".stripMargin,
       queryText = """MATCH (location:Location {name: "Malmo"}) RETURN location""",
-      optionalResultExplanation = """""",
       assertions = (p) => assertTrue(p.executionPlanDescription().toString.contains("NodeIndexSeek")))
   }
 
@@ -82,7 +79,6 @@ class QueryPlanTest extends DocumentingTestBase {
         """Finds nodes using an index seek on a unique index. The node identifier and the index used is shown in the arguments of the operator.
           |The following query will return all nodes which have label 'Team' where the property 'name' has the value 'Field' using the Team unique index.""",
       queryText = """MATCH (team:Team {name: "Field"}) RETURN team""".stripMargin,
-      optionalResultExplanation = """""",
       assertions = (p) => assertTrue(p.executionPlanDescription().toString.contains("NodeUniqueIndexSeek")))
   }
 
@@ -93,7 +89,6 @@ class QueryPlanTest extends DocumentingTestBase {
         """Reads one or more nodes by id from the node store.
           |The following query will return the node which has nodeId 0""".stripMargin,
       queryText = """MATCH n WHERE id(n) = 0 RETURN n""",
-      optionalResultExplanation = """""",
       assertions = (p) => assertTrue(p.executionPlanDescription().toString.contains("NodeByIdSeek")))
   }
 
@@ -105,7 +100,6 @@ class QueryPlanTest extends DocumentingTestBase {
 
           |The following query will produce one row with the value 'hello'.""".stripMargin,
       queryText = """RETURN "hello" AS greeting""",
-      optionalResultExplanation = """""",
       assertions = (p) => assertTrue(p.executionPlanDescription().toString.contains("Projection")))
   }
 
@@ -117,8 +111,8 @@ class QueryPlanTest extends DocumentingTestBase {
           |
           |The following query will look for nodes with the label 'Person' and filter those whose name begins with the letter 'a'.""".stripMargin,
       queryText = """MATCH (p:Person) WHERE p.name =~ "^a.*" RETURN p""",
-      optionalResultExplanation = """""",
       assertions = (p) => {
+        println(p.executionPlanDescription().toString)
         assertTrue(p.executionPlanDescription().toString.contains("Filter"))
       })
 //      assertions = (p) => assertTrue(p.executionPlanDescription().toString.contains("Selection")))
@@ -133,7 +127,6 @@ class QueryPlanTest extends DocumentingTestBase {
           |The following query will join all the people with all the locations and return the cartesian product of the nodes with those labels.
         """.stripMargin,
       queryText = """MATCH (p:Person), (l:Location) RETURN p, l""",
-      optionalResultExplanation = """""",
       assertions = (p) => assertTrue(p.executionPlanDescription().toString.contains("CartesianProduct")))
   }
 
@@ -146,7 +139,26 @@ class QueryPlanTest extends DocumentingTestBase {
           |The following query will find all the people and the location they work in if there is one.
         """.stripMargin,
       queryText = """MATCH (p:Person) OPTIONAL MATCH (p)-[:WORKS_IN]->(l) RETURN p, l""",
-      optionalResultExplanation = """""",
+      assertions = (p) =>  {
+        println(p.executionPlanDescription().toString)
+        assertTrue(p.executionPlanDescription().toString.contains("Expand"))
+      })
+  }
+
+  @Test def optionalExpand() {
+    profileQuery(
+      title = "Optional",
+      text =
+        """Expand traverses relationships from a given node, and makes sure that predicates are evaluated before producing rows.
+          |
+          |If no matching relationships are found, a single row with null for the relationship and end node identifier is produced.
+          |
+          |The following query will find all the people and the location they work in as long as they'vee worked there for more than 180 days.
+        """.stripMargin,
+      queryText =
+        """MATCH (p:Person)
+           OPTIONAL MATCH (p)-[works_in:WORKS_IN]->(l) WHERE works_in.duration > 180
+           RETURN p, l""",
       assertions = (p) =>  {
         println(p.executionPlanDescription().toString)
         assertTrue(p.executionPlanDescription().toString.contains("Expand"))
@@ -162,7 +174,6 @@ class QueryPlanTest extends DocumentingTestBase {
           |The following query will find all the people and return them sorted alphabetically by name.
         """.stripMargin,
       queryText = """MATCH (p:Person) RETURN p ORDER BY p.name""",
-      optionalResultExplanation = """""",
       assertions = (p) =>  {
         assertTrue(p.executionPlanDescription().toString.contains("Sort"))
       })
@@ -177,7 +188,6 @@ class QueryPlanTest extends DocumentingTestBase {
           |The following query will find the first 2 people sorted alphabetically by name.
         """.stripMargin,
       queryText = """MATCH (p:Person) RETURN p ORDER BY p.name LIMIT 2""",
-      optionalResultExplanation = """""",
       assertions = (p) =>  {
         assertTrue(p.executionPlanDescription().toString.contains("Top"))
       })
@@ -192,7 +202,6 @@ class QueryPlanTest extends DocumentingTestBase {
           |The following query will return the first 3 people in an arbitrary order.
         """.stripMargin,
       queryText = """MATCH (p:Person) RETURN p LIMIT 3""",
-      optionalResultExplanation = """""",
       assertions = (p) =>  {
         assertTrue(p.executionPlanDescription().toString.contains("Limit"))
       })
@@ -207,7 +216,6 @@ class QueryPlanTest extends DocumentingTestBase {
           |The following query will return my friends of friends.
         """.stripMargin,
       queryText = """MATCH (p:Person {name: "me"})-[:FRIENDS_WITH*2]->(fof) RETURN fof""",
-      optionalResultExplanation = """""",
       assertions = (p) =>  {
         assertTrue(p.executionPlanDescription().toString.contains("expand"))
       })
@@ -225,7 +233,6 @@ class QueryPlanTest extends DocumentingTestBase {
         """MATCH (other:Person)
            WHERE (other)-[:FRIENDS_WITH]->()
            RETURN other""",
-      optionalResultExplanation = """""",
       assertions = (p) =>  {
         println(p.executionPlanDescription().toString)
         assertTrue(p.executionPlanDescription().toString.contains("SemiApply"))
@@ -244,7 +251,6 @@ class QueryPlanTest extends DocumentingTestBase {
         """MATCH (other:Person)
            WHERE other.age > 25 OR (other)-[:FRIENDS_WITH]->()
            RETURN other""",
-      optionalResultExplanation = """""",
       assertions = (p) =>  {
         assertTrue(p.executionPlanDescription().toString.contains("SelectOrSemiApply"))
       })
@@ -262,7 +268,6 @@ class QueryPlanTest extends DocumentingTestBase {
         """MATCH (me:Person {name: "me"}), (other:Person)
            WHERE NOT((me)-[:FRIENDS_WITH]->(other))
            RETURN other""",
-      optionalResultExplanation = """""",
       assertions = (p) =>  {
         assertTrue(p.executionPlanDescription().toString.contains("AntiSemiApply"))
       })
@@ -280,7 +285,6 @@ class QueryPlanTest extends DocumentingTestBase {
         """MATCH (other:Person)
            WHERE other.age > 25 OR NOT((other)-[:FRIENDS_WITH]->())
            RETURN other""",
-      optionalResultExplanation = """""",
       assertions = (p) =>  {
         assertTrue(p.executionPlanDescription().toString.contains("SelectOrAntiSemiApply"))
       })
@@ -299,7 +303,6 @@ class QueryPlanTest extends DocumentingTestBase {
            WHERE id(r) = 0
            RETURN r, n1
         """.stripMargin,
-      optionalResultExplanation = """""",
       assertions = (p) =>  {
         assertTrue(p.executionPlanDescription().toString.contains("DirectedRelationshipByIdSeek"))
       })
@@ -319,7 +322,6 @@ class QueryPlanTest extends DocumentingTestBase {
            WHERE id(r) = 1
            RETURN r, n1
         """.stripMargin,
-      optionalResultExplanation = """""",
       assertions = (p) =>  {
         assertTrue(p.executionPlanDescription().toString, p.executionPlanDescription().toString.contains("UndirectedRelationshipByIdSeek"))
       })
@@ -336,11 +338,30 @@ class QueryPlanTest extends DocumentingTestBase {
       queryText =
         """MATCH (person)-[:WORKS_IN]->(location:Location {name: "London"})<-[:CONTAINS]-(country)
            RETURN country, location, person""",
-      optionalResultExplanation = """""",
       assertions = (p) =>  {
         println(p.executionPlanDescription().toString)
 //        assertTrue(p.executionPlanDescription().toString.contains("NodeHashJoin"))
         assertTrue(true)
       })
   }
+
+  @Test def skip() {
+    profileQuery(
+      title = "Skip",
+      text =
+        """Skips 'n' rows
+          |
+          |The following query will skip the person with the lowest 'id' property and return the rest.
+        """.stripMargin,
+      queryText =
+        """MATCH (p:Person)
+           RETURN p
+           ORDER BY p.id
+           SKIP 1
+        """.stripMargin,
+      assertions = (p) =>  {
+        assertTrue(p.executionPlanDescription().toString, p.executionPlanDescription().toString.contains("Skip"))
+      })
+  }
+
 }
