@@ -153,7 +153,7 @@ abstract class DocumentingTestBase extends CypherJUnitSuite with DocumentationHe
   }
 
   def profileQuery(title: String, text: String, queryText: String, assertions: (ExecutionResult => Unit)*) {
-    internalProfileQuery(title, text, queryText, None, None, assertions: _*)
+    internalProfileQuery(title, text, "cypher 2.1.experimental " + queryText, None, None, assertions: _*)
   }
 
   private def internalProfileQuery(title: String, text: String, queryText: String, expectedException: Option[ClassTag[_ <: CypherException]], prepare: Option[() => Any], assertions: (ExecutionResult => Unit)*) {
@@ -181,7 +181,8 @@ abstract class DocumentingTestBase extends CypherJUnitSuite with DocumentationHe
     }
 
     try {
-      val result = fetchQueryResults(prepare, query)
+      val results = if (parameters == null) engine.profile(query) else engine.profile(query, parameters)
+      val result = RewindableExecutionResult(results)
 
       if (expectedException.isDefined) {
         fail(s"Expected the test to throw an exception: $expectedException")

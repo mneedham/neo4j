@@ -42,4 +42,8 @@ include::{importdir}/neo4j-examples-docs-jar/dev/examples/from-sql-to-cypher.asc
 
 :leveloffset: 1
 
-include::operators.asciidoc[]
+include::execution-plans.asciidoc[]
+
+:leveloffset: 1
+
+include::../parsed-graphgists/query-tuning/query-tuning.asciidoc[]

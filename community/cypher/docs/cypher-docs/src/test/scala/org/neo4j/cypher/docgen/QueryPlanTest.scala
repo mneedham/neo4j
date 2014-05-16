@@ -21,6 +21,7 @@ package org.neo4j.cypher.docgen
 
 import org.junit.Test
 import org.junit.Assert._
+import org.hamcrest.CoreMatchers._
 
 class QueryPlanTest extends DocumentingTestBase {
   override val setupQueries = List(
@@ -51,7 +52,7 @@ class QueryPlanTest extends DocumentingTestBase {
         """Reads all nodes from the node store. The identifier that will contain the nodes is seen in the arguments.
           |The following query will return all nodes. It's not a good idea to run a query like this on a production database.""".stripMargin,
       queryText = """MATCH (n) RETURN n""",
-      assertions = (p) => assertTrue(p.executionPlanDescription().toString.contains("AllNodesScan")))
+      assertions = (p) => assertThat(p.executionPlanDescription().toString, containsString("AllNodesScan")))
   }
 
   @Test def nodeByLabelScan() {
@@ -60,7 +61,7 @@ class QueryPlanTest extends DocumentingTestBase {
       text = """Using the label index, fetches all nodes with a specific label on them.
                 |The following query will return all nodes which have label 'Person' where the property 'name' has the value 'me' via a scan of the Person label index""".stripMargin,
       queryText = """MATCH (person:Person {name: "me"}) RETURN person""",
-      assertions = (p) => assertTrue(p.executionPlanDescription().toString.contains("LabelScan")))
+      assertions = (p) => assertThat(p.executionPlanDescription().toString, containsString("LabelScan")))
   }
 
   @Test def nodeByIndexSeek() {
@@ -69,7 +70,7 @@ class QueryPlanTest extends DocumentingTestBase {
       text = """Finds nodes using an index seek. The node identifier and the index used is shown in the arguments of the operator.
                 |The following query will return all nodes which have label 'Company' where the property 'name' has the value 'Malmo' using the Location index.""".stripMargin,
       queryText = """MATCH (location:Location {name: "Malmo"}) RETURN location""",
-      assertions = (p) => assertTrue(p.executionPlanDescription().toString.contains("NodeIndexSeek")))
+      assertions = (p) => assertThat(p.executionPlanDescription().toString, containsString("NodeIndexSeek")))
   }
 
   @Test def nodeByUniqueIndexSeek() {
@@ -79,7 +80,7 @@ class QueryPlanTest extends DocumentingTestBase {
         """Finds nodes using an index seek on a unique index. The node identifier and the index used is shown in the arguments of the operator.
           |The following query will return all nodes which have label 'Team' where the property 'name' has the value 'Field' using the Team unique index.""",
       queryText = """MATCH (team:Team {name: "Field"}) RETURN team""".stripMargin,
-      assertions = (p) => assertTrue(p.executionPlanDescription().toString.contains("NodeUniqueIndexSeek")))
+      assertions = (p) => assertThat(p.executionPlanDescription().toString, containsString("NodeUniqueIndexSeek")))
   }
 
   @Test def nodeByIdSeek() {
@@ -89,7 +90,7 @@ class QueryPlanTest extends DocumentingTestBase {
         """Reads one or more nodes by id from the node store.
           |The following query will return the node which has nodeId 0""".stripMargin,
       queryText = """MATCH n WHERE id(n) = 0 RETURN n""",
-      assertions = (p) => assertTrue(p.executionPlanDescription().toString.contains("NodeByIdSeek")))
+      assertions = (p) => assertThat(p.executionPlanDescription().toString, containsString("NodeByIdSeek")))
   }
 
   @Test def projection() {
@@ -100,7 +101,7 @@ class QueryPlanTest extends DocumentingTestBase {
 
           |The following query will produce one row with the value 'hello'.""".stripMargin,
       queryText = """RETURN "hello" AS greeting""",
-      assertions = (p) => assertTrue(p.executionPlanDescription().toString.contains("Projection")))
+      assertions = (p) => assertThat(p.executionPlanDescription().toString, startsWith("Projection")))
   }
 
   @Test def selection() {
@@ -112,8 +113,7 @@ class QueryPlanTest extends DocumentingTestBase {
           |The following query will look for nodes with the label 'Person' and filter those whose name begins with the letter 'a'.""".stripMargin,
       queryText = """MATCH (p:Person) WHERE p.name =~ "^a.*" RETURN p""",
       assertions = (p) => {
-        println(p.executionPlanDescription().toString)
-        assertTrue(p.executionPlanDescription().toString.contains("Filter"))
+        assertThat(p.executionPlanDescription().toString, containsString("Filter"))
       })
 //      assertions = (p) => assertTrue(p.executionPlanDescription().toString.contains("Selection")))
   }
@@ -127,7 +127,7 @@ class QueryPlanTest extends DocumentingTestBase {
           |The following query will join all the people with all the locations and return the cartesian product of the nodes with those labels.
         """.stripMargin,
       queryText = """MATCH (p:Person), (l:Location) RETURN p, l""",
-      assertions = (p) => assertTrue(p.executionPlanDescription().toString.contains("CartesianProduct")))
+      assertions = (p) => assertThat(p.executionPlanDescription().toString, containsString("CartesianProduct")))
   }
 
   @Test def optionalMatch() {
@@ -140,14 +140,13 @@ class QueryPlanTest extends DocumentingTestBase {
         """.stripMargin,
       queryText = """MATCH (p:Person) OPTIONAL MATCH (p)-[:WORKS_IN]->(l) RETURN p, l""",
       assertions = (p) =>  {
-        println(p.executionPlanDescription().toString)
-        assertTrue(p.executionPlanDescription().toString.contains("Expand"))
+        assertThat(p.executionPlanDescription().toString, containsString("Expand"))
       })
   }
 
   @Test def optionalExpand() {
     profileQuery(
-      title = "Optional",
+      title = "Optional Expand",
       text =
         """Expand traverses relationships from a given node, and makes sure that predicates are evaluated before producing rows.
           |
@@ -160,7 +159,7 @@ class QueryPlanTest extends DocumentingTestBase {
            OPTIONAL MATCH (p)-[works_in:WORKS_IN]->(l) WHERE works_in.duration > 180
            RETURN p, l""",
       assertions = (p) =>  {
-        assertTrue(p.executionPlanDescription().toString.contains("OptionalExpand"))
+        assertThat(p.executionPlanDescription().toString, containsString("OptionalExpand"))
       })
   }
 
@@ -174,7 +173,7 @@ class QueryPlanTest extends DocumentingTestBase {
         """.stripMargin,
       queryText = """MATCH (p:Person) RETURN p ORDER BY p.name""",
       assertions = (p) =>  {
-        assertTrue(p.executionPlanDescription().toString.contains("Sort"))
+        assertThat(p.executionPlanDescription().toString, containsString("Sort"))
       })
   }
 
@@ -188,7 +187,7 @@ class QueryPlanTest extends DocumentingTestBase {
         """.stripMargin,
       queryText = """MATCH (p:Person) RETURN p ORDER BY p.name LIMIT 2""",
       assertions = (p) =>  {
-        assertTrue(p.executionPlanDescription().toString.contains("Top"))
+        assertThat(p.executionPlanDescription().toString, containsString("Top"))
       })
   }
 
@@ -202,7 +201,7 @@ class QueryPlanTest extends DocumentingTestBase {
         """.stripMargin,
       queryText = """MATCH (p:Person) RETURN p LIMIT 3""",
       assertions = (p) =>  {
-        assertTrue(p.executionPlanDescription().toString.contains("Limit"))
+        assertThat(p.executionPlanDescription().toString, containsString("Limit"))
       })
   }
 
@@ -216,7 +215,7 @@ class QueryPlanTest extends DocumentingTestBase {
         """.stripMargin,
       queryText = """MATCH (p:Person {name: "me"})-[:FRIENDS_WITH*2]->(fof) RETURN fof""",
       assertions = (p) =>  {
-        assertTrue(p.executionPlanDescription().toString.contains("expand"))
+        assertThat(p.executionPlanDescription().toString, containsString("expand"))
       })
   }
 
@@ -233,8 +232,7 @@ class QueryPlanTest extends DocumentingTestBase {
            WHERE (other)-[:FRIENDS_WITH]->()
            RETURN other""",
       assertions = (p) =>  {
-        println(p.executionPlanDescription().toString)
-        assertTrue(p.executionPlanDescription().toString.contains("SemiApply"))
+        assertThat(p.executionPlanDescription().toString, containsString("SemiApply"))
       })
   }
 
@@ -251,7 +249,7 @@ class QueryPlanTest extends DocumentingTestBase {
            WHERE other.age > 25 OR (other)-[:FRIENDS_WITH]->()
            RETURN other""",
       assertions = (p) =>  {
-        assertTrue(p.executionPlanDescription().toString.contains("SelectOrSemiApply"))
+        assertThat(p.executionPlanDescription().toString, containsString("SelectOrSemiApply"))
       })
   }
 
@@ -268,7 +266,7 @@ class QueryPlanTest extends DocumentingTestBase {
            WHERE NOT((me)-[:FRIENDS_WITH]->(other))
            RETURN other""",
       assertions = (p) =>  {
-        assertTrue(p.executionPlanDescription().toString.contains("AntiSemiApply"))
+        assertThat(p.executionPlanDescription().toString, containsString("AntiSemiApply"))
       })
   }
 
@@ -285,7 +283,7 @@ class QueryPlanTest extends DocumentingTestBase {
            WHERE other.age > 25 OR NOT((other)-[:FRIENDS_WITH]->())
            RETURN other""",
       assertions = (p) =>  {
-        assertTrue(p.executionPlanDescription().toString.contains("SelectOrAntiSemiApply"))
+        assertThat(p.executionPlanDescription().toString, containsString("SelectOrAntiSemiApply"))
       })
   }
 
@@ -303,7 +301,7 @@ class QueryPlanTest extends DocumentingTestBase {
            RETURN r, n1
         """.stripMargin,
       assertions = (p) =>  {
-        assertTrue(p.executionPlanDescription().toString.contains("DirectedRelationshipByIdSeek"))
+        assertThat(p.executionPlanDescription().toString, containsString("DirectedRelationshipByIdSeek"))
       })
   }
 
@@ -322,7 +320,7 @@ class QueryPlanTest extends DocumentingTestBase {
            RETURN r, n1
         """.stripMargin,
       assertions = (p) =>  {
-        assertTrue(p.executionPlanDescription().toString, p.executionPlanDescription().toString.contains("UndirectedRelationshipByIdSeek"))
+        assertThat(p.executionPlanDescription().toString, containsString("UndirectedRelationshipByIdSeek"))
       })
   }
 
@@ -359,7 +357,7 @@ class QueryPlanTest extends DocumentingTestBase {
            SKIP 1
         """.stripMargin,
       assertions = (p) =>  {
-        assertTrue(p.executionPlanDescription().toString, p.executionPlanDescription().toString.contains("Skip"))
+        assertThat(p.executionPlanDescription().toString, containsString("Skip"))
       })
   }
 
