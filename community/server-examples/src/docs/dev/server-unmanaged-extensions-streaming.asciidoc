@@ -1,0 +1,113 @@
+[[server-unmanaged-extensions-streaming]]
+Streaming JSON responses
+=============================
+
+When writing unmanaged extensions we have greater control over the amount of memory that our Neo4j queries use.
+If we keep too much state around it can lead to more frequent full Garbage Collection and subsequent unresponsiveness by the Neo4j server.
+
+A common way that state can creep in is the creation of JSON objects to represent the result of a query which we then send back to our application.
+Neo4j's Transactional Cypher HTTP endpoint (see <<rest-api-transactional>>) streams responses back to the client and we should follow in its foot steps.
+
+For example, the following unmanaged extension streams an array of a person's colleagues:
+
+[source,java]
+--------
+package unex;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.StreamingOutput;
+
+import org.codehaus.jackson.JsonEncoding;
+import org.codehaus.jackson.JsonGenerator;
+import org.codehaus.jackson.map.ObjectMapper;
+
+import org.neo4j.graphdb.DynamicLabel;
+import org.neo4j.graphdb.DynamicRelationshipType;
+import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Label;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.Transaction;
+
+import static org.neo4j.graphdb.Direction.INCOMING;
+import static org.neo4j.graphdb.Direction.OUTGOING;
+
+@Path("/")
+public class ColleaguesResource
+{
+    private GraphDatabaseService graphDb;
+    private final ObjectMapper objectMapper;
+
+    private static final DynamicRelationshipType ACTED_IN = DynamicRelationshipType.withName( "ACTED_IN" );
+    private static final Label PERSON = DynamicLabel.label( "Person" );
+
+    public ColleaguesResource( @Context GraphDatabaseService graphDb )
+    {
+        this.graphDb = graphDb;
+        this.objectMapper = new ObjectMapper();
+    }
+
+    @GET
+    @Path("/colleagues/{personName}")
+    public Response findColleagues( final @PathParam("personName") String personName )
+    {
+        StreamingOutput stream = new StreamingOutput()
+        {
+            @Override
+            public void write( OutputStream os ) throws IOException, WebApplicationException
+            {
+                JsonGenerator jg = objectMapper.getJsonFactory().createJsonGenerator( os, JsonEncoding.UTF8 );
+                jg.writeStartObject();
+                jg.writeFieldName( "colleagues" );
+                jg.writeStartArray();
+
+                try ( Transaction tx = graphDb.beginTx() )
+                {
+                    for ( Node person : graphDb.findNodesByLabelAndProperty( PERSON, "name", personName ) )
+                    {
+                        for ( Relationship actedIn : person.getRelationships( ACTED_IN, OUTGOING ) )
+                        {
+                            for ( Relationship colleagueActedIn : actedIn.getEndNode().getRelationships( ACTED_IN, INCOMING ) )
+                            {
+                                Node colleague = colleagueActedIn.getStartNode();
+                                if ( !colleague.equals( person ) )
+                                {
+                                    jg.writeString( colleague.getProperty( "name" ).toString() );
+                                }
+                            }
+                        }
+                    }
+                    tx.success();
+                }
+
+                jg.writeEndArray();
+                jg.writeEndObject();
+                jg.flush();
+                jg.close();
+            }
+        };
+
+        return Response.ok().entity( stream ).type( MediaType.APPLICATION_JSON ).build();
+    }
+}
+--------
+
+As well as depending on JAX-RS API this example also uses Jackson - a Java Jackson library.
+You'll need to add the following dependency to your Maven POM file (or equivalent):
+
+[source,xml]
+--------
+<dependency>
+	<groupId>org.codehaus.jackson</groupId>
+	<artifactId>jackson-mapper-asl</artifactId>
+	<version>1.9.7</version>
+</dependency>
+--------
