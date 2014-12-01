@@ -7,7 +7,7 @@ Unmanaged Extensions
 * Danger: Men at Work!
   The unmanaged extensions are a way of deploying arbitrary JAX-RS code into the Neo4j server.
 * The unmanaged extensions are exactly that: unmanaged.
-  If you drop poorly tested code into the server, it's highly likely you'll degrade its performance, so be careful.
+  If you drop poorly tested code into the server it's highly likely you'll degrade its performance so be careful.
 ***********
 
 Some projects want extremely fine control over their server-side code.
@@ -89,6 +89,10 @@ which results in
 Hello World, nodeId=123
 ----
 
+:leveloffset: 3
+
+include::server-unmanaged-extensions-streaming.asciidoc[]
+
 
 Testing your extension
 ======================
@@ -132,3 +136,4 @@ source=org/neo4j/harness/doc/JUnitDocTest.java
 tag=useJUnitRule
 classifier=test-sources
 ----
+
