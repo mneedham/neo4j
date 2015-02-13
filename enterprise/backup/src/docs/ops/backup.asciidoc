@@ -5,72 +5,107 @@ Backup
 NOTE: The Backup features are only available in the Neo4j Enterprise Edition.
 
 [[backup-introduction]]
-== Introducing Backup ==
+== Backing up your Neo4j database ==
 
-Backups are performed over the network, from a running Neo4j server and into a
-local copy of the database store (the backup). The backup is run using the
-+neo4j-backup+ tool, which is provided alongside Neo4j Enterprise.
+When deploying Neo4j in production you'll need a way to capture backups and Neo4j Enterprise provides the +neo4j-backup+ tool for this purpose.
+You can find it under the `bin` folder of your Neo4j installation (see <<server-installation>>).
+
+The +neo4j-backup+ tool performs a backup over the network against a running Neo4j server and creates a local copy of the database store (the backup).
 
 [IMPORTANT]
-Neo4j Server must be configured to run a backup service. This is enabled via
-the configuration parameter `online_backup_enabled`, and is enabled by default.
-The interface and port the backup service listens on is configured via the
-parameter `online_backup_server` and defaults to the loopback interface and
-port 6362. It is typical to reconfigure this to listen on an external
-interface, by setting `online_backup_server=<my-host-ip-address>:6362`. It can
-also be configured to listen on all interfaces by setting
-`online_backup_server=0.0.0.0:6362`.
+Neo4j Server must be configured to run a backup service.
+This is enabled via the configuration parameter `online_backup_enabled`, and is enabled by default.
+The interface and port the backup service listens on is configured via the parameter `online_backup_server` and defaults to the loopback interface and port 6362.
+It is typical to reconfigure this to listen on an external interface, by setting `online_backup_server=<my-host-ip-address>:6362`.
+It can also be configured to listen on all interfaces by setting `online_backup_server=0.0.0.0:6362`.
+You can read more about configuration options (see <<backup-configuration-options>>).
 
-Performing a backup requires specifying the target host, an optional port, and
-the backup location. The backup tool will automatically select a full or incremental backup, based on whether an existing backup is present at that location.
+To perform a backup you must specify the host name or IP address of your Neo4j server, optionally the backup port, and the backup location.
+If there's an existing backup in that location then the backup tool will perform an incremental backup.
+If not a full backup will be performed.
 
-The relevant configuration settings are found below.
+=== Full backup ===
+A full backup is performed whenever an empty backup directory is specified.
+The backup tool will first stream a snapshot of the store and then apply any transactions that happened during the backup process to the backup.
+The result will be a backup that is consistent with the current server state.
 
-include::{importdir}/neo4j-backup-docs-jar/ops/configuration-attributes.asciidoc[]
-
-include::{importdir}/neo4j-consistency-check-docs-jar/ops/configuration-attributes.asciidoc[]
-
-
-[[backup-embedded-and-server]]
-== Server and Embedded ==
+The first time we perform a backup it will be a full backup and we'll need to create an empty directory for +neo4j-backup+ tool to create the backup into.
 
 [source,shell]
 ----
-# Performing a full backup: create a blank directory and run the backup tool
 mkdir /mnt/backup/neo4j-backup
 ./bin/neo4j-backup -host 192.168.1.34 -to /mnt/backup/neo4j-backup
-
-# Performing an incremental backup: just specify the location of your previous backup
-./bin/neo4j-backup -host 192.168.1.34 -to /mnt/backup/neo4j-backup
-
-# Performing an incremental backup where the service is listening on a non-default port
-./bin/neo4j-backup -host 192.168.1.34 -port 9999 -to /mnt/backup/neo4j-backup
 ----
 
-=== Incremental Backups ===
-An incremental backup is performed whenever an existing backup directory is specified. The backup tool will then copy any new transactions from the Neo4j server and apply them
-to the backup. The result will be an updated backup that is consistent with the current
-server state.
+[TIP]
+If we're running a Neo4j cluster (see <<ha>>) then we'll typically set `-host` to be the master machine so that we have the most up to date copy of our data.
+That isn't a requirement though - backups can also be performed against a slave.
 
-However, the incremental backup may fail for a number of reasons:
+=== Incremental backup ===
+An incremental backup is performed whenever an existing backup directory is specified.
+The backup tool will then copy any new transactions from the Neo4j server and apply them to the backup.
+The result will be an updated backup that is consistent with the current server state.
+
+To perform an incremental backup we just need to specify the location of our previous backup as an argument to +neo4j-backup+.
+
+[source,shell]
+----
+./bin/neo4j-backup -host 192.168.1.34 -to /mnt/backup/neo4j-backup
+----
+
+While incremental backup will run quicker than full backup, we should keep in mind that it may fail for a number of reasons:
 
 * If the existing directory doesn't contain a valid backup.
 * If the existing directory contains a backup of a different database store.
 * If the existing directory contains a backup from a previous database version.
 
 [NOTE]
-Note that when copying the outstanding transactions, the backup tool needs
-access to the historical logical logs. These logical logs are kept by Neo4j and
-automatically removed after a period of time, based on the
-<<configuration-logical-logs,+keep_logical_logs+ configuration>>. If the
-required logical logs have already been removed, the backup tool will do a full
-backup instead.
+When copying the outstanding transactions the backup tool needs access to the historical logical logs.
+These logical logs are kept by Neo4j and automatically removed after a period of time, based on the <<configuration-logical-logs,+keep_logical_logs+ configuration>>.
+If the required logical logs have already been removed an incremental backup won't be possible and the backup tool will do a full backup instead.
+
+[[backup-configuration-options]]
+== Backup configuration options ==
+
+By default the backup service which the +neo4j-backup+ tool communicates with is enabled on the local loopback interface on port 6232 but we can configure that through the following settings:
+
+include::{importdir}/neo4j-backup-docs-jar/ops/configuration-attributes.asciidoc[]
+
+If we change the port then we need to make sure we provide that as an argument when calling +neo4j-backup+:
+
+.conf/neo4j.properties.
+----
+online_backup_server=0.0.0.0:9999
+----
+
+[source,shell]
+----
+./bin/neo4j-backup -host 192.168.1.34 -port 9999 -to /mnt/backup/neo4j-custom-port-backup
+----
+
+[[backup-consistency-check]]
+== Consistency check ==
+
+A Neo4j backup actually consists of two stages:
+
+* Back up of the database
+* Consistency check of the backed up store
+
+In the latter stage the consistency checker runs against the store to ensure that the backed up store is in good order.
+
+[TIP]
+The consistency check stage can be lengthy on larger stores so we may choose to disable the consistency checker by passing `-verify false` to the tool.
+We can then check the consistency of the store separately.
+If you need assistance please get in touch via one of the community channels (see <<community-support>>).
+
+There are various consistency checker options which you can configure:
+
+include::{importdir}/neo4j-consistency-check-docs-jar/ops/configuration-attributes.asciidoc[]
 
 [[backup-java]]
 == Online Backup from Java ==
 
-In order to programmatically backup your data full or subsequently incremental from a
-JVM based program, you need to write Java code like
+If you prefer to programmatically backup your data you can do so with the following Java code:
 
 [snippet,java]
 ----
@@ -80,15 +115,14 @@ tag=onlineBackup
 classifier=test-sources
 ----
 
-For more information, please see link:javadocs/org/neo4j/backup/OnlineBackup.html[the Javadocs for 
-OnlineBackup]
+For more information, please see link:javadocs/org/neo4j/backup/OnlineBackup.html[the Javadocs for OnlineBackup]
 
 [[backup-restoring]]
 == Restoring Your Data ==
 
-The Neo4j backups are fully functional databases.
-To use a backup, all you need to do replace your database folder with the backup.
-Just make sure the database isn't running while replacing the folder.
+The backups that +neo4j-backup+ tool creates are fully functional databases.
+To use a backup all you need to do replace your database folder with the backup.
+Just make sure the database is stopped before you replace the folder.
 
 To restore from backup in a clustered environment, follow these steps:
 
@@ -97,6 +131,9 @@ To restore from backup in a clustered environment, follow these steps:
 . Restart the instances.
 
 Make sure there's at least one _neostore.transaction.db.nnn_ file included in the backup.
-If there isn't, start up one instance in stand-alone mode first, and issue one updating transaction against it (any
-sort of write, like creating a node).
-Then copy that database to all instances in your cluster.
+The backup tool should ensure this is the case but if not the following procedure will sort things out:
+
+. Start up one instance in single server mode (see <<ha-configuration>>)
+. Issue an updating transaction against it (e.g. create a node - you can delete it afterwards!).
+. Copy this database to all instances in your cluster.
+. Put the instance back into HA mode and restart all the machines in the cluster.
