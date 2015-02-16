@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher
 
+import org.neo4j.cypher.internal.compiler.v2_2.executionplan.InternalExecutionResult
 import org.neo4j.cypher.internal.helpers.TxCounts
 import org.neo4j.graphdb.Node
 import java.io.PrintWriter
@@ -76,13 +77,71 @@ class PeriodicCommitAcceptanceTest extends ExecutionEngineFunSuite
     txCounts should equal(TxCounts(commits = 3))
   }
 
-  test("should support simple periodic commit with unaligned batch size") {
+  test("should support simple periodic commit with unaligned batch size for creating node") {
     // given
     val url = createTempCSVFile(4)
     val queryText =
       "USING PERIODIC COMMIT 3 " +
       s"LOAD CSV FROM '$url' AS line " +
-      "CREATE ()";
+      "CREATE ()"
+
+    // when
+    val (result, txCounts) = executeAndTrackTxCounts(queryText)
+
+    // then
+    assertStats(result, nodesCreated = 4)
+
+    // and then
+    txCounts should equal(TxCounts(commits = 2))
+  }
+
+  test("should support simple periodic commit with unaligned batch size for merging node with index") {
+    // given
+    val res: InternalExecutionResult = execute("CREATE INDEX ON :Node(id)")
+
+    val url = createTempCSVFile(4)
+    val queryText =
+      "USING PERIODIC COMMIT 3 " +
+        s"LOAD CSV FROM '$url' AS line " +
+        "MERGE (n:Node {id: line[0]})"
+
+    // when
+    val (result, txCounts) = executeAndTrackTxCounts(queryText)
+
+    // then
+    assertStats(result, nodesCreated = 4, propertiesSet = 4, labelsAdded = 4)
+
+    // and then
+    txCounts should equal(TxCounts(commits = 2))
+  }
+
+  test("should support simple periodic commit with unaligned batch size for merging node with unique constraint") {
+    // given
+    val res: InternalExecutionResult = execute("CREATE CONSTRAINT ON (n:Node) ASSERT n.id IS UNIQUE")
+
+    val url = createTempCSVFile(4)
+    val queryText =
+      "USING PERIODIC COMMIT 3 " +
+        s"LOAD CSV FROM '$url' AS line " +
+        "MERGE (n:Node {id: line[0]})"
+
+    // when
+    val (result, txCounts) = executeAndTrackTxCounts(queryText)
+
+    // then
+    assertStats(result, nodesCreated = 4, propertiesSet = 4, labelsAdded = 4)
+
+    // and then
+    txCounts should equal(TxCounts(commits = 2))
+  }
+
+  test("should support simple periodic commit with unaligned batch size for merging node") {
+    // given
+    val url = createTempCSVFile(4)
+    val queryText =
+      "USING PERIODIC COMMIT 1 " +
+        s"LOAD CSV FROM '$url' AS line " +
+        "MERGE (n:Node {id: line[0]})"
 
     // when
     val (result, txCounts) = executeAndTrackTxCounts(queryText)
