@@ -39,5 +39,5 @@ echo '
 sleep 5
 
 
-# hdiutil convert "pack.temp.dmg" -ov -format UDZO -imagekey zlib-level=9 -o "${finalDMGName}"
-# rm -f pack.temp.dmg
+hdiutil convert "pack.temp.dmg" -ov -format UDZO -imagekey zlib-level=9 -o "${finalDMGName}"
+#rm -f pack.temp.dmg
