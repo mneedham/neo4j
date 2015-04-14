@@ -27,13 +27,14 @@ import org.neo4j.graphdb.DynamicRelationshipType._
 import org.neo4j.graphdb._
 import org.neo4j.graphdb.factory.GraphDatabaseSettings
 import org.neo4j.helpers.collection.IteratorUtil
+import org.neo4j.kernel.GraphDatabaseAPI
 import org.neo4j.kernel.api._
 import org.neo4j.kernel.api.constraints.UniquenessConstraint
 import org.neo4j.kernel.api.exceptions.schema.{AlreadyConstrainedException, AlreadyIndexedException}
 import org.neo4j.kernel.api.index.{IndexDescriptor, InternalIndexState}
+import org.neo4j.kernel.configuration.Config
 import org.neo4j.kernel.impl.api.KernelStatement
 import org.neo4j.kernel.impl.core.ThreadToStatementContextBridge
-import org.neo4j.kernel.{GraphDatabaseAPI, InternalAbstractGraphDatabase}
 import org.neo4j.tooling.GlobalGraphOperations
 
 import scala.collection.JavaConverters._
@@ -276,7 +277,7 @@ final class TransactionBoundQueryContext(graph: GraphDatabaseAPI,
     statement.schemaWriteOperations().constraintDrop(new UniquenessConstraint(labelId, propertyKeyId))
 
   override def hasLocalFileAccess: Boolean = graph match {
-    case iagdb: InternalAbstractGraphDatabase => iagdb.getConfig.get(GraphDatabaseSettings.allow_file_urls)
+    case db: GraphDatabaseAPI => db.getDependencyResolver.resolveDependency(classOf[Config]).get(GraphDatabaseSettings.allow_file_urls)
     case _ => true
   }
 
