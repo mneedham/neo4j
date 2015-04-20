@@ -84,6 +84,7 @@ import org.neo4j.kernel.impl.core.NodeManager;
 import org.neo4j.kernel.impl.core.PropertyKeyTokenHolder;
 import org.neo4j.kernel.impl.core.RelationshipTypeTokenHolder;
 import org.neo4j.kernel.impl.core.StartupStatisticsProvider;
+import org.neo4j.kernel.impl.factory.GraphDatabaseFacadeFactory;
 import org.neo4j.kernel.impl.index.IndexConfigStore;
 import org.neo4j.kernel.impl.index.LegacyIndexStore;
 import org.neo4j.kernel.impl.locking.LockService;
@@ -141,11 +142,11 @@ import org.neo4j.kernel.info.DiagnosticsPhase;
 import org.neo4j.kernel.lifecycle.LifeSupport;
 import org.neo4j.kernel.lifecycle.Lifecycle;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
+import org.neo4j.kernel.monitoring.Monitors;
+import org.neo4j.kernel.monitoring.tracing.Tracers;
 import org.neo4j.logging.Log;
 import org.neo4j.logging.LogProvider;
 import org.neo4j.logging.Logger;
-import org.neo4j.kernel.monitoring.Monitors;
-import org.neo4j.kernel.monitoring.tracing.Tracers;
 
 import static org.neo4j.helpers.collection.Iterables.toList;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogHeader.LOG_HEADER_SIZE;
@@ -417,6 +418,8 @@ public class NeoStoreDataSource implements NeoStoreSupplier, Lifecycle, IndexPro
 
         indexProvider = dependencyResolver.resolveDependency( SchemaIndexProvider.class,
                 SchemaIndexProvider.HIGHEST_PRIORITIZED_OR_NONE );
+
+        dependencies.satisfyDependency( lockService );
 
         // Monitor listeners
         LoggingLogFileMonitor loggingLogMonitor = new LoggingLogFileMonitor( msgLog );
@@ -753,7 +756,7 @@ public class NeoStoreDataSource implements NeoStoreSupplier, Lifecycle, IndexPro
                 new PhysicalLogFileInformation( logFiles, transactionMetadataCache, neoStore, logInformation );
 
         LogPruneStrategy logPruneStrategy = LogPruneStrategyFactory.fromConfigValue( fs, logFileInformation,
-                logFiles, neoStore, config.get( config.get(InternalAbstractGraphDatabase.Configuration.ephemeral) ? InternalAbstractGraphDatabase.Configuration.ephemeral_keep_logical_logs : GraphDatabaseSettings.keep_logical_logs ) );
+                logFiles, neoStore, config.get( config.get( GraphDatabaseFacadeFactory.Configuration.ephemeral) ? GraphDatabaseFacadeFactory.Configuration.ephemeral_keep_logical_logs : GraphDatabaseSettings.keep_logical_logs ) );
 
         monitors.addMonitorListener( new LogPruning( logPruneStrategy, logProvider ) );
 
@@ -1220,7 +1223,7 @@ public class NeoStoreDataSource implements NeoStoreSupplier, Lifecycle, IndexPro
     {
         public static final Setting<String> keep_logical_logs = GraphDatabaseSettings.keep_logical_logs;
         public static final Setting<Boolean> read_only = GraphDatabaseSettings.read_only;
-        public static final Setting<File> store_dir = InternalAbstractGraphDatabase.Configuration.store_dir;
-        public static final Setting<File> neo_store = InternalAbstractGraphDatabase.Configuration.neo_store;
+        public static final Setting<File> store_dir = GraphDatabaseFacadeFactory.Configuration.store_dir;
+        public static final Setting<File> neo_store = GraphDatabaseFacadeFactory.Configuration.neo_store;
     }
 }
