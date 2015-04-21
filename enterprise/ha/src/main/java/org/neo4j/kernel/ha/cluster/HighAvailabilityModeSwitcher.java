@@ -36,6 +36,7 @@ import org.neo4j.cluster.member.ClusterMemberAvailability;
 import org.neo4j.function.Supplier;
 import org.neo4j.helpers.CancellationRequest;
 import org.neo4j.helpers.Functions;
+import org.neo4j.kernel.ha.factory.Neo4jHazelcastInstance;
 import org.neo4j.kernel.impl.logging.LogService;
 import org.neo4j.kernel.impl.store.InconsistentlyUpgradedClusterException;
 import org.neo4j.kernel.impl.store.MismatchingStoreIdException;
@@ -100,9 +101,9 @@ public class HighAvailabilityModeSwitcher implements HighAvailabilityMemberListe
 
     public HighAvailabilityModeSwitcher( SwitchToSlave switchToSlave,
                                          SwitchToMaster switchToMaster,
-                                         HazelcastInstance hazelcastInstance,
+                                         Neo4jHazelcastInstance hazelcastInstance,
                                          ClusterMemberAvailability clusterMemberAvailability,
-                                         HazelcastInstance clusterClient,
+                                         Neo4jHazelcastInstance clusterClient,
                                          Supplier<StoreId> storeIdSupplier,
                                          InstanceId instanceId, LogService logService )
     {

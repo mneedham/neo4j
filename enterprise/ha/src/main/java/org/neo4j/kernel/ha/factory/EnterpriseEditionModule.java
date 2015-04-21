@@ -20,7 +20,6 @@
 package org.neo4j.kernel.ha.factory;
 
 import java.lang.reflect.Proxy;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -70,6 +69,8 @@ import org.neo4j.kernel.ha.UpdatePuller;
 import org.neo4j.kernel.ha.UpdatePullerClient;
 import org.neo4j.kernel.ha.UpdatePullingTransactionObligationFulfiller;
 import org.neo4j.kernel.ha.cluster.DefaultElectionCredentialsProvider;
+import org.neo4j.kernel.ha.cluster.HazelcastBasedElection;
+import org.neo4j.kernel.ha.cluster.HighAvailability;
 import org.neo4j.kernel.ha.cluster.HighAvailabilityMemberChangeEvent;
 import org.neo4j.kernel.ha.cluster.HighAvailabilityMemberContext;
 import org.neo4j.kernel.ha.cluster.HighAvailabilityMemberListener;
@@ -213,11 +214,19 @@ public class EnterpriseEditionModule
                 );
 
 
-        HazelcastInstance instance = createHazelcastInstance( config );
 
-        HighAvailabilityMemberContext localMemberContext = new SimpleHighAvailabilityMemberContext( new InstanceId( Integer.valueOf( instance.getName())), config.get( HaSettings.slave_only ) );
+//        HazelcastInstance instance = createHazelcastInstance( config );
+        Neo4jHazelcastInstance instance = new Neo4jHazelcastInstance( config );
+        life.add(instance);
+
+        HighAvailabilityMemberContext localMemberContext = new SimpleHighAvailabilityMemberContext( new InstanceId(
+                config.get(ClusterSettings.server_id).toIntegerIndex()), config.get( HaSettings.slave_only ) );
 
         memberContextDelegateInvocationHandler.setDelegate( localMemberContext );
+
+//        members = dependencies.satisfyDependency( new ClusterMembers( null, null,
+//                clusterEvents,
+//                config.get( ClusterSettings.server_id ) ) );
 
         memberStateMachine = new HighAvailabilityMemberStateMachine(
                 memberContext, platformModule.availabilityGuard, members,
@@ -277,6 +286,11 @@ public class EnterpriseEditionModule
         }, config.get( ClusterSettings.server_id ),
                 logging );
         exceptionHandlerRef.set( highAvailabilityModeSwitcher );
+
+
+
+//        HazelcastBasedElection hazelcastBasedElection = instance.election();
+        instance.addHighAvailabilityMemberListener( highAvailabilityModeSwitcher );
 
 //        clusterClient.addBindingListener( highAvailabilityModeSwitcher );
 //        memberStateMachine.addHighAvailabilityMemberListener( highAvailabilityModeSwitcher );
@@ -341,34 +355,6 @@ public class EnterpriseEditionModule
         registerRecovery( config.get( GraphDatabaseFacadeFactory.Configuration.editionName ), dependencies, logging );
     }
 
-    private HazelcastInstance createHazelcastInstance( Config config )
-    {
-        JoinConfig joinConfig = new JoinConfig();
-        joinConfig.getMulticastConfig().setEnabled( false );
-        TcpIpConfig tcpIpConfig = joinConfig.getTcpIpConfig();
-        tcpIpConfig.setEnabled( true );
-
-        List<HostnamePort> hostnamePorts = config.get( ClusterSettings.initial_hosts );
-        for ( HostnamePort hostnamePort : hostnamePorts )
-        {
-            tcpIpConfig.addMember( hostnamePort.getHost() + ":" + hostnamePort.getPort() );
-        }
-
-        NetworkConfig networkConfig = new NetworkConfig();
-        networkConfig.setPort( config.get( ClusterSettings.cluster_server ).getPort() );
-        networkConfig.setJoin( joinConfig );
-//        networkConfig.getInterfaces().setInterfaces( Arrays.asList( "127.0.0.1" ) ).setEnabled( true );
-//        networkConfig.getInterfaces().setInterfaces( Arrays.asList( "192.168.1.12" ) ).setEnabled( true );
-//        networkConfig.getInterfaces()
-//                .setInterfaces( Arrays.asList(config.get( ClusterSettings.cluster_server ).getHost()) )
-//                .setEnabled( true );
-
-        com.hazelcast.config.Config c = new com.hazelcast.config.Config( String.valueOf( config.get( ClusterSettings.server_id ).toIntegerIndex() ) );
-        c.setProperty( "hazelcast.initial.min.cluster.size", "2" );
-        c.setNetworkConfig( networkConfig );
-
-        return Hazelcast.newHazelcastInstance( c );
-    }
 
     protected TransactionHeaderInformationFactory createHeaderInformationFactory( final HighAvailabilityMemberContext
                                                                                           memberContext )
@@ -448,13 +434,14 @@ public class EnterpriseEditionModule
         return idGeneratorFactory;
     }
 
-    protected Locks createLockManager(HighAvailabilityMemberStateMachine memberStateMachine, final Config config, DelegateInvocationHandler<Master> masterDelegateInvocationHandler,
+    protected Locks createLockManager(HighAvailability highAvailability, final Config config, DelegateInvocationHandler<Master> masterDelegateInvocationHandler,
                                       RequestContextFactory requestContextFactory, AvailabilityGuard availabilityGuard, final LogService logging)
     {
         DelegateInvocationHandler<Locks> lockManagerDelegate = new DelegateInvocationHandler<>( Locks.class );
         final Locks lockManager = (Locks) Proxy.newProxyInstance(
                 Locks.class.getClassLoader(), new Class[]{Locks.class}, lockManagerDelegate );
-        new LockManagerModeSwitcher( memberStateMachine, lockManagerDelegate, masterDelegateInvocationHandler,
+        // pass in new implementation of highAvailability
+        new LockManagerModeSwitcher( highAvailability, lockManagerDelegate, masterDelegateInvocationHandler,
                 requestContextFactory, availabilityGuard, config, new Factory<Locks>()
         {
             @Override

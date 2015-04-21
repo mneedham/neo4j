@@ -41,6 +41,7 @@ import java.util.concurrent.TimeUnit;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
+import com.hazelcast.core.Hazelcast;
 import org.w3c.dom.Document;
 
 import org.neo4j.backup.OnlineBackupSettings;
@@ -517,6 +518,7 @@ public class ClusterManager
     public void shutdown() throws Throwable
     {
         life.shutdown();
+        Hazelcast.shutdownAll();
     }
 
     @SuppressWarnings( "unchecked" )
@@ -860,13 +862,15 @@ public class ClusterManager
             Set<HighlyAvailableGraphDatabase> exceptSet = new HashSet<>( asList( except ) );
             for ( HighlyAvailableGraphDatabase graphDatabaseService : getAllMembers() )
             {
-                if ( graphDatabaseService.getInstanceState() == HighAvailabilityMemberState.SLAVE
-                        && !exceptSet.contains( graphDatabaseService ) )
-                {
-                    return graphDatabaseService;
-                }
+                return graphDatabaseService;
+//                if ( graphDatabaseService.getInstanceState() == HighAvailabilityMemberState.SLAVE
+//                        && !exceptSet.contains( graphDatabaseService ) )
+//                {
+//                    return graphDatabaseService;
+//                }
             }
-            throw new IllegalStateException( "No slave found in cluster " + name + stateToString( this ) );
+//            throw new IllegalStateException( "No slave found in cluster " + name + stateToString( this ) );
+            return null;
         }
 
         /**

@@ -27,6 +27,7 @@ import org.neo4j.kernel.configuration.Config;
 import org.neo4j.kernel.ha.DelegateInvocationHandler;
 import org.neo4j.kernel.ha.HaSettings;
 import org.neo4j.kernel.ha.cluster.AbstractModeSwitcher;
+import org.neo4j.kernel.ha.cluster.HighAvailability;
 import org.neo4j.kernel.ha.cluster.HighAvailabilityMemberStateMachine;
 import org.neo4j.kernel.ha.com.RequestContextFactory;
 import org.neo4j.kernel.ha.com.master.Master;
@@ -40,7 +41,7 @@ public class LockManagerModeSwitcher extends AbstractModeSwitcher<Locks>
     private final Config config;
     private final Factory<Locks> locksFactory;
 
-    public LockManagerModeSwitcher( HighAvailabilityMemberStateMachine stateMachine,
+    public LockManagerModeSwitcher( HighAvailability stateMachine,
                                     DelegateInvocationHandler<Locks> delegate, DelegateInvocationHandler<Master> master,
                                     RequestContextFactory requestContextFactory, AvailabilityGuard availabilityGuard,
                                     Config config, Factory<Locks> locksFactory )

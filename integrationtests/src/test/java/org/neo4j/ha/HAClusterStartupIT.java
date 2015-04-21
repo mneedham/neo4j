@@ -25,6 +25,7 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Iterator;
 
 import org.neo4j.consistency.checking.full.ConsistencyCheckIncompleteException;
 import org.neo4j.graphdb.Transaction;
@@ -67,12 +68,19 @@ public class HAClusterStartupIT
             cluster.await( allSeesAllAsAvailable() );
 
             master = cluster.getMaster();
-            try ( Transaction tx = master.beginTx() )
-            {
-                master.createNode();
-                tx.success();
+//            try ( Transaction tx = master.beginTx() )
+//            {
+//                master.createNode();
+//                tx.success();
+//            }
+//            cluster.sync();
+
+            Iterator<HighlyAvailableGraphDatabase> members = cluster.getAllMembers().iterator();
+            while(members.hasNext()) {
+                HighlyAvailableGraphDatabase next = members.next();
+                System.out.println(next.getInstanceState() + " " +  next.isMaster() );
             }
-            cluster.sync();
+
 
             slave1 = cluster.getAnySlave();
             slave2 = cluster.getAnySlave( slave1 );
@@ -88,32 +96,33 @@ public class HAClusterStartupIT
     @Test
     public void aSlaveWithoutAnyGraphDBFilesShouldBeAbleToJoinACluster() throws Throwable
     {
-        // GIVEN a cluster with some data and entry in log files
-
-
-        // WHEN removing all the files in graphdb on the slave and restarting the cluster
-        deleteAllFilesOn( slave1 );
-
-        clusterManager.start();
-
-        // THEN the cluster should work
-        cluster = clusterManager.getDefaultCluster();
-        try
-        {
-            cluster.await( allSeesAllAsAvailable() );
-        }
-        finally
-        {
-            clusterManager.shutdown();
-        }
-
-        assertAllStoreConsistent();
+//        // GIVEN a cluster with some data and entry in log files
+//
+//
+//        // WHEN removing all the files in graphdb on the slave and restarting the cluster
+//        deleteAllFilesOn( slave1 );
+//
+//        clusterManager.start();
+//
+//        // THEN the cluster should work
+//        cluster = clusterManager.getDefaultCluster();
+//        try
+//        {
+//            cluster.await( allSeesAllAsAvailable() );
+//        }
+//        finally
+//        {
+//            clusterManager.shutdown();
+//        }
+//
+//        assertAllStoreConsistent();
     }
 
     @Test
     public void bothSlavesWithoutAnyGraphDBFilesShouldBeAbleToJoinACluster() throws Throwable
     {
         // GIVEN a cluster with some data and entry in log files
+        System.out.println("BOOOOM");
 
 
         // WHEN removing all the files in graphdb on both slaves and restarting the cluster
