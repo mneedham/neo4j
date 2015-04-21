@@ -27,11 +27,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.hazelcast.core.HazelcastInstance;
+
 import org.neo4j.cluster.BindingListener;
 import org.neo4j.cluster.InstanceId;
 import org.neo4j.cluster.client.ClusterClient;
 import org.neo4j.cluster.member.ClusterMemberAvailability;
-import org.neo4j.cluster.protocol.election.Election;
 import org.neo4j.function.Supplier;
 import org.neo4j.helpers.CancellationRequest;
 import org.neo4j.helpers.Functions;
@@ -81,7 +82,6 @@ public class HighAvailabilityModeSwitcher implements HighAvailabilityMemberListe
 
     private SwitchToSlave switchToSlave;
     private SwitchToMaster switchToMaster;
-    private final Election election;
     private final ClusterMemberAvailability clusterMemberAvailability;
     private ClusterClient clusterClient;
     private Supplier<StoreId> storeIdSupplier;
@@ -100,17 +100,15 @@ public class HighAvailabilityModeSwitcher implements HighAvailabilityMemberListe
 
     public HighAvailabilityModeSwitcher( SwitchToSlave switchToSlave,
                                          SwitchToMaster switchToMaster,
-                                         Election election,
+                                         HazelcastInstance hazelcastInstance,
                                          ClusterMemberAvailability clusterMemberAvailability,
-                                         ClusterClient clusterClient,
+                                         HazelcastInstance clusterClient,
                                          Supplier<StoreId> storeIdSupplier,
                                          InstanceId instanceId, LogService logService )
     {
         this.switchToSlave = switchToSlave;
         this.switchToMaster = switchToMaster;
-        this.election = election;
         this.clusterMemberAvailability = clusterMemberAvailability;
-        this.clusterClient = clusterClient;
         this.storeIdSupplier = storeIdSupplier;
         this.instanceId = instanceId;
         this.msgLog = logService.getInternalLog( getClass() );
@@ -201,7 +199,7 @@ public class HighAvailabilityModeSwitcher implements HighAvailabilityMemberListe
         if ( canAskForElections.compareAndSet( true, false ) )
         {
             clusterMemberAvailability.memberIsUnavailable( HighAvailabilityModeSwitcher.SLAVE );
-            election.performRoleElections();
+//            election.performRoleElections();
         }
     }
 
@@ -286,7 +284,7 @@ public class HighAvailabilityModeSwitcher implements HighAvailabilityMemberListe
                 {
                     msgLog.error( "Failed to switch to master", e );
                     // Since this master switch failed, elect someone else
-                    election.demote( instanceId );
+//                    election.demote( instanceId );
                 }
             }
         }, cancellationHandle );

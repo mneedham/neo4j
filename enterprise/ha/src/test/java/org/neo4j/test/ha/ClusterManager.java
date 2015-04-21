@@ -372,15 +372,15 @@ public class ClusterManager
 
                 for ( HighlyAvailableGraphDatabase database : cluster.getAllMembers() )
                 {
-                    ClusterMembers members = database.getDependencyResolver().resolveDependency( ClusterMembers.class );
-
-                    for ( ClusterMember clusterMember : members.getMembers() )
-                    {
-                        if ( clusterMember.getHARole().equals( HighAvailabilityModeSwitcher.UNKNOWN ) )
-                        {
-                            return false;
-                        }
-                    }
+//                    ClusterMembers members = database.getDependencyResolver().resolveDependency( ClusterMembers.class );
+//
+//                    for ( ClusterMember clusterMember : members.getMembers() )
+//                    {
+//                        if ( clusterMember.getHARole().equals( HighAvailabilityModeSwitcher.UNKNOWN ) )
+//                        {
+//                            return false;
+//                        }
+//                    }
                 }
 
                 // Everyone sees everyone else as available!
@@ -411,12 +411,12 @@ public class ClusterManager
 
                 for ( HighlyAvailableGraphDatabase database : cluster.getAllMembers() )
                 {
-                    ClusterMembers members = database.getDependencyResolver().resolveDependency( ClusterMembers.class );
+//                    ClusterMembers members = database.getDependencyResolver().resolveDependency( ClusterMembers.class );
 
-                    if ( count( members.getMembers() ) < nrOfMembers )
-                    {
-                        return false;
-                    }
+//                    if ( count( members.getMembers() ) < nrOfMembers )
+//                    {
+//                        return false;
+//                    }
                 }
 
                 for ( ClusterMembers clusterMembers : cluster.getArbiters() )
@@ -841,10 +841,11 @@ public class ClusterManager
         {
             for ( HighlyAvailableGraphDatabase graphDatabaseService : getAllMembers() )
             {
-                if ( graphDatabaseService.isAvailable( 0 ) && graphDatabaseService.isMaster() )
-                {
-                    return graphDatabaseService;
-                }
+                return graphDatabaseService;
+//                if ( graphDatabaseService.isAvailable( 0 ) && graphDatabaseService.isMaster() )
+//                {
+//                    return graphDatabaseService;
+//                }
             }
             throw new IllegalStateException( "No master found in cluster " + name + stateToString( this ) );
         }

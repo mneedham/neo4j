@@ -20,9 +20,15 @@
 package org.neo4j.kernel.ha.factory;
 
 import java.lang.reflect.Proxy;
-import java.net.URI;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.hazelcast.config.JoinConfig;
+import com.hazelcast.config.NetworkConfig;
+import com.hazelcast.config.TcpIpConfig;
+import com.hazelcast.core.Hazelcast;
+import com.hazelcast.core.HazelcastInstance;
 import org.jboss.netty.logging.InternalLoggerFactory;
 
 import org.neo4j.cluster.ClusterSettings;
@@ -31,12 +37,6 @@ import org.neo4j.cluster.client.ClusterClient;
 import org.neo4j.cluster.logging.NettyLoggerFactory;
 import org.neo4j.cluster.member.ClusterMemberAvailability;
 import org.neo4j.cluster.member.ClusterMemberEvents;
-import org.neo4j.cluster.member.paxos.MemberIsAvailable;
-import org.neo4j.cluster.member.paxos.PaxosClusterMemberAvailability;
-import org.neo4j.cluster.member.paxos.PaxosClusterMemberEvents;
-import org.neo4j.cluster.protocol.atomicbroadcast.ObjectStreamFactory;
-import org.neo4j.cluster.protocol.cluster.ClusterConfiguration;
-import org.neo4j.cluster.protocol.cluster.ClusterListener;
 import org.neo4j.cluster.protocol.election.ElectionCredentialsProvider;
 import org.neo4j.cluster.protocol.election.NotElectableElectionCredentialsProvider;
 import org.neo4j.com.monitor.RequestMonitor;
@@ -46,7 +46,7 @@ import org.neo4j.function.Factory;
 import org.neo4j.function.Supplier;
 import org.neo4j.graphdb.DependencyResolver;
 import org.neo4j.graphdb.factory.GraphDatabaseSettings;
-import org.neo4j.helpers.NamedThreadFactory;
+import org.neo4j.helpers.HostnamePort;
 import org.neo4j.kernel.AvailabilityGuard;
 import org.neo4j.kernel.GraphDatabaseAPI;
 import org.neo4j.kernel.IdGeneratorFactory;
@@ -60,7 +60,6 @@ import org.neo4j.kernel.ha.BranchedDataMigrator;
 import org.neo4j.kernel.ha.CommitProcessSwitcher;
 import org.neo4j.kernel.ha.DelegateInvocationHandler;
 import org.neo4j.kernel.ha.HaSettings;
-import org.neo4j.kernel.ha.HighAvailabilityDiagnostics;
 import org.neo4j.kernel.ha.HighAvailabilityLogger;
 import org.neo4j.kernel.ha.HighAvailabilityMemberInfoProvider;
 import org.neo4j.kernel.ha.LabelTokenCreatorModeSwitcher;
@@ -71,7 +70,6 @@ import org.neo4j.kernel.ha.UpdatePuller;
 import org.neo4j.kernel.ha.UpdatePullerClient;
 import org.neo4j.kernel.ha.UpdatePullingTransactionObligationFulfiller;
 import org.neo4j.kernel.ha.cluster.DefaultElectionCredentialsProvider;
-import org.neo4j.kernel.ha.cluster.HANewSnapshotFunction;
 import org.neo4j.kernel.ha.cluster.HighAvailabilityMemberChangeEvent;
 import org.neo4j.kernel.ha.cluster.HighAvailabilityMemberContext;
 import org.neo4j.kernel.ha.cluster.HighAvailabilityMemberListener;
@@ -215,98 +213,21 @@ public class EnterpriseEditionModule
                 );
 
 
-        ObjectStreamFactory objectStreamFactory = new ObjectStreamFactory();
+        HazelcastInstance instance = createHazelcastInstance( config );
 
-
-        final ClusterClient clusterClient =
-                dependencies.satisfyDependency( new ClusterClient( platformModule.monitors, ClusterClient.adapt(
-                        config ), logging,
-                        electionCredentialsProvider,
-                        objectStreamFactory, objectStreamFactory ) );
-        PaxosClusterMemberEvents localClusterEvents = new PaxosClusterMemberEvents( clusterClient, clusterClient,
-                clusterClient, clusterClient, logging.getInternalLogProvider(), new org.neo4j.function.Predicate<PaxosClusterMemberEvents
-                .ClusterMembersSnapshot>()
-        {
-            @Override
-            public boolean test( PaxosClusterMemberEvents.ClusterMembersSnapshot item )
-            {
-                for ( MemberIsAvailable member : item.getCurrentAvailableMembers() )
-                {
-                    if ( member.getRoleUri().getScheme().equals( "ha" ) )
-                    {
-                        if ( HighAvailabilityModeSwitcher.getServerId( member.getRoleUri() ).equals(
-                                platformModule.config.get( ClusterSettings.server_id ) ) )
-                        {
-                            logging.getInternalLog( PaxosClusterMemberEvents.class ).error( String.format( "Instance " +
-                                            "%s has" +
-                                            " the same serverId as ours (%s) - will not " +
-                                            "join this cluster",
-                                    member.getRoleUri(), config.get( ClusterSettings.server_id ).toIntegerIndex()
-                            ) );
-                            return true;
-                        }
-                    }
-                }
-                return true;
-            }
-        }, new HANewSnapshotFunction(), objectStreamFactory, objectStreamFactory,
-                platformModule.monitors.newMonitor( NamedThreadFactory.Monitor.class )
-        );
-
-        // Force a reelection after we enter the cluster
-        // and when that election is finished refresh the snapshot
-        clusterClient.addClusterListener( new ClusterListener.Adapter()
-        {
-            boolean hasRequestedElection = true; // This ensures that the election result is (at least) from our
-            // request or thereafter
-
-            @Override
-            public void enteredCluster( ClusterConfiguration clusterConfiguration )
-            {
-                clusterClient.performRoleElections();
-            }
-
-            @Override
-            public void elected( String role, InstanceId instanceId, URI electedMember )
-            {
-                if ( hasRequestedElection && role.equals( ClusterConfiguration.COORDINATOR ) )
-                {
-                    clusterClient.removeClusterListener( this );
-                }
-            }
-        } );
-
-        HighAvailabilityMemberContext localMemberContext = new SimpleHighAvailabilityMemberContext( clusterClient
-                .getServerId(), config.get( HaSettings.slave_only ) );
-        PaxosClusterMemberAvailability localClusterMemberAvailability = new PaxosClusterMemberAvailability(
-                clusterClient.getServerId(), clusterClient, clusterClient, logging.getInternalLogProvider(), objectStreamFactory,
-                objectStreamFactory );
+        HighAvailabilityMemberContext localMemberContext = new SimpleHighAvailabilityMemberContext( new InstanceId( Integer.valueOf( instance.getName())), config.get( HaSettings.slave_only ) );
 
         memberContextDelegateInvocationHandler.setDelegate( localMemberContext );
-        clusterEventsDelegateInvocationHandler.setDelegate( localClusterEvents );
-        clusterMemberAvailabilityDelegateInvocationHandler.setDelegate( localClusterMemberAvailability );
 
-        members = dependencies.satisfyDependency( new ClusterMembers( clusterClient, clusterClient,
-                clusterEvents,
-                config.get( ClusterSettings.server_id ) ) );
         memberStateMachine = new HighAvailabilityMemberStateMachine(
                 memberContext, platformModule.availabilityGuard, members,
                 clusterEvents,
-                clusterClient, logging.getInternalLogProvider() );
-        electionProviderRef.set( memberStateMachine );
+                null, logging.getInternalLogProvider() );
 
         HighAvailabilityLogger highAvailabilityLogger = new HighAvailabilityLogger( logging.getUserLogProvider(),
                 config.get( ClusterSettings.server_id ) );
         platformModule.availabilityGuard.addListener( highAvailabilityLogger );
-        clusterEvents.addClusterMemberListener( highAvailabilityLogger );
-        clusterClient.addClusterListener( highAvailabilityLogger );
-
-        LifeSupport paxosLife = new LifeSupport();
-
-        paxosLife.add( clusterClient );
-        paxosLife.add( memberStateMachine );
-        paxosLife.add( clusterEvents );
-        paxosLife.add( localClusterMemberAvailability );
+//        clusterEvents.addClusterMemberListener( highAvailabilityLogger );
 
         idGeneratorFactory = dependencies.satisfyDependency(createIdGeneratorFactory( masterDelegateInvocationHandler, logging.getInternalLogProvider(), requestContextFactory ));
 
@@ -346,7 +267,7 @@ public class EnterpriseEditionModule
 
         final HighAvailabilityModeSwitcher highAvailabilityModeSwitcher = new HighAvailabilityModeSwitcher(
                 switchToSlaveInstance, switchToMasterInstance,
-                clusterClient, clusterMemberAvailability, clusterClient, new Supplier<StoreId>()
+                instance, clusterMemberAvailability, instance, new Supplier<StoreId>()
         {
             @Override
             public StoreId get()
@@ -357,13 +278,12 @@ public class EnterpriseEditionModule
                 logging );
         exceptionHandlerRef.set( highAvailabilityModeSwitcher );
 
-        clusterClient.addBindingListener( highAvailabilityModeSwitcher );
-        memberStateMachine.addHighAvailabilityMemberListener( highAvailabilityModeSwitcher );
+//        clusterClient.addBindingListener( highAvailabilityModeSwitcher );
+//        memberStateMachine.addHighAvailabilityMemberListener( highAvailabilityModeSwitcher );
 
         /*
          * We always need the mode switcher and we need it to restart on switchover.
          */
-        paxosLife.add( highAvailabilityModeSwitcher );
 
 
         life.add( requestContextFactory );
@@ -376,14 +296,11 @@ public class EnterpriseEditionModule
                 new UpdatePuller( memberStateMachine, requestContextFactory, master, lastUpdateTime,
                         logging.getInternalLogProvider(), serverId, invalidEpochHandler ) ) );
         dependencies.satisfyDependency( life.add( new UpdatePullerClient( config.get( HaSettings.pull_interval ),
-                platformModule.jobScheduler, logging.getInternalLogProvider(), updatePuller, platformModule.availabilityGuard ) ) );
+                platformModule.jobScheduler, logging.getInternalLogProvider(), updatePuller, platformModule
+                .availabilityGuard ) ) );
         dependencies.satisfyDependency( life.add( new UpdatePullingTransactionObligationFulfiller(
                 updatePuller, memberStateMachine, serverId, dependencies ) ) );
 
-        life.add( paxosLife );
-
-        platformModule.diagnosticsManager.appendProvider( new HighAvailabilityDiagnostics( memberStateMachine,
-                clusterClient ) );
 
         // Create HA services
         lockManager = dependencies.satisfyDependency(createLockManager( memberStateMachine, config, masterDelegateInvocationHandler, requestContextFactory, platformModule.availabilityGuard, logging ));
@@ -399,7 +316,7 @@ public class EnterpriseEditionModule
         life.add( dependencies.satisfyDependency(createKernelData( config, platformModule.graphDatabaseFacade, members, lastUpdateTime ) ));
 
         commitProcessFactory = createCommitProcessFactory( dependencies, logging, monitors, config, life,
-                clusterClient, members, platformModule.jobScheduler, master, requestContextFactory, memberStateMachine );
+                null, members, platformModule.jobScheduler, master, requestContextFactory, memberStateMachine );
 
         headerInformationFactory = createHeaderInformationFactory( memberContext );
 
@@ -422,6 +339,35 @@ public class EnterpriseEditionModule
         upgradeConfiguration = new HAUpgradeConfiguration();
 
         registerRecovery( config.get( GraphDatabaseFacadeFactory.Configuration.editionName ), dependencies, logging );
+    }
+
+    private HazelcastInstance createHazelcastInstance( Config config )
+    {
+        JoinConfig joinConfig = new JoinConfig();
+        joinConfig.getMulticastConfig().setEnabled( false );
+        TcpIpConfig tcpIpConfig = joinConfig.getTcpIpConfig();
+        tcpIpConfig.setEnabled( true );
+
+        List<HostnamePort> hostnamePorts = config.get( ClusterSettings.initial_hosts );
+        for ( HostnamePort hostnamePort : hostnamePorts )
+        {
+            tcpIpConfig.addMember( hostnamePort.getHost() + ":" + hostnamePort.getPort() );
+        }
+
+        NetworkConfig networkConfig = new NetworkConfig();
+        networkConfig.setPort( config.get( ClusterSettings.cluster_server ).getPort() );
+        networkConfig.setJoin( joinConfig );
+//        networkConfig.getInterfaces().setInterfaces( Arrays.asList( "127.0.0.1" ) ).setEnabled( true );
+//        networkConfig.getInterfaces().setInterfaces( Arrays.asList( "192.168.1.12" ) ).setEnabled( true );
+//        networkConfig.getInterfaces()
+//                .setInterfaces( Arrays.asList(config.get( ClusterSettings.cluster_server ).getHost()) )
+//                .setEnabled( true );
+
+        com.hazelcast.config.Config c = new com.hazelcast.config.Config( String.valueOf( config.get( ClusterSettings.server_id ).toIntegerIndex() ) );
+        c.setProperty( "hazelcast.initial.min.cluster.size", "2" );
+        c.setNetworkConfig( networkConfig );
+
+        return Hazelcast.newHazelcastInstance( c );
     }
 
     protected TransactionHeaderInformationFactory createHeaderInformationFactory( final HighAvailabilityMemberContext

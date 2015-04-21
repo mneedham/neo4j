@@ -100,7 +100,8 @@ public class HighAvailabilitySlaves implements Lifecycle, Slaves
         life.init();
 
         clusterListener = new HASClusterListener();
-        cluster.addClusterListener( clusterListener );
+//
+//     cluster.addClusterListener( clusterListener );
     }
 
     @Override
@@ -118,7 +119,7 @@ public class HighAvailabilitySlaves implements Lifecycle, Slaves
     @Override
     public void shutdown() throws Throwable
     {
-        cluster.removeClusterListener( clusterListener );
+//        cluster.removeClusterListener( clusterListener );
 
         life.shutdown();
         slaves.clear();
