@@ -20,14 +20,9 @@
 package org.neo4j.kernel.ha.factory;
 
 import java.lang.reflect.Proxy;
-import java.util.List;
+import java.net.URI;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.hazelcast.config.JoinConfig;
-import com.hazelcast.config.NetworkConfig;
-import com.hazelcast.config.TcpIpConfig;
-import com.hazelcast.core.Hazelcast;
-import com.hazelcast.core.HazelcastInstance;
 import org.jboss.netty.logging.InternalLoggerFactory;
 
 import org.neo4j.cluster.ClusterSettings;
@@ -36,6 +31,8 @@ import org.neo4j.cluster.client.ClusterClient;
 import org.neo4j.cluster.logging.NettyLoggerFactory;
 import org.neo4j.cluster.member.ClusterMemberAvailability;
 import org.neo4j.cluster.member.ClusterMemberEvents;
+import org.neo4j.cluster.member.paxos.PaxosClusterMemberAvailability;
+import org.neo4j.cluster.member.paxos.HazelcastClusterMemberEvents;
 import org.neo4j.cluster.protocol.election.ElectionCredentialsProvider;
 import org.neo4j.cluster.protocol.election.NotElectableElectionCredentialsProvider;
 import org.neo4j.com.monitor.RequestMonitor;
@@ -45,7 +42,7 @@ import org.neo4j.function.Factory;
 import org.neo4j.function.Supplier;
 import org.neo4j.graphdb.DependencyResolver;
 import org.neo4j.graphdb.factory.GraphDatabaseSettings;
-import org.neo4j.helpers.HostnamePort;
+import org.neo4j.helpers.NamedThreadFactory;
 import org.neo4j.kernel.AvailabilityGuard;
 import org.neo4j.kernel.GraphDatabaseAPI;
 import org.neo4j.kernel.IdGeneratorFactory;
@@ -213,16 +210,25 @@ public class EnterpriseEditionModule
                         }
                 );
 
+        Neo4jHazelcastInstance instance = life.add( new Neo4jHazelcastInstance( config ) );
+        HazelcastBasedElection hazelcastBasedElection = life.add(new HazelcastBasedElection( instance ));
 
-
-//        HazelcastInstance instance = createHazelcastInstance( config );
-        Neo4jHazelcastInstance instance = new Neo4jHazelcastInstance( config );
-        life.add(instance);
+        HazelcastClusterMemberEvents localClusterEvents = new HazelcastClusterMemberEvents(
+                instance, logging.getInternalLogProvider(),
+                platformModule.monitors.newMonitor( NamedThreadFactory.Monitor.class )
+        );
 
         HighAvailabilityMemberContext localMemberContext = new SimpleHighAvailabilityMemberContext( new InstanceId(
                 config.get(ClusterSettings.server_id).toIntegerIndex()), config.get( HaSettings.slave_only ) );
+        PaxosClusterMemberAvailability localClusterMemberAvailability = new PaxosClusterMemberAvailability(
+                config.get( ClusterSettings.server_id ), URI.create( String.format( "http://192.168.1.11:%d", config.get
+                ( ClusterSettings.cluster_server ).getPort() ) ),
+                instance,
+                logging.getInternalLogProvider() );
 
         memberContextDelegateInvocationHandler.setDelegate( localMemberContext );
+        clusterEventsDelegateInvocationHandler.setDelegate( localClusterEvents );
+        clusterMemberAvailabilityDelegateInvocationHandler.setDelegate( localClusterMemberAvailability );
 
 //        members = dependencies.satisfyDependency( new ClusterMembers( null, null,
 //                clusterEvents,
@@ -231,7 +237,7 @@ public class EnterpriseEditionModule
         memberStateMachine = new HighAvailabilityMemberStateMachine(
                 memberContext, platformModule.availabilityGuard, members,
                 clusterEvents,
-                null, logging.getInternalLogProvider() );
+                hazelcastBasedElection, logging.getInternalLogProvider() );
 
         HighAvailabilityLogger highAvailabilityLogger = new HighAvailabilityLogger( logging.getUserLogProvider(),
                 config.get( ClusterSettings.server_id ) );
@@ -274,7 +280,7 @@ public class EnterpriseEditionModule
                 monitors.newMonitor( RequestMonitor.class, MasterServer.class ),
                 monitors.newMonitor( MasterImpl.Monitor.class, MasterImpl.class ) );
 
-        final HighAvailabilityModeSwitcher highAvailabilityModeSwitcher = new HighAvailabilityModeSwitcher(
+        final HighAvailabilityModeSwitcher highAvailabilityModeSwitcher = life.add( new HighAvailabilityModeSwitcher(
                 switchToSlaveInstance, switchToMasterInstance,
                 instance, clusterMemberAvailability, instance, new Supplier<StoreId>()
         {
@@ -284,13 +290,20 @@ public class EnterpriseEditionModule
                 return dependencies.resolveDependency( NeoStoreDataSource.class ).getStoreId();
             }
         }, config.get( ClusterSettings.server_id ),
-                logging );
+                logging ) );
         exceptionHandlerRef.set( highAvailabilityModeSwitcher );
 
 
 
 //        HazelcastBasedElection hazelcastBasedElection = instance.election();
-        instance.addHighAvailabilityMemberListener( highAvailabilityModeSwitcher );
+//        highAvailabilityModeSwitcher.listeningAt(
+//                URI.create( config.get( ClusterSettings.cluster_server ).getHost() + ":" +
+//                            config.get( ClusterSettings.cluster_server ).getPort()
+//        ) );
+        highAvailabilityModeSwitcher.listeningAt( URI.create("http://192.168.1.11:" + config.get(ClusterSettings
+                        .cluster_server).getPort()
+        ) );
+        memberStateMachine.addHighAvailabilityMemberListener( highAvailabilityModeSwitcher );
 
 //        clusterClient.addBindingListener( highAvailabilityModeSwitcher );
 //        memberStateMachine.addHighAvailabilityMemberListener( highAvailabilityModeSwitcher );

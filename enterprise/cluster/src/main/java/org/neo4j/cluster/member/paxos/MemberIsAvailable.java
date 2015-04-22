@@ -32,7 +32,7 @@ import org.neo4j.kernel.impl.store.StoreId;
  * This message is broadcast when a member of the cluster declares that
  * it is ready to serve a particular role for the cluster.
  */
-public class MemberIsAvailable
+public class MemberIsAvailable extends MemberAvailabilityMessage
         implements Externalizable
 {
     private String role;

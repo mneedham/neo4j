@@ -30,6 +30,7 @@ import org.neo4j.cluster.protocol.atomicbroadcast.AtomicBroadcastSerializer;
 import org.neo4j.cluster.protocol.atomicbroadcast.ObjectInputStreamFactory;
 import org.neo4j.cluster.protocol.atomicbroadcast.ObjectOutputStreamFactory;
 import org.neo4j.cluster.protocol.atomicbroadcast.Payload;
+import org.neo4j.kernel.ha.factory.Neo4jHazelcastInstance;
 import org.neo4j.kernel.impl.store.StoreId;
 import org.neo4j.kernel.lifecycle.Lifecycle;
 import org.neo4j.logging.Log;
@@ -40,45 +41,24 @@ import org.neo4j.logging.LogProvider;
  */
 public class PaxosClusterMemberAvailability implements ClusterMemberAvailability, Lifecycle
 {
+    private final Neo4jHazelcastInstance instance;
     private volatile URI serverClusterId;
     private Log log;
-    protected AtomicBroadcastSerializer serializer;
     private final InstanceId myId;
-    private BindingNotifier binding;
-    private AtomicBroadcast atomicBroadcast;
-    private BindingListener bindingListener;
-    private ObjectInputStreamFactory objectInputStreamFactory;
-    private ObjectOutputStreamFactory objectOutputStreamFactory;
 
-    public PaxosClusterMemberAvailability( InstanceId myId, BindingNotifier binding, AtomicBroadcast atomicBroadcast,
-                                           LogProvider logProvider, ObjectInputStreamFactory objectInputStreamFactory,
-                                           ObjectOutputStreamFactory objectOutputStreamFactory )
+    public PaxosClusterMemberAvailability( InstanceId myId, URI listeningUri, Neo4jHazelcastInstance instance,
+                                           LogProvider logProvider )
     {
         this.myId = myId;
-        this.binding = binding;
-        this.atomicBroadcast = atomicBroadcast;
-        this.objectInputStreamFactory = objectInputStreamFactory;
-        this.objectOutputStreamFactory = objectOutputStreamFactory;
+        this.serverClusterId = listeningUri;
+        this.instance = instance;
         this.log = logProvider.getLog( getClass() );
-
-        bindingListener = new BindingListener()
-        {
-            @Override
-            public void listeningAt( URI me )
-            {
-                serverClusterId = me;
-                PaxosClusterMemberAvailability.this.log.info( "Listening at:" + me );
-            }
-        };
     }
 
     @Override
     public void init()
             throws Throwable
     {
-        serializer = new AtomicBroadcastSerializer( objectInputStreamFactory, objectOutputStreamFactory );
-
-        binding.addBindingListener( bindingListener );
     }
 
     @Override
@@ -97,7 +77,6 @@ public class PaxosClusterMemberAvailability implements ClusterMemberAvailability
     public void shutdown()
             throws Throwable
     {
-        binding.removeBindingListener( bindingListener );
     }
 
     @Override
@@ -106,9 +85,8 @@ public class PaxosClusterMemberAvailability implements ClusterMemberAvailability
         try
         {
             MemberIsAvailable message = new MemberIsAvailable( role, myId, serverClusterId, roleUri, storeId );
-            Payload payload = serializer.broadcast( message );
-            serializer.receive( payload );
-            atomicBroadcast.broadcast( payload );
+
+            instance.getHazelcastInstance().getTopic( "cluster-membership" ).publish( message );
         }
         catch ( Throwable e )
         {
@@ -121,9 +99,9 @@ public class PaxosClusterMemberAvailability implements ClusterMemberAvailability
     {
         try
         {
-            Payload payload = serializer.broadcast( new MemberIsUnavailable( role, myId, serverClusterId ) );
-            serializer.receive( payload );
-            atomicBroadcast.broadcast( payload );
+            MemberIsUnavailable message = new MemberIsUnavailable( role, myId, serverClusterId );
+
+            instance.getHazelcastInstance().getTopic( "cluster-membership" ).publish( message );
         }
         catch ( Throwable e )
         {

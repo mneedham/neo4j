@@ -29,8 +29,8 @@ import org.junit.Test;
 
 import org.neo4j.cluster.InstanceId;
 import org.neo4j.cluster.member.paxos.MemberIsAvailable;
-import org.neo4j.cluster.member.paxos.PaxosClusterMemberEvents;
-import org.neo4j.cluster.member.paxos.PaxosClusterMemberEvents.ClusterMembersSnapshot;
+import org.neo4j.cluster.member.paxos.HazelcastClusterMemberEvents;
+import org.neo4j.cluster.member.paxos.HazelcastClusterMemberEvents.ClusterMembersSnapshot;
 import org.neo4j.kernel.ha.cluster.HANewSnapshotFunction;
 
 import static org.hamcrest.CoreMatchers.hasItem;
@@ -53,7 +53,7 @@ public class ClusterMembersSnapshotTest
         // GIVEN
         // -- a snapshot containing one member with a role
         ClusterMembersSnapshot snapshot = new ClusterMembersSnapshot(
-                new PaxosClusterMemberEvents.UniqueRoleFilter()
+                new HazelcastClusterMemberEvents.UniqueRoleFilter()
         );
         URI clusterUri = new URI( URI );
         InstanceId instanceId = new InstanceId( 1 );

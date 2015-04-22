@@ -1,54 +1,61 @@
 package org.neo4j.kernel.ha.cluster;
 
-import com.hazelcast.collection.CollectionService;
 import com.hazelcast.core.Cluster;
-import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.InitialMembershipEvent;
 import com.hazelcast.core.InitialMembershipListener;
-import com.hazelcast.core.LifecycleEvent;
-import com.hazelcast.core.LifecycleListener;
-import com.hazelcast.core.LifecycleService;
 import com.hazelcast.core.Member;
 import com.hazelcast.core.MemberAttributeEvent;
 import com.hazelcast.core.MembershipEvent;
 import com.hazelcast.core.MembershipListener;
+import com.hazelcast.instance.MemberImpl;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 
+import org.neo4j.cluster.InstanceId;
+import org.neo4j.cluster.protocol.election.Election;
 import org.neo4j.kernel.ha.factory.Neo4jHazelcastInstance;
+import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 
-public class HazelcastBasedElection implements HighAvailability
+public class HazelcastBasedElection extends LifecycleAdapter implements Election
 {
-    private final Cluster cluster;
-    private LifecycleService lifecycleService;
     private List<HighAvailabilityMemberListener> listeners = new ArrayList<>();
+    private Neo4jHazelcastInstance instance;
+    private String registrationId;
 
-    public HazelcastBasedElection( HazelcastInstance instance, List<HighAvailabilityMemberListener> listeners )
+    public HazelcastBasedElection( Neo4jHazelcastInstance instance )
     {
-        this.cluster = instance.getCluster();
-        this.lifecycleService = instance.getLifecycleService();
-        this.listeners = listeners;
-
-        cluster.addMembershipListener( new MyMembershipListener() );
-
-        lifecycleService.addLifecycleListener( new LifecycleListener()
-        {
-            @Override
-            public void stateChanged( LifecycleEvent event )
-            {
-                System.out.println("LifecycleEvent received: " + event);
-            }
-        } );
+        this.instance = instance;
     }
 
-    void runElection()
+    @Override
+    public void start() throws Throwable
     {
-        List<Member> members = new ArrayList<>( cluster.getMembers() );
+        Cluster cluster = instance.getHazelcastInstance().getCluster();
+        registrationId = cluster.addMembershipListener( new MyMembershipListener() );
+    }
+
+    @Override
+    public void stop() throws Throwable
+    {
+        Cluster cluster = instance.getHazelcastInstance().getCluster();
+        cluster.removeMembershipListener( registrationId );
+    }
+
+    @Override
+    public void demote( InstanceId node )
+    {
+
+    }
+
+    @Override
+    public void performRoleElections()
+    {
+        List<Member> members = new ArrayList<>( instance.getHazelcastInstance().getCluster().getMembers() );
         Collections.sort( members, new Comparator<Member>()
         {
             @Override
@@ -65,25 +72,20 @@ public class HazelcastBasedElection implements HighAvailability
         }
         for ( HighAvailabilityMemberListener listener : listeners )
         {
+            MemberImpl masterMember = (MemberImpl) master;
             listener.masterIsElected(
                     new HighAvailabilityMemberChangeEvent(
+                            HighAvailabilityMemberState.PENDING,
                             HighAvailabilityMemberState.TO_MASTER,
-                            HighAvailabilityMemberState.MASTER,
-                            null,
-                            null ) );
+                            new InstanceId( masterMember.getId() ),
+                            URI.create( String.format( "cluster://%s:%s", masterMember.getInetAddress(), 6001 ) ) ) );
         }
     }
 
     @Override
-    public void addHighAvailabilityMemberListener( HighAvailabilityMemberListener listener )
+    public void promote( InstanceId node, String role )
     {
-        listeners.add( listener );
-    }
 
-    @Override
-    public void removeHighAvailabilityMemberListener( HighAvailabilityMemberListener listener )
-    {
-        listeners.remove( listener );
     }
 
     private class MyMembershipListener implements MembershipListener, InitialMembershipListener
@@ -92,28 +94,28 @@ public class HazelcastBasedElection implements HighAvailability
         public void memberAdded( MembershipEvent membershipEvent )
         {
             System.out.println( "Member added: " + membershipEvent );
-            runElection();
+            performRoleElections();
         }
 
         @Override
         public void memberRemoved( MembershipEvent membershipEvent )
         {
             System.out.println( "Member removed: " + membershipEvent );
-            runElection();
+            performRoleElections();
         }
 
         @Override
         public void memberAttributeChanged( MemberAttributeEvent memberAttributeEvent )
         {
             System.out.println( "Member attribute changed: " + memberAttributeEvent );
-            runElection();
+            performRoleElections();
         }
 
         @Override
         public void init( InitialMembershipEvent event )
         {
             System.out.println( "Init: " + event );
-            runElection();
+            performRoleElections();
         }
     }
 }

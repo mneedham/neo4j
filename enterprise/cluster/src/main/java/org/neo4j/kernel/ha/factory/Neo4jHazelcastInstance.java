@@ -5,25 +5,18 @@ import com.hazelcast.config.NetworkConfig;
 import com.hazelcast.config.TcpIpConfig;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.core.LifecycleService;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.neo4j.cluster.ClusterSettings;
 import org.neo4j.helpers.HostnamePort;
 import org.neo4j.kernel.configuration.Config;
-import org.neo4j.kernel.ha.cluster.HazelcastBasedElection;
-import org.neo4j.kernel.ha.cluster.HighAvailability;
-import org.neo4j.kernel.ha.cluster.HighAvailabilityMemberListener;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 
-public class Neo4jHazelcastInstance extends LifecycleAdapter implements HighAvailability
+public class Neo4jHazelcastInstance extends LifecycleAdapter
 {
     private Config config;
     private HazelcastInstance hazelcastInstance;
-    private HazelcastBasedElection election;
-    private List<HighAvailabilityMemberListener> listeners = new ArrayList<>();
 
     public Neo4jHazelcastInstance( Config config )
     {
@@ -34,7 +27,6 @@ public class Neo4jHazelcastInstance extends LifecycleAdapter implements HighAvai
     public void start() throws Throwable
     {
         hazelcastInstance = createHazelcastInstance();
-        election = new HazelcastBasedElection( hazelcastInstance, listeners );
     }
 
     @Override
@@ -46,10 +38,6 @@ public class Neo4jHazelcastInstance extends LifecycleAdapter implements HighAvai
     public HazelcastInstance getHazelcastInstance()
     {
         return hazelcastInstance;
-    }
-
-    public HazelcastBasedElection election() {
-        return election;
     }
 
     private HazelcastInstance createHazelcastInstance(  )
@@ -88,17 +76,4 @@ public class Neo4jHazelcastInstance extends LifecycleAdapter implements HighAvai
     {
         return hazelcastInstance.getName();
     }
-
-    @Override
-    public void addHighAvailabilityMemberListener( HighAvailabilityMemberListener listener )
-    {
-        listeners.add( listener );
-    }
-
-    @Override
-    public void removeHighAvailabilityMemberListener( HighAvailabilityMemberListener listener )
-    {
-        listeners.remove( listener );
-    }
-
 }

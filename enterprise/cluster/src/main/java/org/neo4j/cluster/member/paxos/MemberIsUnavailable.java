@@ -31,7 +31,7 @@ import org.neo4j.cluster.InstanceId;
  * This message is broadcast when a member of the cluster declares that
  * it is not ready to serve a particular role for the cluster.
  */
-public class MemberIsUnavailable
+public class MemberIsUnavailable extends MemberAvailabilityMessage
         implements Externalizable
 {
     private String role;

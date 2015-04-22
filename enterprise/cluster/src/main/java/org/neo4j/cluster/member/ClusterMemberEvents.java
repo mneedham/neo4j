@@ -29,3 +29,5 @@ public interface ClusterMemberEvents
 
     void removeClusterMemberListener( ClusterMemberListener listener );
 }
+
+

@@ -78,7 +78,8 @@ public class HAClusterStartupIT
             Iterator<HighlyAvailableGraphDatabase> members = cluster.getAllMembers().iterator();
             while(members.hasNext()) {
                 HighlyAvailableGraphDatabase next = members.next();
-                System.out.println(next.getInstanceState() + " " +  next.isMaster() );
+                System.out.println("***********");
+                System.out.println(next.toString() + " " + next.getInstanceState() + " " +  next.isMaster() );
             }
 
 
