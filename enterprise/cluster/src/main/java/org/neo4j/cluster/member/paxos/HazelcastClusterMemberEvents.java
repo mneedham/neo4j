@@ -20,8 +20,12 @@
 package org.neo4j.cluster.member.paxos;
 
 import com.hazelcast.core.ITopic;
+import com.hazelcast.core.MemberAttributeEvent;
+import com.hazelcast.core.MembershipEvent;
+import com.hazelcast.core.MembershipListener;
 import com.hazelcast.core.Message;
 import com.hazelcast.core.MessageListener;
+import com.hazelcast.instance.MemberImpl;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -54,6 +58,7 @@ import org.neo4j.kernel.ha.factory.Neo4jHazelcastInstance;
 import org.neo4j.kernel.lifecycle.Lifecycle;
 import org.neo4j.logging.Log;
 import org.neo4j.logging.LogProvider;
+import org.neo4j.logging.NullLogProvider;
 
 import static org.neo4j.helpers.Predicates.in;
 import static org.neo4j.helpers.Predicates.not;
@@ -61,7 +66,7 @@ import static org.neo4j.helpers.collection.Iterables.filter;
 import static org.neo4j.helpers.collection.Iterables.toList;
 
 /**
- * Paxos based implementation of {@link org.neo4j.cluster.member.ClusterMemberEvents}
+ * Hazelcast based implementation of {@link org.neo4j.cluster.member.ClusterMemberEvents}
  */
 public class HazelcastClusterMemberEvents implements ClusterMemberEvents, Lifecycle
 {
@@ -73,6 +78,8 @@ public class HazelcastClusterMemberEvents implements ClusterMemberEvents, Lifecy
     private Neo4jHazelcastInstance instance;
     private final NamedThreadFactory.Monitor namedThreadFactoryMonitor;
     private String registrationId;
+    private final MembershipListener membershipListener;
+    private String membershipListenerRegistrationId;
 
     public HazelcastClusterMemberEvents( Neo4jHazelcastInstance instance, LogProvider logProvider,
             NamedThreadFactory.Monitor namedThreadFactoryMonitor )
@@ -83,6 +90,9 @@ public class HazelcastClusterMemberEvents implements ClusterMemberEvents, Lifecy
 
         clusterListener = new ClusterListenerImpl();
         topicListener = new MemberMessageListener();
+
+        membershipListener = new OurMembershipListener();
+
     }
 
     @Override
@@ -103,6 +113,7 @@ public class HazelcastClusterMemberEvents implements ClusterMemberEvents, Lifecy
     {
         ITopic<MemberAvailabilityMessage> topic = instance.getHazelcastInstance().getTopic( "cluster-membership" );
         registrationId = topic.addMessageListener( topicListener );
+
         executor = Executors.newSingleThreadExecutor(new NamedThreadFactory("Paxos event notification", namedThreadFactoryMonitor));
     }
 
@@ -110,12 +121,14 @@ public class HazelcastClusterMemberEvents implements ClusterMemberEvents, Lifecy
     public void start()
             throws Throwable
     {
+        membershipListenerRegistrationId = instance.getHazelcastInstance().getCluster().addMembershipListener( membershipListener );
     }
 
     @Override
     public void stop()
             throws Throwable
     {
+        instance.getHazelcastInstance().getCluster().removeMembershipListener( membershipListenerRegistrationId );
     }
 
     @Override
@@ -128,6 +141,7 @@ public class HazelcastClusterMemberEvents implements ClusterMemberEvents, Lifecy
             executor = null;
         }
         instance.getHazelcastInstance().getTopic( "cluster-membership" ).removeMessageListener( registrationId );
+
     }
 
     public static class UniqueRoleFilter
@@ -308,4 +322,38 @@ public class HazelcastClusterMemberEvents implements ClusterMemberEvents, Lifecy
         }
     }
 
+    private class OurMembershipListener implements MembershipListener
+    {
+        @Override
+        public void memberAdded( final MembershipEvent membershipEvent )
+        {
+            Listeners.notifyListeners( listeners, executor, new Listeners.Notification<ClusterMemberListener>()
+            {
+                @Override
+                public void notify( ClusterMemberListener listener )
+                {
+                    listener.memberIsAlive( new InstanceId(((MemberImpl) membershipEvent.getMember()).getId()) );
+                }
+            } );
+        }
+
+        @Override
+        public void memberRemoved( final MembershipEvent membershipEvent )
+        {
+            Listeners.notifyListeners( listeners, executor, new Listeners.Notification<ClusterMemberListener>()
+            {
+                @Override
+                public void notify( ClusterMemberListener listener )
+                {
+                    listener.memberIsFailed( new InstanceId( ((MemberImpl) membershipEvent.getMember()).getId() ) );
+                }
+            } );
+        }
+
+        @Override
+        public void memberAttributeChanged( MemberAttributeEvent memberAttributeEvent )
+        {
+
+        }
+    }
 }

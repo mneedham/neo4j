@@ -178,7 +178,7 @@ public class EnterpriseEditionModule
         DelegateInvocationHandler<ClusterMemberAvailability> clusterMemberAvailabilityDelegateInvocationHandler =
                 new DelegateInvocationHandler<>( ClusterMemberAvailability.class );
 
-        ClusterMemberEvents clusterEvents = dependencies.satisfyDependency(
+        ClusterMemberEvents clusterMemberEvents = dependencies.satisfyDependency(
                 (ClusterMemberEvents) Proxy.newProxyInstance(
                         ClusterMemberEvents.class.getClassLoader(),
                         new Class[]{ClusterMemberEvents.class, Lifecycle.class},
@@ -236,7 +236,7 @@ public class EnterpriseEditionModule
 
         memberStateMachine = new HighAvailabilityMemberStateMachine(
                 memberContext, platformModule.availabilityGuard, members,
-                clusterEvents,
+                clusterMemberEvents,
                 hazelcastBasedElection, logging.getInternalLogProvider() );
 
         HighAvailabilityLogger highAvailabilityLogger = new HighAvailabilityLogger( logging.getUserLogProvider(),
