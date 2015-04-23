@@ -70,9 +70,9 @@ public class ClusterMembers
     public ClusterMembers( Cluster cluster, Heartbeat heartbeat, ClusterMemberEvents events, InstanceId me )
     {
         this.me = me;
-        cluster.addClusterListener( new HAMClusterListener() );
-        heartbeat.addHeartbeatListener( new HAMHeartbeatListener() );
-        events.addClusterMemberListener( new HAMClusterMemberListener() );
+//        cluster.addClusterListener( new HAMClusterListener() );
+//        heartbeat.addHeartbeatListener( new HAMHeartbeatListener() );
+//        events.addClusterMemberListener( new HAMClusterMemberListener() );
     }
 
     public Iterable<ClusterMember> getMembers()

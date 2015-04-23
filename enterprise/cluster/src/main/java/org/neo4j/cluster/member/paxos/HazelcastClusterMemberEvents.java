@@ -20,6 +20,9 @@
 package org.neo4j.cluster.member.paxos;
 
 import com.hazelcast.core.ITopic;
+import com.hazelcast.core.InitialMembershipEvent;
+import com.hazelcast.core.InitialMembershipListener;
+import com.hazelcast.core.Member;
 import com.hazelcast.core.MemberAttributeEvent;
 import com.hazelcast.core.MembershipEvent;
 import com.hazelcast.core.MembershipListener;
@@ -73,7 +76,6 @@ public class HazelcastClusterMemberEvents implements ClusterMemberEvents, Lifecy
     private final MemberMessageListener topicListener;
     private Log log;
     protected Iterable<ClusterMemberListener> listeners = Listeners.newListeners();
-    private ClusterListener.Adapter clusterListener;
     private ExecutorService executor;
     private Neo4jHazelcastInstance instance;
     private final NamedThreadFactory.Monitor namedThreadFactoryMonitor;
@@ -88,11 +90,8 @@ public class HazelcastClusterMemberEvents implements ClusterMemberEvents, Lifecy
         this.namedThreadFactoryMonitor = namedThreadFactoryMonitor;
         this.log = logProvider.getLog( getClass() );
 
-        clusterListener = new ClusterListenerImpl();
         topicListener = new MemberMessageListener();
-
         membershipListener = new OurMembershipListener();
-
     }
 
     @Override
@@ -140,142 +139,10 @@ public class HazelcastClusterMemberEvents implements ClusterMemberEvents, Lifecy
             executor.shutdown();
             executor = null;
         }
-        instance.getHazelcastInstance().getTopic( "cluster-membership" ).removeMessageListener( registrationId );
-
-    }
-
-    public static class UniqueRoleFilter
-            implements Function2<Iterable<MemberIsAvailable>, MemberIsAvailable, Iterable<MemberIsAvailable>>
-    {
-        @Override
-        public Iterable<MemberIsAvailable> apply( final Iterable<MemberIsAvailable> previousSnapshot,
-                                                  final MemberIsAvailable newMessage )
-        {
-            return Iterables.append( newMessage, Iterables.filter( new Predicate<MemberIsAvailable>()
-            {
-                @Override
-                public boolean test( MemberIsAvailable item )
-                {
-                    return not( in( newMessage.getInstanceId() ) ).accept( item.getInstanceId() );
-                }
-            }, previousSnapshot ) );
-        }
-    }
-
-    public static class ClusterMembersSnapshot
-            implements Serializable
-    {
-        private final
-        Function2<Iterable<MemberIsAvailable>, MemberIsAvailable, Iterable<MemberIsAvailable>> nextSnapshotFunction;
-
-        private Iterable<MemberIsAvailable> availableMembers = new ArrayList<>();
-
-        public ClusterMembersSnapshot( Function2<Iterable<MemberIsAvailable>, MemberIsAvailable,
-                Iterable<MemberIsAvailable>> nextSnapshotFunction )
-        {
-            this.nextSnapshotFunction = nextSnapshotFunction;
+        if(instance != null && instance.getHazelcastInstance() != null) {
+            instance.getHazelcastInstance().getTopic( "cluster-membership" ).removeMessageListener( registrationId );
         }
 
-        public void availableMember( MemberIsAvailable memberIsAvailable )
-        {
-            availableMembers = toList( nextSnapshotFunction.apply( availableMembers, memberIsAvailable ) );
-        }
-
-        public void unavailableMember( final InstanceId member )
-        {
-            availableMembers = toList( filter( new Predicate<MemberIsAvailable>()
-            {
-                @Override
-                public boolean test( MemberIsAvailable item )
-                {
-                    return !item.getInstanceId().equals( member );
-                }
-            }, availableMembers ) );
-        }
-
-        public void unavailableMember( final URI member, final InstanceId id, final String role )
-        {
-            availableMembers = toList( filter( new Predicate<MemberIsAvailable>()
-            {
-                @Override
-                public boolean test( MemberIsAvailable item )
-                {
-                    boolean matchByUriOrId = item.getClusterUri().equals( member ) || item.getInstanceId().equals( id );
-                    boolean matchByRole = item.getRole().equals( role );
-
-                    return !(matchByUriOrId && matchByRole);
-                }
-            }, availableMembers ) );
-        }
-
-        public Iterable<MemberIsAvailable> getCurrentAvailableMembers()
-        {
-            return availableMembers;
-        }
-
-        public Iterable<MemberIsAvailable> getCurrentAvailable( final InstanceId memberId )
-        {
-            return toList( Iterables.filter( new Predicate<MemberIsAvailable>()
-            {
-                @Override
-                public boolean test( MemberIsAvailable item )
-                {
-                    return item.getInstanceId().equals( memberId );
-                }
-            }, availableMembers ) );
-        }
-
-    }
-
-    private class ClusterListenerImpl extends ClusterListener.Adapter
-    {
-        @Override
-        public void enteredCluster( ClusterConfiguration clusterConfiguration )
-        {
-            // Catch up with elections
-            for ( Map.Entry<String, InstanceId> memberRoles : clusterConfiguration.getRoles().entrySet() )
-            {
-                elected( memberRoles.getKey(), memberRoles.getValue(),
-                        clusterConfiguration.getUriForId( memberRoles.getValue() ) );
-            }
-        }
-
-        @Override
-        public void elected( String role, final InstanceId instanceId, final URI electedMember )
-        {
-            if ( role.equals( ClusterConfiguration.COORDINATOR ) )
-            {
-                // Use the cluster coordinator as master for HA
-                Listeners.notifyListeners( listeners, new Listeners.Notification<ClusterMemberListener>()
-                {
-                    @Override
-                    public void notify( ClusterMemberListener listener )
-                    {
-                        listener.coordinatorIsElected( instanceId );
-                    }
-                } );
-            }
-        }
-
-        @Override
-        public void leftCluster( final InstanceId instanceId, URI member )
-        {
-            // Notify unavailability of members
-//            Listeners.notifyListeners( listeners, new Listeners.Notification<ClusterMemberListener>()
-//            {
-//                @Override
-//                public void notify( ClusterMemberListener listener )
-//                {
-//                    for ( MemberIsAvailable memberIsAvailable : clusterMembersSnapshot.getCurrentAvailable(
-//                            instanceId ) )
-//                    {
-//                        listener.memberIsUnavailable( memberIsAvailable.getRole(), instanceId );
-//                    }
-//                }
-//            } );
-//
-//            clusterMembersSnapshot.unavailableMember( instanceId );
-        }
     }
 
     private class MemberMessageListener implements MessageListener<MemberAvailabilityMessage>
@@ -322,7 +189,7 @@ public class HazelcastClusterMemberEvents implements ClusterMemberEvents, Lifecy
         }
     }
 
-    private class OurMembershipListener implements MembershipListener
+    private class OurMembershipListener implements MembershipListener, InitialMembershipListener
     {
         @Override
         public void memberAdded( final MembershipEvent membershipEvent )
@@ -354,6 +221,24 @@ public class HazelcastClusterMemberEvents implements ClusterMemberEvents, Lifecy
         public void memberAttributeChanged( MemberAttributeEvent memberAttributeEvent )
         {
 
+        }
+
+        @Override
+        public void init( final InitialMembershipEvent event )
+        {
+            Listeners.notifyListeners( listeners, executor, new Listeners.Notification<ClusterMemberListener>()
+            {
+                @Override
+                public void notify( ClusterMemberListener listener )
+                {
+                    for ( Member member : event.getMembers() )
+                    {
+                        System.out.println("****member****" + member + " -> " + member.getClass());
+                        listener.memberIsAlive( new InstanceId( ((MemberImpl) member).getId() ) );
+                    }
+
+                }
+            } );
         }
     }
 }

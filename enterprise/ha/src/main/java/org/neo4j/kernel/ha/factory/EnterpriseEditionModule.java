@@ -213,10 +213,10 @@ public class EnterpriseEditionModule
         Neo4jHazelcastInstance instance = life.add( new Neo4jHazelcastInstance( config ) );
         HazelcastBasedElection hazelcastBasedElection = life.add(new HazelcastBasedElection( instance ));
 
-        HazelcastClusterMemberEvents localClusterEvents = new HazelcastClusterMemberEvents(
+        HazelcastClusterMemberEvents localClusterEvents = life.add(new HazelcastClusterMemberEvents(
                 instance, logging.getInternalLogProvider(),
                 platformModule.monitors.newMonitor( NamedThreadFactory.Monitor.class )
-        );
+        ));
 
         HighAvailabilityMemberContext localMemberContext = new SimpleHighAvailabilityMemberContext( new InstanceId(
                 config.get(ClusterSettings.server_id).toIntegerIndex()), config.get( HaSettings.slave_only ) );
@@ -230,14 +230,15 @@ public class EnterpriseEditionModule
         clusterEventsDelegateInvocationHandler.setDelegate( localClusterEvents );
         clusterMemberAvailabilityDelegateInvocationHandler.setDelegate( localClusterMemberAvailability );
 
-//        members = dependencies.satisfyDependency( new ClusterMembers( null, null,
-//                clusterEvents,
-//                config.get( ClusterSettings.server_id ) ) );
+        members = dependencies.satisfyDependency( new ClusterMembers( null, null,
+                localClusterEvents,
+                config.get( ClusterSettings.server_id ) ) );
 
         memberStateMachine = new HighAvailabilityMemberStateMachine(
                 memberContext, platformModule.availabilityGuard, members,
-                clusterMemberEvents,
+                localClusterEvents,
                 hazelcastBasedElection, logging.getInternalLogProvider() );
+        life.add(memberStateMachine);
 
         HighAvailabilityLogger highAvailabilityLogger = new HighAvailabilityLogger( logging.getUserLogProvider(),
                 config.get( ClusterSettings.server_id ) );

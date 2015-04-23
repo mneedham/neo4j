@@ -24,15 +24,26 @@ public class Neo4jHazelcastInstance extends LifecycleAdapter
     }
 
     @Override
-    public void start() throws Throwable
+    public void init() throws Throwable
     {
         hazelcastInstance = createHazelcastInstance();
+    }
+
+
+
+    @Override
+    public void start() throws Throwable
+    {
+        if(hazelcastInstance == null) {
+            hazelcastInstance = createHazelcastInstance();
+        }
     }
 
     @Override
     public void stop() throws Throwable
     {
         hazelcastInstance.shutdown();
+        hazelcastInstance = null;
     }
 
     public HazelcastInstance getHazelcastInstance()
