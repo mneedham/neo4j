@@ -120,19 +120,19 @@ public class MultiPaxosServerFactory
                 {
                         new StateMachine( context.getAtomicBroadcastContext(), AtomicBroadcastMessage.class,
                                 AtomicBroadcastState.start, logProvider ),
-                        new StateMachine( context.getAcceptorContext(), AcceptorMessage.class, AcceptorState.start,
-                                logProvider ),
-                        new StateMachine( context.getProposerContext(), ProposerMessage.class, ProposerState.start,
-                                logProvider ),
-                        new StateMachine( context.getLearnerContext(), LearnerMessage.class, LearnerState.start,
-                                logProvider ),
-                        new StateMachine( context.getHeartbeatContext(), HeartbeatMessage.class, HeartbeatState.start,
-                                logProvider ),
+//                        new StateMachine( context.getAcceptorContext(), AcceptorMessage.class, AcceptorState.start,
+//                                logProvider ),
+//                        new StateMachine( context.getProposerContext(), ProposerMessage.class, ProposerState.start,
+//                                logProvider ),
+//                        new StateMachine( context.getLearnerContext(), LearnerMessage.class, LearnerState.start,
+//                                logProvider ),
+//                        new StateMachine( context.getHeartbeatContext(), HeartbeatMessage.class, HeartbeatState.start,
+//                                logProvider ),
                         new StateMachine( context.getElectionContext(), ElectionMessage.class, ElectionState.start,
                                 logProvider ),
                         new StateMachine( snapshotContext, SnapshotMessage.class, SnapshotState.start, logProvider ),
-                        new StateMachine( context.getClusterContext(), ClusterMessage.class, ClusterState.start,
-                                logProvider )
+//                        new StateMachine( context.getClusterContext(), ClusterMessage.class, ClusterState.start,
+//                                logProvider )
                 } );
     }
 
