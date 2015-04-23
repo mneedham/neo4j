@@ -84,11 +84,11 @@ public class MultiPaxosServerFactory
 
     @Override
     public ProtocolServer newProtocolServer( InstanceId me, TimeoutStrategy timeoutStrategy, MessageSource input,
-                                             MessageSender output, AcceptorInstanceStore acceptorInstanceStore,
-                                             ElectionCredentialsProvider electionCredentialsProvider,
-                                             Executor stateMachineExecutor,
-                                             ObjectInputStreamFactory objectInputStreamFactory,
-                                             ObjectOutputStreamFactory objectOutputStreamFactory )
+            MessageSender output, AcceptorInstanceStore acceptorInstanceStore,
+            ElectionCredentialsProvider electionCredentialsProvider,
+            Executor stateMachineExecutor,
+            ObjectInputStreamFactory objectInputStreamFactory,
+            ObjectOutputStreamFactory objectOutputStreamFactory, ClusterManagement clusterManagement )
     {
         DelayedDirectExecutor executor = new DelayedDirectExecutor( logProvider );
 
@@ -100,8 +100,8 @@ public class MultiPaxosServerFactory
                 new ClusterConfiguration( initialConfig.getName(), logProvider,
                         initialConfig.getMemberURIs() ),
                 executor, logProvider, objectInputStreamFactory, objectOutputStreamFactory, acceptorInstanceStore, timeouts,
-                electionCredentialsProvider
-        );
+                electionCredentialsProvider,
+                clusterManagement );
 
         SnapshotContext snapshotContext = new SnapshotContext( context.getClusterContext(),
                 context.getLearnerContext() );
@@ -125,8 +125,6 @@ public class MultiPaxosServerFactory
                         new StateMachine( context.getProposerContext(), ProposerMessage.class, ProposerState.start,
                                 logProvider ),
                         new StateMachine( context.getLearnerContext(), LearnerMessage.class, LearnerState.start,
-                                logProvider ),
-                        new StateMachine( context.getHeartbeatContext(), HeartbeatMessage.class, HeartbeatState.start,
                                 logProvider ),
                         new StateMachine( context.getElectionContext(), ElectionMessage.class, ElectionState.start,
                                 logProvider ),
@@ -174,10 +172,11 @@ public class MultiPaxosServerFactory
 
         Cluster cluster = server.newClient( Cluster.class );
         cluster.addClusterListener( new HeartbeatJoinListener( stateMachines.getOutgoing() ) );
-        cluster.addClusterListener( new HeartbeatLeftListener( context.getHeartbeatContext(), logProvider ) );
 
-        context.getHeartbeatContext().addHeartbeatListener( new HeartbeatReelectionListener(
-                server.newClient( Election.class ), logProvider ) );
+
+        context.getClusterManagement().addListener(new ReelectionListener(server.newClient( Election.class ),
+                logProvider));
+
         context.getClusterContext().addClusterListener( new ClusterLeaveReelectionListener( server.newClient(
                 Election.class ),
                 logProvider

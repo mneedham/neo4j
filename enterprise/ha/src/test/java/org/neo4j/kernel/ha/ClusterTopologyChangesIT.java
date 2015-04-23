@@ -38,7 +38,6 @@ import org.neo4j.cluster.protocol.atomicbroadcast.ObjectStreamFactory;
 import org.neo4j.cluster.protocol.cluster.ClusterConfiguration;
 import org.neo4j.cluster.protocol.cluster.ClusterListener;
 import org.neo4j.cluster.protocol.election.NotElectableElectionCredentialsProvider;
-import org.neo4j.cluster.protocol.heartbeat.HeartbeatListener;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseSettings;
@@ -48,6 +47,7 @@ import org.neo4j.kernel.GraphDatabaseAPI;
 import org.neo4j.kernel.configuration.Config;
 import org.neo4j.kernel.ha.cluster.HighAvailabilityMemberState;
 import org.neo4j.kernel.ha.com.master.InvalidEpochException;
+import org.neo4j.kernel.ha.factory.HazelcastClusterManagement;
 import org.neo4j.kernel.impl.factory.GraphDatabaseFacadeFactory;
 import org.neo4j.kernel.impl.logging.NullLogService;
 import org.neo4j.kernel.lifecycle.Lifecycle;
@@ -121,21 +121,6 @@ public class ClusterTopologyChangesIT
         final CountDownLatch slave1Left = new CountDownLatch( 1 );
         final CountDownLatch slave2Left = new CountDownLatch( 1 );
 
-        clusterClientOf( master ).addHeartbeatListener( new HeartbeatListener.Adapter()
-        {
-            @Override
-            public void failed( InstanceId server )
-            {
-                if ( instanceIdOf( slave1 ).equals( server ) )
-                {
-                    slave1Left.countDown();
-                }
-                else if ( instanceIdOf( slave2 ).equals( server ) )
-                {
-                    slave2Left.countDown();
-                }
-            }
-        } );
 
         // fail slave1 and await master to spot the failure
         RepairKit slave1RepairKit = cluster.fail( slave1 );
@@ -292,7 +277,8 @@ public class ClusterTopologyChangesIT
                 GraphDatabaseSettings.class );
 
         return new ClusterClient( new Monitors(), ClusterClient.adapt( config ), NullLogService.getInstance(),
-                new NotElectableElectionCredentialsProvider(), new ObjectStreamFactory(), new ObjectStreamFactory() );
+                new NotElectableElectionCredentialsProvider(), new ObjectStreamFactory(), new ObjectStreamFactory(),
+                new HazelcastClusterManagement() );
     }
 
     private static void attemptTransactions( HighlyAvailableGraphDatabase... dbs )

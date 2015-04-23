@@ -29,8 +29,6 @@ import org.neo4j.cluster.member.ClusterMemberListener;
 import org.neo4j.cluster.protocol.cluster.Cluster;
 import org.neo4j.cluster.protocol.cluster.ClusterConfiguration;
 import org.neo4j.cluster.protocol.cluster.ClusterListener;
-import org.neo4j.cluster.protocol.heartbeat.Heartbeat;
-import org.neo4j.cluster.protocol.heartbeat.HeartbeatListener;
 import org.neo4j.function.Predicate;
 import org.neo4j.kernel.ha.cluster.HighAvailabilityModeSwitcher;
 import org.neo4j.kernel.impl.store.StoreId;
@@ -67,11 +65,10 @@ public class ClusterMembers
 
     private final Map<InstanceId, ClusterMember> members = new CopyOnWriteHashMap<>();
 
-    public ClusterMembers( Cluster cluster, Heartbeat heartbeat, ClusterMemberEvents events, InstanceId me )
+    public ClusterMembers( Cluster cluster, ClusterMemberEvents events, InstanceId me )
     {
         this.me = me;
         cluster.addClusterListener( new HAMClusterListener() );
-        heartbeat.addHeartbeatListener( new HAMHeartbeatListener() );
         events.addClusterMemberListener( new HAMClusterMemberListener() );
     }
 
@@ -202,24 +199,5 @@ public class ClusterMembers
         }
     }
 
-    private class HAMHeartbeatListener extends HeartbeatListener.Adapter
-    {
-        @Override
-        public void failed( InstanceId server )
-        {
-            if ( members.containsKey( server ) )
-            {
-                members.put( server, getMember( server ).failed() );
-            }
-        }
 
-        @Override
-        public void alive( InstanceId server )
-        {
-            if ( members.containsKey( server ) )
-            {
-                members.put( server, getMember( server ).alive() );
-            }
-        }
-    }
 }

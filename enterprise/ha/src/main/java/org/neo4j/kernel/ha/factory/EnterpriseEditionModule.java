@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.jboss.netty.logging.InternalLoggerFactory;
 
+import org.neo4j.cluster.ClusterManagement;
 import org.neo4j.cluster.ClusterSettings;
 import org.neo4j.cluster.InstanceId;
 import org.neo4j.cluster.client.ClusterClient;
@@ -218,13 +219,14 @@ public class EnterpriseEditionModule
         ObjectStreamFactory objectStreamFactory = new ObjectStreamFactory();
 
 
+        ClusterManagement clusterManagement = new HazelcastClusterManagement();
         final ClusterClient clusterClient =
                 dependencies.satisfyDependency( new ClusterClient( platformModule.monitors, ClusterClient.adapt(
                         config ), logging,
                         electionCredentialsProvider,
-                        objectStreamFactory, objectStreamFactory ) );
+                        objectStreamFactory, objectStreamFactory, clusterManagement ) );
         PaxosClusterMemberEvents localClusterEvents = new PaxosClusterMemberEvents( clusterClient, clusterClient,
-                clusterClient, clusterClient, logging.getInternalLogProvider(), new org.neo4j.function.Predicate<PaxosClusterMemberEvents
+                clusterClient, logging.getInternalLogProvider(), new org.neo4j.function.Predicate<PaxosClusterMemberEvents
                 .ClusterMembersSnapshot>()
         {
             @Override
@@ -286,7 +288,7 @@ public class EnterpriseEditionModule
         clusterEventsDelegateInvocationHandler.setDelegate( localClusterEvents );
         clusterMemberAvailabilityDelegateInvocationHandler.setDelegate( localClusterMemberAvailability );
 
-        members = dependencies.satisfyDependency( new ClusterMembers( clusterClient, clusterClient,
+        members = dependencies.satisfyDependency( new ClusterMembers( clusterClient,
                 clusterEvents,
                 config.get( ClusterSettings.server_id ) ) );
         memberStateMachine = new HighAvailabilityMemberStateMachine(

@@ -54,6 +54,7 @@ import org.neo4j.helpers.collection.Iterables;
 import org.neo4j.kernel.ha.HighAvailabilityMemberInfoProvider;
 import org.neo4j.kernel.ha.cluster.DefaultElectionCredentialsProvider;
 import org.neo4j.kernel.ha.cluster.HighAvailabilityMemberState;
+import org.neo4j.kernel.ha.factory.HazelcastClusterManagement;
 import org.neo4j.kernel.impl.core.LastTxIdGetter;
 import org.neo4j.logging.LogProvider;
 import org.neo4j.kernel.monitoring.Monitors;
@@ -103,8 +104,8 @@ class ClusterInstance
                         configuration.getMemberURIs() ),
                 executor, logProvider, objStreamFactory, objStreamFactory, acceptorInstances, timeouts,
                 new DefaultElectionCredentialsProvider( id, new StateVerifierLastTxIdGetter(),
-                        new MemberInfoProvider() )
-        );
+                        new MemberInfoProvider() ),
+                new HazelcastClusterManagement() );
         context.getClusterContext().setBoundAt( uri );
 
         SnapshotContext snapshotContext = new SnapshotContext( context.getClusterContext(),
@@ -241,10 +242,10 @@ class ClusterInstance
         {
             ctx = snapshotCtx.getLearnerContext();
         }
-        else if ( msgType == HeartbeatMessage.class )
-        {
-            ctx = snapshotCtx.getHeartbeatContext();
-        }
+//        else if ( msgType == HeartbeatMessage.class )
+//        {
+//            ctx = snapshotCtx.getHeartbeatContext();
+//        }
         else if ( msgType == ElectionMessage.class )
         {
             ctx = snapshotCtx.getElectionContext();

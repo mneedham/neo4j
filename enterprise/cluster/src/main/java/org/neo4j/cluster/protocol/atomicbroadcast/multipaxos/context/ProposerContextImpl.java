@@ -37,7 +37,7 @@ import org.neo4j.cluster.timeout.Timeouts;
 import org.neo4j.logging.LogProvider;
 
 class ProposerContextImpl
-        extends AbstractContextImpl
+        extends NotAbstractContextImpl
         implements ProposerContext
 {
     public static final int MAX_CONCURRENT_INSTANCES = 10;
@@ -49,8 +49,8 @@ class ProposerContextImpl
     private final PaxosInstanceStore paxosInstances;
 
     ProposerContextImpl( org.neo4j.cluster.InstanceId me, CommonContextState commonState,
-                         LogProvider logProvider,
-                         Timeouts timeouts, PaxosInstanceStore paxosInstances )
+            LogProvider logProvider,
+            Timeouts timeouts, PaxosInstanceStore paxosInstances )
     {
         super( me, commonState, logProvider, timeouts );
         this.paxosInstances = paxosInstances;
@@ -58,9 +58,10 @@ class ProposerContextImpl
         bookedInstances = new HashMap<>();
     }
 
-    private ProposerContextImpl( org.neo4j.cluster.InstanceId me, CommonContextState commonState, LogProvider logProvider,
-                                 Timeouts timeouts, Deque<Message> pendingValues,
-                                 Map<InstanceId, Message> bookedInstances, PaxosInstanceStore paxosInstances )
+    private ProposerContextImpl( org.neo4j.cluster.InstanceId me, CommonContextState commonState,
+            LogProvider logProvider,
+            Timeouts timeouts, Deque<Message> pendingValues,
+            Map<InstanceId,Message> bookedInstances, PaxosInstanceStore paxosInstances )
     {
         super( me, commonState, logProvider, timeouts );
         this.pendingValues = pendingValues;

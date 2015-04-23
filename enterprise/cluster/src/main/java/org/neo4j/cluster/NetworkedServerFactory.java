@@ -77,7 +77,7 @@ public class NetworkedServerFactory
     }
 
     public ProtocolServer newNetworkedServer( final Config config, AcceptorInstanceStore acceptorInstanceStore,
-                                              ElectionCredentialsProvider electionCredentialsProvider )
+            ElectionCredentialsProvider electionCredentialsProvider, ClusterManagement clusterManagement )
     {
         final NetworkReceiver receiver = new NetworkReceiver( networkReceiverMonitor,
                 new NetworkReceiver.Configuration()
@@ -129,7 +129,7 @@ public class NetworkedServerFactory
         final ProtocolServer protocolServer = protocolServerFactory.newProtocolServer(
                 config.get( ClusterSettings.server_id ), timeoutStrategy, receiver, sender,
                 acceptorInstanceStore, electionCredentialsProvider, stateMachineExecutor, objectInputStreamFactory,
-                objectOutputStreamFactory );
+                objectOutputStreamFactory, clusterManagement );
         receiver.addNetworkChannelsListener( new NetworkReceiver.NetworkChannelsListener()
         {
             private StateTransitionLogger logger;

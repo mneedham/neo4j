@@ -21,6 +21,7 @@ package org.neo4j.cluster.protocol.atomicbroadcast.multipaxos.context;
 
 import org.junit.Test;
 
+import org.neo4j.cluster.ClusterManagement;
 import org.neo4j.cluster.InstanceId;
 import org.neo4j.cluster.protocol.atomicbroadcast.ObjectInputStreamFactory;
 import org.neo4j.cluster.protocol.atomicbroadcast.ObjectOutputStreamFactory;
@@ -44,7 +45,7 @@ public class LearnerContextImplTest
         LearnerContextImpl ctx = new LearnerContextImpl( new InstanceId( 1 ), mock( CommonContextState.class ),
                 logProvider, mock( Timeouts.class ), mock( PaxosInstanceStore.class ), mock( AcceptorInstanceStore.class ),
                 mock( ObjectInputStreamFactory.class ), mock( ObjectOutputStreamFactory.class ),
-                mock( HeartbeatContextImpl.class ) );
+                mock(ClusterManagement.class) );
 
         // When
         ctx.notifyLearnMiss( new org.neo4j.cluster.protocol.atomicbroadcast.multipaxos.InstanceId( 1l ) );

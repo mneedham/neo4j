@@ -31,6 +31,7 @@ import java.util.concurrent.Executor;
 
 import org.junit.Test;
 
+import org.neo4j.cluster.ClusterManagement;
 import org.neo4j.cluster.InstanceId;
 import org.neo4j.cluster.protocol.atomicbroadcast.ObjectInputStreamFactory;
 import org.neo4j.cluster.protocol.atomicbroadcast.ObjectOutputStreamFactory;
@@ -99,9 +100,9 @@ public class ElectionContextTest
                 clusterConfiguration, mock( Executor.class ), NullLogProvider.getInstance(),
                 mock( ObjectInputStreamFactory.class ), mock( ObjectOutputStreamFactory.class ),
                 mock( AcceptorInstanceStore.class ), mock( Timeouts.class ),
-                mock( ElectionCredentialsProvider.class) );
+                mock( ElectionCredentialsProvider.class), null );
 
-        context.getHeartbeatContext().getFailed().addAll( failed );
+        context.getClusterManagement().getFailed().addAll( failed );
 
         ElectionContext toTest = context.getElectionContext();
 
@@ -132,9 +133,9 @@ public class ElectionContextTest
                 mock( Executor.class ), NullLogProvider.getInstance(),
                 mock( ObjectInputStreamFactory.class ), mock( ObjectOutputStreamFactory.class ),
                 mock( AcceptorInstanceStore.class ), mock( Timeouts.class ),
-                mock( ElectionCredentialsProvider.class) );
+                mock( ElectionCredentialsProvider.class), null );
 
-        context.getHeartbeatContext().getFailed().addAll( failed );
+        context.getClusterManagement().getFailed().addAll( failed );
 
         ElectionContext toTest = context.getElectionContext();
 
@@ -167,9 +168,9 @@ public class ElectionContextTest
                 mock( Executor.class ), NullLogProvider.getInstance(),
                 mock( ObjectInputStreamFactory.class ), mock( ObjectOutputStreamFactory.class ),
                 mock( AcceptorInstanceStore.class ), mock( Timeouts.class ),
-                mock( ElectionCredentialsProvider.class) );
+                mock( ElectionCredentialsProvider.class), null );
 
-        context.getHeartbeatContext().getFailed().addAll( failed );
+        context.getClusterManagement().getFailed().addAll( failed );
 
         ElectionContext toTest = context.getElectionContext();
 
@@ -200,7 +201,7 @@ public class ElectionContextTest
                         mock( Executor.class ), NullLogProvider.getInstance(),
                         mock( ObjectInputStreamFactory.class ), mock( ObjectOutputStreamFactory.class ),
                 mock( AcceptorInstanceStore.class ), mock( Timeouts.class ),
-                mock( ElectionCredentialsProvider.class) );
+                mock( ElectionCredentialsProvider.class), null );
 
         ElectionContext toTest = context.getElectionContext();
 
@@ -227,7 +228,8 @@ public class ElectionContextTest
                 new ElectionRole( coordinatorRole ) ),  mock( ClusterConfiguration.class ),
                 mock( Executor.class ),  NullLogProvider.getInstance(),
                 mock( ObjectInputStreamFactory.class ), mock( ObjectOutputStreamFactory.class ),
-                mock( AcceptorInstanceStore.class ), mock( Timeouts.class ), mock( ElectionCredentialsProvider.class ) ).getElectionContext();
+                mock( AcceptorInstanceStore.class ), mock( Timeouts.class ), mock( ElectionCredentialsProvider.class ),
+                null ).getElectionContext();
 
         ElectionContext.VoteRequest voteRequestBefore = context.voteRequestForRole( new ElectionRole( coordinatorRole ) );
         context.forgetElection( coordinatorRole );
@@ -247,7 +249,8 @@ public class ElectionContextTest
                 new ElectionRole( coordinatorRole ) ),  mock( ClusterConfiguration.class ),
                 mock( Executor.class ), NullLogProvider.getInstance(),
                 mock( ObjectInputStreamFactory.class ), mock( ObjectOutputStreamFactory.class ),
-                mock( AcceptorInstanceStore.class ), mock( Timeouts.class ), mock( ElectionCredentialsProvider.class ) ).getElectionContext();
+                mock( AcceptorInstanceStore.class ), mock( Timeouts.class ), mock( ElectionCredentialsProvider.class ),
+                null ).getElectionContext();
 
         // When
         ElectionContext.VoteRequest voteRequestBefore = context.voteRequestForRole( new ElectionRole( coordinatorRole ) );
@@ -285,9 +288,11 @@ public class ElectionContextTest
                     }
                 }, NullLogProvider.getInstance(),
                 mock( ObjectInputStreamFactory.class ), mock( ObjectOutputStreamFactory.class ),
-                mock( AcceptorInstanceStore.class ), mock( Timeouts.class ), mock( ElectionCredentialsProvider.class ) );
+                mock( AcceptorInstanceStore.class ), mock( Timeouts.class ), mock( ElectionCredentialsProvider.class ),
+                null );
 
-        HeartbeatContext heartbeatContext = context.getHeartbeatContext();
+//        HeartbeatContext heartbeatContext = context.getHeartbeatContext();
+        ClusterManagement clusterManagement = context.getClusterManagement();
         ElectionContext electionContext = context.getElectionContext();
 
         electionContext.startElectionProcess( role1 );
@@ -299,7 +304,7 @@ public class ElectionContextTest
         electionContext.voted( role1, otherInstance, mock( Comparable.class ), 2 );
         electionContext.voted( role2, otherInstance, mock( Comparable.class ), 2 );
 
-        heartbeatContext.suspect( failingInstance );
+        clusterManagement.fail( failingInstance );
 
         assertEquals( 1, electionContext.getVoteCount( role1 ) );
         assertEquals( 1, electionContext.getVoteCount( role2 ) );
@@ -316,7 +321,7 @@ public class ElectionContextTest
         InstanceId forQuorum = new InstanceId( 3 );
 
         ClusterConfiguration clusterConfiguration = mock( ClusterConfiguration.class );
-        List<InstanceId> clusterMemberIds = new LinkedList<InstanceId>();
+        List<InstanceId> clusterMemberIds = new LinkedList<>();
         clusterMemberIds.add( failingInstance );
         clusterMemberIds.add( me );
         clusterMemberIds.add( forQuorum );
@@ -333,17 +338,18 @@ public class ElectionContextTest
                     }
                 }, NullLogProvider.getInstance(),
                 mock( ObjectInputStreamFactory.class ), mock( ObjectOutputStreamFactory.class ),
-                mock( AcceptorInstanceStore.class ), mock( Timeouts.class ), mock( ElectionCredentialsProvider.class ) );
+                mock( AcceptorInstanceStore.class ), mock( Timeouts.class ), mock( ElectionCredentialsProvider.class ),
+                mock(ClusterManagement.class) );
 
-        HeartbeatContext heartbeatContext = context.getHeartbeatContext();
         ClusterContext clusterContext = context.getClusterContext();
 
         clusterContext.setLastElector( failingInstance );
         clusterContext.setLastElectorVersion( 8 );
 
+        ClusterManagement clusterManagement = context.getClusterManagement();
+
         // When the elector fails
-        heartbeatContext.suspicions( forQuorum, Collections.singleton( failingInstance ) );
-        heartbeatContext.suspect( failingInstance );
+        clusterManagement.fail( failingInstance );
 
         // Then the elector is reset to defaults
         assertEquals( clusterContext.getLastElector(), InstanceId.NONE );
@@ -388,9 +394,9 @@ public class ElectionContextTest
                     }
                 },
                 NullLogProvider.getInstance(), mock( ObjectInputStreamFactory.class ), mock( ObjectOutputStreamFactory.class ),
-                mock( AcceptorInstanceStore.class ), mock( Timeouts.class ), mock( ElectionCredentialsProvider.class ) );
+                mock( AcceptorInstanceStore.class ), mock( Timeouts.class ), mock( ElectionCredentialsProvider.class ),
+                mock(ClusterManagement.class) );
 
-        HeartbeatContext heartbeatContext = context.getHeartbeatContext();
         ClusterContext clusterContext = context.getClusterContext();
 
         clusterContext.setLastElector( leavingInstance );
@@ -430,9 +436,9 @@ public class ElectionContextTest
                         mock( Executor.class ), NullLogProvider.getInstance(),
                         mock( ObjectInputStreamFactory.class ), mock( ObjectOutputStreamFactory.class ),
                 mock( AcceptorInstanceStore.class ), mock( Timeouts.class ),
-                mock( ElectionCredentialsProvider.class) );
+                mock( ElectionCredentialsProvider.class), mock(ClusterManagement.class) );
 
-        context.getHeartbeatContext().getFailed().addAll( failed );
+        context.getClusterManagement().setFailed( failed );
 
         ElectionContext toTest = context.getElectionContext();
 

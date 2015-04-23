@@ -21,7 +21,6 @@ package org.neo4j.cluster;
 
 import org.neo4j.cluster.com.BindingNotifier;
 import org.neo4j.cluster.protocol.cluster.ClusterListener;
-import org.neo4j.cluster.protocol.heartbeat.Heartbeat;
 
 /**
  * Bundles up different ways of listening in on events going on in a cluster.
@@ -34,7 +33,7 @@ import org.neo4j.cluster.protocol.heartbeat.Heartbeat;
  * 
  * @author Mattias Persson
  */
-public interface ClusterMonitor extends BindingNotifier, Heartbeat
+public interface ClusterMonitor extends BindingNotifier
 {
     void addClusterListener( ClusterListener listener);
     

@@ -53,6 +53,7 @@ public class HAClusterStartupIT
     public void instantiateClusterManager()
     {
         clusterManager = new ClusterManager( clusterOfSize( 3 ), dir.directory(), stringMap() );
+        System.out.println(dir.directory());
     }
 
     @Before
@@ -100,7 +101,7 @@ public class HAClusterStartupIT
         cluster = clusterManager.getDefaultCluster();
         try
         {
-            cluster.await( allSeesAllAsAvailable() );
+            cluster.await( allSeesAllAsAvailable(), 30 );
         }
         finally
         {

@@ -23,6 +23,8 @@ import java.util.Collections;
 import java.util.concurrent.Executor;
 
 import org.junit.Test;
+
+import org.neo4j.cluster.ClusterManagement;
 import org.neo4j.cluster.InstanceId;
 import org.neo4j.cluster.protocol.atomicbroadcast.ObjectInputStreamFactory;
 import org.neo4j.cluster.protocol.atomicbroadcast.ObjectOutputStreamFactory;
@@ -63,8 +65,8 @@ public class ClusterContextTest
                 }, NullLogProvider.getInstance(),
                 mock( ObjectInputStreamFactory.class ), mock( ObjectOutputStreamFactory.class ),
                 mock( AcceptorInstanceStore.class ), mock( Timeouts.class ),
-                mock( ElectionCredentialsProvider.class )
-        );
+                mock( ElectionCredentialsProvider.class ),
+                mock(ClusterManagement.class) );
         ClusterContext context = multiPaxosContext.getClusterContext();
         ElectionContext electionContext = multiPaxosContext.getElectionContext();
 
@@ -110,8 +112,8 @@ public class ClusterContextTest
                 }, NullLogProvider.getInstance(),
                 mock( ObjectInputStreamFactory.class ), mock( ObjectOutputStreamFactory.class ),
                 mock( AcceptorInstanceStore.class ), mock( Timeouts.class ),
-                mock( ElectionCredentialsProvider.class )
-        );
+                mock( ElectionCredentialsProvider.class ),
+                mock(ClusterManagement.class) );
         ClusterContext context = multiPaxosContext.getClusterContext();
 
         ClusterListener listener = mock( ClusterListener.class );
@@ -150,8 +152,8 @@ public class ClusterContextTest
                 }, NullLogProvider.getInstance(),
                 mock( ObjectInputStreamFactory.class ), mock( ObjectOutputStreamFactory.class ),
                 mock( AcceptorInstanceStore.class ), mock( Timeouts.class ),
-                mock( ElectionCredentialsProvider.class )
-        );
+                mock( ElectionCredentialsProvider.class ),
+                mock(ClusterManagement.class) );
         ClusterContext context = multiPaxosContext.getClusterContext();
         ElectionContext electionContext = multiPaxosContext.getElectionContext();
 
@@ -197,8 +199,8 @@ public class ClusterContextTest
                 }, NullLogProvider.getInstance(),
                 mock( ObjectInputStreamFactory.class ), mock( ObjectOutputStreamFactory.class ),
                 mock( AcceptorInstanceStore.class ), mock( Timeouts.class ),
-                mock( ElectionCredentialsProvider.class )
-        );
+                mock( ElectionCredentialsProvider.class ),
+                mock(ClusterManagement.class) );
         ClusterContext context = multiPaxosContext.getClusterContext();
         ElectionContext electionContext = multiPaxosContext.getElectionContext();
 

@@ -43,6 +43,7 @@ import org.neo4j.cluster.protocol.cluster.ClusterListener;
 import org.neo4j.cluster.protocol.cluster.ClusterListener.Adapter;
 import org.neo4j.cluster.protocol.election.ServerIdElectionCredentialsProvider;
 import org.neo4j.kernel.configuration.Config;
+import org.neo4j.kernel.ha.factory.HazelcastClusterManagement;
 import org.neo4j.kernel.lifecycle.LifeSupport;
 import org.neo4j.kernel.impl.logging.NullLogService;
 import org.neo4j.kernel.monitoring.Monitors;
@@ -187,7 +188,8 @@ public class StandaloneClusterClientIT
             config.put( initial_hosts.name(), ":5001" );
             ObjectStreamFactory objectStreamFactory = new ObjectStreamFactory();
             final ClusterClient client = new ClusterClient( new Monitors(), adapt( new Config( config ) ), NullLogService.getInstance(),
-                    new ServerIdElectionCredentialsProvider(), objectStreamFactory, objectStreamFactory );
+                    new ServerIdElectionCredentialsProvider(), objectStreamFactory, objectStreamFactory,
+                    new HazelcastClusterManagement() );
             final CountDownLatch latch = new CountDownLatch( 1 );
             client.addClusterListener( new ClusterListener.Adapter()
             {

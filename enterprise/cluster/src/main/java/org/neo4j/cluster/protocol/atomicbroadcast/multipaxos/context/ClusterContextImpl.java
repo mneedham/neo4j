@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
 
+import org.neo4j.cluster.ClusterManagement;
 import org.neo4j.cluster.InstanceId;
 import org.neo4j.cluster.protocol.atomicbroadcast.ObjectInputStreamFactory;
 import org.neo4j.cluster.protocol.atomicbroadcast.ObjectOutputStreamFactory;
@@ -35,8 +36,6 @@ import org.neo4j.cluster.protocol.cluster.ClusterConfiguration;
 import org.neo4j.cluster.protocol.cluster.ClusterContext;
 import org.neo4j.cluster.protocol.cluster.ClusterListener;
 import org.neo4j.cluster.protocol.cluster.ClusterMessage;
-import org.neo4j.cluster.protocol.heartbeat.HeartbeatContext;
-import org.neo4j.cluster.protocol.heartbeat.HeartbeatListener;
 import org.neo4j.cluster.timeout.Timeouts;
 import org.neo4j.helpers.Listeners;
 import org.neo4j.helpers.collection.Iterables;
@@ -48,7 +47,7 @@ import static org.neo4j.helpers.Uris.parameter;
 import static org.neo4j.helpers.collection.Iterables.toList;
 
 class ClusterContextImpl
-        extends AbstractContextImpl
+        extends NotAbstractContextImpl
         implements ClusterContext
 {
     // ClusterContext
@@ -65,38 +64,23 @@ class ClusterContextImpl
     private final ObjectInputStreamFactory objectInputStreamFactory;
 
     private final LearnerContext learnerContext;
-    private final HeartbeatContext heartbeatContext;
 
     private long electorVersion;
     private InstanceId lastElector;
+    private ClusterManagement clusterManagement;
 
     ClusterContextImpl( InstanceId me, CommonContextState commonState, LogProvider logProvider,
-                        Timeouts timeouts, Executor executor,
-                        ObjectOutputStreamFactory objectOutputStreamFactory,
-                        ObjectInputStreamFactory objectInputStreamFactory,
-                        LearnerContext learnerContext, HeartbeatContext heartbeatContext )
+            Timeouts timeouts, Executor executor,
+            ObjectOutputStreamFactory objectOutputStreamFactory,
+            ObjectInputStreamFactory objectInputStreamFactory,
+            LearnerContext learnerContext, ClusterManagement clusterManagement )
     {
         super( me, commonState, logProvider, timeouts );
         this.executor = executor;
         this.objectOutputStreamFactory = objectOutputStreamFactory;
         this.objectInputStreamFactory = objectInputStreamFactory;
         this.learnerContext = learnerContext;
-        this.heartbeatContext = heartbeatContext;
-        heartbeatContext.addHeartbeatListener(
-
-                /*
-                 * Here for invalidating the elector if it fails, so when it comes back, if no elections
-                 * happened in the meantime it can resume sending election results
-                 */
-                new HeartbeatListener.Adapter()
-                {
-                    @Override
-                    public void failed( InstanceId server )
-                    {
-                        invalidateElectorIfNecessary( server );
-                    }
-                }
-        );
+        this.clusterManagement = clusterManagement;
     }
 
     private void invalidateElectorIfNecessary( InstanceId server )
@@ -108,12 +92,13 @@ class ClusterContextImpl
         }
     }
 
-    private ClusterContextImpl( InstanceId me, CommonContextState commonState, LogProvider logProvider, Timeouts timeouts,
-                        Iterable<URI> joiningInstances, ClusterMessage.ConfigurationResponseState
+    private ClusterContextImpl( InstanceId me, CommonContextState commonState, LogProvider logProvider,
+            Timeouts timeouts,
+            Iterable<URI> joiningInstances, ClusterMessage.ConfigurationResponseState
             joinDeniedConfigurationResponseState, Executor executor,
-                        ObjectOutputStreamFactory objectOutputStreamFactory,
-                        ObjectInputStreamFactory objectInputStreamFactory, LearnerContext learnerContext,
-                        HeartbeatContext heartbeatContext )
+            ObjectOutputStreamFactory objectOutputStreamFactory,
+            ObjectInputStreamFactory objectInputStreamFactory, LearnerContext learnerContext,
+            ClusterManagement clusterManagement )
     {
         super( me, commonState, logProvider, timeouts );
         this.joiningInstances = joiningInstances;
@@ -122,7 +107,7 @@ class ClusterContextImpl
         this.objectOutputStreamFactory = objectOutputStreamFactory;
         this.objectInputStreamFactory = objectInputStreamFactory;
         this.learnerContext = learnerContext;
-        this.heartbeatContext = heartbeatContext;
+        this.clusterManagement = clusterManagement;
     }
 
     // Cluster API
@@ -449,7 +434,7 @@ class ClusterContextImpl
     @Override
     public boolean isCurrentlyAlive( InstanceId joiningId )
     {
-        return !heartbeatContext.getFailed().contains( joiningId );
+        return !clusterManagement.getFailed().contains( joiningId );
     }
 
     @Override
@@ -458,17 +443,17 @@ class ClusterContextImpl
         return learnerContext.getLastDeliveredInstanceId();
     }
 
-    public ClusterContextImpl snapshot( CommonContextState commonStateSnapshot, LogProvider logProvider, Timeouts timeouts,
-                                        Executor executor, ObjectOutputStreamFactory objectOutputStreamFactory,
-                                        ObjectInputStreamFactory objectInputStreamFactory,
-                                        LearnerContextImpl snapshotLearnerContext,
-                                        HeartbeatContextImpl snapshotHeartbeatContext )
+    public ClusterContextImpl snapshot( CommonContextState commonStateSnapshot, LogProvider logProvider,
+            Timeouts timeouts,
+            Executor executor, ObjectOutputStreamFactory objectOutputStreamFactory,
+            ObjectInputStreamFactory objectInputStreamFactory,
+            LearnerContextImpl snapshotLearnerContext )
     {
         return new ClusterContextImpl( me, commonStateSnapshot, logProvider, timeouts,
                 joiningInstances == null ? null : new ArrayList<>(toList(joiningInstances)),
                 joinDeniedConfigurationResponseState == null ? null : joinDeniedConfigurationResponseState.snapshot(),
                 executor, objectOutputStreamFactory, objectInputStreamFactory, snapshotLearnerContext,
-                snapshotHeartbeatContext );
+                clusterManagement );
     }
 
     @Override
@@ -492,11 +477,6 @@ class ClusterContextImpl
         }
         if ( discoveredInstances != null ? !discoveredInstances.equals( that.discoveredInstances ) : that
                 .discoveredInstances != null )
-        {
-            return false;
-        }
-        if ( heartbeatContext != null ? !heartbeatContext.equals( that.heartbeatContext ) : that.heartbeatContext !=
-                null )
         {
             return false;
         }
@@ -528,7 +508,6 @@ class ClusterContextImpl
                 .hashCode() : 0);
         result = 31 * result + (currentlyJoiningInstances != null ? currentlyJoiningInstances.hashCode() : 0);
         result = 31 * result + (learnerContext != null ? learnerContext.hashCode() : 0);
-        result = 31 * result + (heartbeatContext != null ? heartbeatContext.hashCode() : 0);
         return result;
     }
 }

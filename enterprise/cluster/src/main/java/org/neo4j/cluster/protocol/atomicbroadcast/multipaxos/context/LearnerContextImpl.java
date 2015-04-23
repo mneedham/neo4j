@@ -19,6 +19,7 @@
  */
 package org.neo4j.cluster.protocol.atomicbroadcast.multipaxos.context;
 
+import org.neo4j.cluster.ClusterManagement;
 import org.neo4j.cluster.protocol.atomicbroadcast.AtomicBroadcastSerializer;
 import org.neo4j.cluster.protocol.atomicbroadcast.ObjectInputStreamFactory;
 import org.neo4j.cluster.protocol.atomicbroadcast.ObjectOutputStreamFactory;
@@ -28,13 +29,12 @@ import org.neo4j.cluster.protocol.atomicbroadcast.multipaxos.LearnerContext;
 import org.neo4j.cluster.protocol.atomicbroadcast.multipaxos.LearnerState;
 import org.neo4j.cluster.protocol.atomicbroadcast.multipaxos.PaxosInstance;
 import org.neo4j.cluster.protocol.atomicbroadcast.multipaxos.PaxosInstanceStore;
-import org.neo4j.cluster.protocol.heartbeat.HeartbeatContext;
 import org.neo4j.cluster.timeout.Timeouts;
 import org.neo4j.kernel.impl.util.CappedOperation;
 import org.neo4j.logging.LogProvider;
 
 class LearnerContextImpl
-        extends AbstractContextImpl
+        extends NotAbstractContextImpl
         implements LearnerContext
 {
     // LearnerContext
@@ -56,42 +56,42 @@ class LearnerContextImpl
                 }
             };
 
-    private final HeartbeatContext heartbeatContext;
     private final AcceptorInstanceStore instanceStore;
     private final ObjectInputStreamFactory objectInputStreamFactory;
     private final ObjectOutputStreamFactory objectOutputStreamFactory;
     private final PaxosInstanceStore paxosInstances;
+    private final ClusterManagement clusterManagement;
 
     LearnerContextImpl( org.neo4j.cluster.InstanceId me, CommonContextState commonState,
-                        LogProvider logProvider,
-                        Timeouts timeouts, PaxosInstanceStore paxosInstances,
-                        AcceptorInstanceStore instanceStore,
-                        ObjectInputStreamFactory objectInputStreamFactory,
-                        ObjectOutputStreamFactory objectOutputStreamFactory,
-                        HeartbeatContext heartbeatContext )
+            LogProvider logProvider,
+            Timeouts timeouts, PaxosInstanceStore paxosInstances,
+            AcceptorInstanceStore instanceStore,
+            ObjectInputStreamFactory objectInputStreamFactory,
+            ObjectOutputStreamFactory objectOutputStreamFactory, ClusterManagement clusterManagement )
     {
         super( me, commonState, logProvider, timeouts );
-        this.heartbeatContext = heartbeatContext;
         this.instanceStore = instanceStore;
         this.objectInputStreamFactory = objectInputStreamFactory;
         this.objectOutputStreamFactory = objectOutputStreamFactory;
         this.paxosInstances = paxosInstances;
+        this.clusterManagement = clusterManagement;
     }
 
-    private LearnerContextImpl( org.neo4j.cluster.InstanceId me, CommonContextState commonState, LogProvider logProvider,
-                                Timeouts timeouts, long lastDeliveredInstanceId, long lastLearnedInstanceId,
-                                HeartbeatContext heartbeatContext,
-                        AcceptorInstanceStore instanceStore, ObjectInputStreamFactory objectInputStreamFactory,
-                        ObjectOutputStreamFactory objectOutputStreamFactory, PaxosInstanceStore paxosInstances )
+    private LearnerContextImpl( org.neo4j.cluster.InstanceId me, CommonContextState commonState,
+            LogProvider logProvider,
+            Timeouts timeouts, long lastDeliveredInstanceId, long lastLearnedInstanceId,
+            AcceptorInstanceStore instanceStore, ObjectInputStreamFactory objectInputStreamFactory,
+            ObjectOutputStreamFactory objectOutputStreamFactory, PaxosInstanceStore paxosInstances,
+            ClusterManagement clusterManagement )
     {
         super( me, commonState, logProvider, timeouts );
         this.lastDeliveredInstanceId = lastDeliveredInstanceId;
         this.lastLearnedInstanceId = lastLearnedInstanceId;
-        this.heartbeatContext = heartbeatContext;
         this.instanceStore = instanceStore;
         this.objectInputStreamFactory = objectInputStreamFactory;
         this.objectOutputStreamFactory = objectOutputStreamFactory;
         this.paxosInstances = paxosInstances;
+        this.clusterManagement = clusterManagement;
     }
 
     @Override
@@ -171,7 +171,7 @@ class LearnerContextImpl
     @Override
     public Iterable<org.neo4j.cluster.InstanceId> getAlive()
     {
-        return heartbeatContext.getAlive();
+        return clusterManagement.getAlive();
     }
 
     @Override
@@ -186,14 +186,15 @@ class LearnerContextImpl
         learnMissLogging.event( instanceId );
     }
 
-    public LearnerContextImpl snapshot( CommonContextState commonStateSnapshot, LogProvider logProvider, Timeouts timeouts,
-                                        PaxosInstanceStore paxosInstancesSnapshot, AcceptorInstanceStore instanceStore,
-                                        ObjectInputStreamFactory objectInputStreamFactory, ObjectOutputStreamFactory
-            objectOutputStreamFactory, HeartbeatContextImpl snapshotHeartbeatContext )
+    public LearnerContextImpl snapshot( CommonContextState commonStateSnapshot, LogProvider logProvider,
+            Timeouts timeouts,
+            PaxosInstanceStore paxosInstancesSnapshot, AcceptorInstanceStore instanceStore,
+            ObjectInputStreamFactory objectInputStreamFactory, ObjectOutputStreamFactory
+            objectOutputStreamFactory )
     {
         return new LearnerContextImpl( me, commonStateSnapshot, logProvider, timeouts, lastDeliveredInstanceId,
-                lastLearnedInstanceId, snapshotHeartbeatContext, instanceStore, objectInputStreamFactory,
-                objectOutputStreamFactory, paxosInstancesSnapshot );
+                lastLearnedInstanceId, instanceStore, objectInputStreamFactory,
+                objectOutputStreamFactory, paxosInstancesSnapshot, clusterManagement );
     }
 
     @Override
@@ -218,11 +219,6 @@ class LearnerContextImpl
         {
             return false;
         }
-        if ( heartbeatContext != null ? !heartbeatContext.equals( that.heartbeatContext ) : that.heartbeatContext !=
-                null )
-        {
-            return false;
-        }
         if ( instanceStore != null ? !instanceStore.equals( that.instanceStore ) : that.instanceStore != null )
         {
             return false;
@@ -240,7 +236,6 @@ class LearnerContextImpl
     {
         int result = (int) (lastDeliveredInstanceId ^ (lastDeliveredInstanceId >>> 32));
         result = 31 * result + (int) (lastLearnedInstanceId ^ (lastLearnedInstanceId >>> 32));
-        result = 31 * result + (heartbeatContext != null ? heartbeatContext.hashCode() : 0);
         result = 31 * result + (instanceStore != null ? instanceStore.hashCode() : 0);
         result = 31 * result + (paxosInstances != null ? paxosInstances.hashCode() : 0);
         return result;

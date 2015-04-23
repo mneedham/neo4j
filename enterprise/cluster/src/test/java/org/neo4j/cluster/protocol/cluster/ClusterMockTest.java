@@ -47,15 +47,13 @@ import org.neo4j.cluster.ScriptableNetworkFailureLatencyStrategy;
 import org.neo4j.cluster.StateMachines;
 import org.neo4j.cluster.TestProtocolServer;
 import org.neo4j.cluster.VerifyInstanceConfiguration;
+import org.neo4j.cluster.com.message.MessageType;
 import org.neo4j.cluster.protocol.atomicbroadcast.AtomicBroadcast;
 import org.neo4j.cluster.protocol.atomicbroadcast.AtomicBroadcastListener;
 import org.neo4j.cluster.protocol.atomicbroadcast.AtomicBroadcastSerializer;
 import org.neo4j.cluster.protocol.atomicbroadcast.ObjectStreamFactory;
 import org.neo4j.cluster.protocol.atomicbroadcast.Payload;
-import org.neo4j.cluster.protocol.heartbeat.Heartbeat;
-import org.neo4j.cluster.protocol.heartbeat.HeartbeatContext;
-import org.neo4j.cluster.protocol.heartbeat.HeartbeatListener;
-import org.neo4j.cluster.protocol.heartbeat.HeartbeatMessage;
+import org.neo4j.cluster.protocol.election.ElectionMessage;
 import org.neo4j.cluster.statemachine.State;
 import org.neo4j.cluster.timeout.FixedTimeoutStrategy;
 import org.neo4j.cluster.timeout.MessageTimeoutStrategy;
@@ -80,7 +78,14 @@ public class ClusterMockTest
                 new MultipleFailureLatencyStrategy( new FixedNetworkLatencyStrategy( 10 ),
                         new ScriptableNetworkFailureLatencyStrategy() ),
                 new MessageTimeoutStrategy( new FixedTimeoutStrategy( 500 ) )
-                        .timeout( HeartbeatMessage.sendHeartbeat, 200 )
+                        .timeout( new MessageType()
+                        {
+                            @Override
+                            public String name()
+                            {
+                                return "dummy message type";
+                            }
+                        }, 200 )
         );
     }
 
@@ -142,20 +147,6 @@ public class ClusterMockTest
             final Cluster cluster = server.newClient( Cluster.class );
             clusterStateListener( uri, cluster );
 
-            server.newClient( Heartbeat.class ).addHeartbeatListener( new HeartbeatListener()
-            {
-                @Override
-                public void failed( InstanceId server )
-                {
-                    logger.getLogger().warning( uri + ": Failed:" + server );
-                }
-
-                @Override
-                public void alive( InstanceId server )
-                {
-                    logger.getLogger().fine( uri + ": Alive:" + server );
-                }
-            } );
             server.newClient( AtomicBroadcast.class ).addAtomicBroadcastListener( new AtomicBroadcastListener()
             {
                 AtomicBroadcastSerializer serializer = new AtomicBroadcastSerializer( new ObjectStreamFactory(),
@@ -303,13 +294,12 @@ public class ClusterMockTest
 
             ClusterContext context = (ClusterContext) stateMachines.getStateMachine( ClusterMessage.class )
                     .getContext();
-            HeartbeatContext heartbeatContext = (HeartbeatContext) stateMachines.getStateMachine(
-                    HeartbeatMessage.class ).getContext();
+
             ClusterConfiguration clusterConfiguration = context.getConfiguration();
             if ( !clusterConfiguration.getMemberURIs().isEmpty() )
             {
                 logger.getLogger().fine( "   Server " + ( j + 1 ) + ": Cluster:" + clusterConfiguration.getMemberURIs() +
-                        ", Roles:" + clusterConfiguration.getRoles() + ", Failed:" + heartbeatContext.getFailed() );
+                        ", Roles:" + clusterConfiguration.getRoles() + ", Failed:" );
                 verifyConfigurations( stateMachines, members, roles, failed, errors );
             }
         }
@@ -353,18 +343,16 @@ public class ClusterMockTest
 
             ClusterContext context = (ClusterContext) stateMachines.getStateMachine( ClusterMessage.class )
                     .getContext();
-            HeartbeatContext heartbeatContext = (HeartbeatContext) stateMachines.getStateMachine(
-                    HeartbeatMessage.class ).getContext();
+
             ClusterConfiguration clusterConfiguration = context.getConfiguration();
             if ( !clusterConfiguration.getMemberURIs().isEmpty() )
             {
                 logger.getLogger().fine( "   Server " + ( j + 1 ) + ": Cluster:" + clusterConfiguration.getMemberURIs() +
-                        ", Roles:" + clusterConfiguration.getRoles() + ", Failed:" + heartbeatContext.getFailed() );
+                        ", Roles:" + clusterConfiguration.getRoles() + ", Failed:"  );
                 if ( members == null )
                 {
                     members = clusterConfiguration.getMemberURIs();
                     roles = clusterConfiguration.getRoles();
-                    failed = heartbeatContext.getFailed();
                 }
                 else
                 {
@@ -404,8 +392,6 @@ public class ClusterMockTest
         }
 
 
-        HeartbeatContext heartbeatContext = (HeartbeatContext) stateMachines.getStateMachine(
-                HeartbeatMessage.class ).getContext();
         ClusterConfiguration clusterConfiguration = context.getConfiguration();
         try
         {
@@ -429,8 +415,7 @@ public class ClusterMockTest
         }
         try
         {
-            assertEquals( "Failed for server" + myId + " is wrong", failed, heartbeatContext.getFailed
-                    () );
+            assertEquals( "Failed for server" + myId + " is wrong", failed );
         }
         catch ( AssertionError e )
         {

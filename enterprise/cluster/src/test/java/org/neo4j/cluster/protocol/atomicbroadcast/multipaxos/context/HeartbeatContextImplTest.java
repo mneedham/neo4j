@@ -69,7 +69,6 @@ public class HeartbeatContextImplTest
                 runnables.add( command );
             }
         } );
-        context.addHeartbeatListener( mock( HeartbeatListener.Adapter.class ) );
 
         context.suspicions( goodMachine, new HashSet<InstanceId>( Arrays.asList( failedMachine ) ) );
         context.suspect( failedMachine ); // fail

@@ -76,6 +76,7 @@ import org.neo4j.kernel.ha.cluster.HighAvailabilityModeSwitcher;
 import org.neo4j.kernel.ha.cluster.member.ClusterMember;
 import org.neo4j.kernel.ha.cluster.member.ClusterMembers;
 import org.neo4j.kernel.ha.com.master.Slaves;
+import org.neo4j.kernel.ha.factory.HazelcastClusterManagement;
 import org.neo4j.kernel.impl.factory.GraphDatabaseFacadeFactory;
 import org.neo4j.kernel.impl.logging.LogService;
 import org.neo4j.kernel.impl.logging.NullLogService;
@@ -1017,9 +1018,9 @@ public class ClusterManager
                 ObjectStreamFactory objectStreamFactory = new ObjectStreamFactory();
                 ClusterClient clusterClient = new ClusterClient( new Monitors(), ClusterClient.adapt( config1 ),
                         NullLogService.getInstance(), new NotElectableElectionCredentialsProvider(), objectStreamFactory,
-                        objectStreamFactory );
+                        objectStreamFactory, new HazelcastClusterManagement() );
 
-                arbiters.add( new ClusterMembers( clusterClient, clusterClient, new ClusterMemberEvents()
+                arbiters.add( new ClusterMembers( clusterClient, new ClusterMemberEvents()
                 {
                     @Override
                     public void addClusterMemberListener( ClusterMemberListener listener )

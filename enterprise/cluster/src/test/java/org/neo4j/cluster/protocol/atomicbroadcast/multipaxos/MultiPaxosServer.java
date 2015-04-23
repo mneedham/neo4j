@@ -25,8 +25,9 @@ import java.io.InputStreamReader;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URI;
-import java.util.Collection;
 
+import org.neo4j.cluster.ClusterManagement;
+import org.neo4j.cluster.com.message.MessageType;
 import org.neo4j.logging.FormattedLogProvider;
 import org.neo4j.logging.LogProvider;
 
@@ -50,10 +51,6 @@ import org.neo4j.cluster.protocol.cluster.ClusterContext;
 import org.neo4j.cluster.protocol.cluster.ClusterListener;
 import org.neo4j.cluster.protocol.cluster.ClusterMessage;
 import org.neo4j.cluster.protocol.election.ServerIdElectionCredentialsProvider;
-import org.neo4j.cluster.protocol.heartbeat.Heartbeat;
-import org.neo4j.cluster.protocol.heartbeat.HeartbeatContext;
-import org.neo4j.cluster.protocol.heartbeat.HeartbeatListener;
-import org.neo4j.cluster.protocol.heartbeat.HeartbeatMessage;
 import org.neo4j.cluster.timeout.FixedTimeoutStrategy;
 import org.neo4j.cluster.timeout.MessageTimeoutStrategy;
 import org.neo4j.helpers.NamedThreadFactory;
@@ -69,6 +66,7 @@ public class MultiPaxosServer
 {
     private AtomicBroadcastSerializer broadcastSerializer;
     private ProtocolServer server;
+    private ClusterManagement clusterManagement;
 
     public static void main( String[] args )
             throws IOException, InvocationTargetException, IllegalAccessException
@@ -87,7 +85,14 @@ public class MultiPaxosServer
         try
         {
             MessageTimeoutStrategy timeoutStrategy = new MessageTimeoutStrategy( new FixedTimeoutStrategy( 5000 ) )
-                    .timeout( HeartbeatMessage.sendHeartbeat, 200 );
+                    .timeout( new MessageType()
+                    {
+                        @Override
+                        public String name()
+                        {
+                            return "dummy ting";
+                        }
+                    }, 200 );
 
             LogProvider logProvider = FormattedLogProvider.toOutputStream( System.out );
 
@@ -105,7 +110,7 @@ public class MultiPaxosServer
             server = serverFactory.newNetworkedServer(
                     new Config( MapUtil.stringMap(), ClusterSettings.class ),
                     new InMemoryAcceptorInstanceStore(),
-                    electionCredentialsProvider );
+                    electionCredentialsProvider, clusterManagement );
             server.addBindingListener( electionCredentialsProvider );
             server.addBindingListener( new BindingListener()
             {
@@ -153,22 +158,6 @@ public class MultiPaxosServer
                 public void unelected( String role, InstanceId instanceId, URI electedMember )
                 {
                     System.out.println( instanceId + " at URI " + electedMember + " was removed from " + role );
-                }
-            } );
-
-            Heartbeat heartbeat = server.newClient( Heartbeat.class );
-            heartbeat.addHeartbeatListener( new HeartbeatListener()
-            {
-                @Override
-                public void failed( InstanceId server )
-                {
-                    System.out.println( server + " failed" );
-                }
-
-                @Override
-                public void alive( InstanceId server )
-                {
-                    System.out.println( server + " alive" );
                 }
             } );
 
@@ -239,8 +228,6 @@ public class MultiPaxosServer
                 .getStateMachine( ClusterMessage.class )
                 .getContext()).getConfiguration();
 
-        Collection<InstanceId> failed = ((HeartbeatContext) server.getStateMachines().getStateMachine( HeartbeatMessage
-                .class ).getContext()).getFailed();
     }
 
     private Method getCommandMethod( String name )

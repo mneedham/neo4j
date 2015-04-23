@@ -36,6 +36,7 @@ import org.neo4j.helpers.Args;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.kernel.configuration.Config;
+import org.neo4j.kernel.ha.factory.HazelcastClusterManagement;
 import org.neo4j.kernel.impl.logging.LogService;
 import org.neo4j.kernel.impl.logging.StoreLogService;
 import org.neo4j.kernel.impl.util.JobScheduler;
@@ -113,7 +114,7 @@ public class StandaloneClusterClient
             ObjectStreamFactory objectStreamFactory = new ObjectStreamFactory();
             new StandaloneClusterClient( jobScheduler, new ClusterClient( new Monitors(), adapt( new Config( config ) ),
                     logService, new NotElectableElectionCredentialsProvider(), objectStreamFactory,
-                    objectStreamFactory ) );
+                    objectStreamFactory, new HazelcastClusterManagement() ) );
         }
         catch ( LifecycleException e )
         {

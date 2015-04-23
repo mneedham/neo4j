@@ -42,7 +42,7 @@ import org.neo4j.logging.LogProvider;
 import static org.neo4j.helpers.collection.Iterables.toList;
 
 class HeartbeatContextImpl
-    extends AbstractContextImpl
+    extends NotAbstractContextImpl
     implements HeartbeatContext
 {
     // HeartbeatContext
@@ -57,15 +57,16 @@ class HeartbeatContextImpl
     private LearnerContext learnerContext;
 
     HeartbeatContextImpl( InstanceId me, CommonContextState commonState, LogProvider logProvider,
-                          Timeouts timeouts, Executor executor )
+            Timeouts timeouts, Executor executor )
     {
         super( me, commonState, logProvider, timeouts );
         this.executor = executor;
     }
 
-    private HeartbeatContextImpl( InstanceId me, CommonContextState commonState, LogProvider logProvider, Timeouts timeouts,
-                          Set<InstanceId> failed, Map<InstanceId, Set<InstanceId>> nodeSuspicions,
-                          Iterable<HeartbeatListener> heartBeatListeners, Executor executor)
+    private HeartbeatContextImpl( InstanceId me, CommonContextState commonState, LogProvider logProvider,
+            Timeouts timeouts,
+            Set<InstanceId> failed, Map<InstanceId,Set<InstanceId>> nodeSuspicions,
+            Iterable<HeartbeatListener> heartBeatListeners, Executor executor )
     {
         super( me, commonState, logProvider, timeouts );
         this.failed = failed;

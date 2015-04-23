@@ -21,6 +21,8 @@ package org.neo4j.cluster.protocol.atomicbroadcast.multipaxos.context;
 
 import java.util.concurrent.Executor;
 
+import org.neo4j.cluster.ClusterManagement;
+import org.neo4j.cluster.InstanceId;
 import org.neo4j.cluster.protocol.atomicbroadcast.AtomicBroadcastListener;
 import org.neo4j.cluster.protocol.atomicbroadcast.Payload;
 import org.neo4j.cluster.protocol.atomicbroadcast.multipaxos.AtomicBroadcastContext;
@@ -32,20 +34,21 @@ import org.neo4j.helpers.collection.Iterables;
 import org.neo4j.logging.LogProvider;
 
 class AtomicBroadcastContextImpl
-    extends AbstractContextImpl
-    implements AtomicBroadcastContext
+        extends NotAbstractContextImpl
+        implements AtomicBroadcastContext
 {
     private Iterable<AtomicBroadcastListener> listeners = Listeners.newListeners();
     private final Executor executor;
-    private final HeartbeatContext heartbeatContext;
+    private ClusterManagement clusterManagement;
 
-    AtomicBroadcastContextImpl( org.neo4j.cluster.InstanceId me, CommonContextState commonState,
-                                LogProvider logProvider,
-                                Timeouts timeouts, Executor executor, HeartbeatContext heartbeatContext  )
+    AtomicBroadcastContextImpl( InstanceId me, CommonContextState commonState,
+            LogProvider logProvider,
+            Timeouts timeouts, Executor executor,
+            ClusterManagement clusterManagement )
     {
         super( me, commonState, logProvider, timeouts );
         this.executor = executor;
-        this.heartbeatContext = heartbeatContext;
+        this.clusterManagement = clusterManagement;
     }
 
     @Override
@@ -74,9 +77,10 @@ class AtomicBroadcastContextImpl
     }
 
     public AtomicBroadcastContextImpl snapshot( CommonContextState commonStateSnapshot, LogProvider logProvider,
-                                                Timeouts timeouts, Executor executor, HeartbeatContext heartbeatContext )
+            Timeouts timeouts, Executor executor )
     {
-        return new AtomicBroadcastContextImpl( me, commonStateSnapshot, logProvider, timeouts, executor, heartbeatContext );
+        return new AtomicBroadcastContextImpl( me, commonStateSnapshot, logProvider, timeouts, executor,
+                clusterManagement );
     }
 
     @Override
@@ -103,7 +107,7 @@ class AtomicBroadcastContextImpl
     @Override
     public boolean hasQuorum()
     {
-        int availableMembers = (int) Iterables.count( heartbeatContext.getAlive() );
+        int availableMembers = clusterManagement.getAlive().size();
         int totalMembers = commonState.configuration().getMembers().size();
         return Quorums.isQuorum( availableMembers, totalMembers );
     }

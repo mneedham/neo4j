@@ -50,9 +50,10 @@ public class TestProtocolServer
     private final DelayedDirectExecutor stateMachineExecutor;
     private URI serverUri;
 
-    public TestProtocolServer( LogProvider logProvider, TimeoutStrategy timeoutStrategy, ProtocolServerFactory factory, URI serverUri,
-                               InstanceId instanceId, AcceptorInstanceStore acceptorInstanceStore,
-                               ElectionCredentialsProvider electionCredentialsProvider )
+    public TestProtocolServer( LogProvider logProvider, TimeoutStrategy timeoutStrategy, ProtocolServerFactory factory,
+            URI serverUri,
+            InstanceId instanceId, AcceptorInstanceStore acceptorInstanceStore,
+            ElectionCredentialsProvider electionCredentialsProvider, ClusterManagement clusterManagement )
     {
         this.serverUri = serverUri;
         this.receiver = new TestMessageSource();
@@ -61,7 +62,8 @@ public class TestProtocolServer
         stateMachineExecutor = new DelayedDirectExecutor( logProvider );
 
         server = factory.newProtocolServer( instanceId, timeoutStrategy, receiver, sender, acceptorInstanceStore,
-                electionCredentialsProvider, stateMachineExecutor, new ObjectStreamFactory(), new ObjectStreamFactory() );
+                electionCredentialsProvider, stateMachineExecutor, new ObjectStreamFactory(), new ObjectStreamFactory(),
+                clusterManagement );
 
         server.listeningAt( serverUri );
     }

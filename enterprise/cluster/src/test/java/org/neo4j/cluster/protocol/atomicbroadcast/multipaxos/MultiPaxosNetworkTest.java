@@ -32,6 +32,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import org.neo4j.cluster.BindingListener;
+import org.neo4j.cluster.ClusterManagement;
 import org.neo4j.cluster.ClusterSettings;
 import org.neo4j.cluster.InstanceId;
 import org.neo4j.cluster.MultiPaxosServerFactory;
@@ -58,6 +59,8 @@ import org.neo4j.kernel.configuration.Config;
 import org.neo4j.kernel.lifecycle.LifeSupport;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.kernel.monitoring.Monitors;
+
+import static org.mockito.Mockito.mock;
 
 /**
  * TODO
@@ -97,24 +100,24 @@ public class MultiPaxosNetworkTest
         final ProtocolServer server1 = serverFactory.newNetworkedServer( new Config( MapUtil.stringMap(
                         ClusterSettings.cluster_server.name(),
                         ":5001" ), ClusterSettings.class ),
-                new InMemoryAcceptorInstanceStore(), serverIdElectionCredentialsProvider
-        );
+                new InMemoryAcceptorInstanceStore(), serverIdElectionCredentialsProvider,
+                mock(ClusterManagement.class) );
         server1.addBindingListener( serverIdElectionCredentialsProvider );
 
         serverIdElectionCredentialsProvider = new ServerIdElectionCredentialsProvider();
         final ProtocolServer server2 = serverFactory.newNetworkedServer( new Config( MapUtil.stringMap(
                         ClusterSettings.cluster_server.name(),
                         ":5002" ), ClusterSettings.class ), new InMemoryAcceptorInstanceStore(),
-                serverIdElectionCredentialsProvider
-        );
+                serverIdElectionCredentialsProvider,
+                mock(ClusterManagement.class) );
         server2.addBindingListener( serverIdElectionCredentialsProvider );
 
         serverIdElectionCredentialsProvider = new ServerIdElectionCredentialsProvider();
         final ProtocolServer server3 = serverFactory.newNetworkedServer( new Config( MapUtil.stringMap(
                         ClusterSettings.cluster_server.name(),
                         ":5003" ), ClusterSettings.class ), new InMemoryAcceptorInstanceStore(),
-                serverIdElectionCredentialsProvider
-        );
+                serverIdElectionCredentialsProvider,
+                mock(ClusterManagement.class) );
         server3.addBindingListener( serverIdElectionCredentialsProvider );
 
         server1.addBindingListener( new BindingListener()

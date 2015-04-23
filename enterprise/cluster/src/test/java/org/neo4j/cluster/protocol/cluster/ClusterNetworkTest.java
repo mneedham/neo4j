@@ -44,6 +44,8 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+
+import org.neo4j.cluster.ClusterManagement;
 import org.neo4j.logging.LogProvider;
 import org.neo4j.logging.NullLogProvider;
 
@@ -67,6 +69,7 @@ import org.neo4j.kernel.monitoring.Monitors;
 import org.neo4j.test.LoggerRule;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.mock;
 
 /**
  * TODO
@@ -186,8 +189,8 @@ public class ClusterNetworkTest
                             uri.getHost() + ":" + uri.getPort(),
                             ClusterSettings.server_id.name(), "" + i ) ),
                     new InMemoryAcceptorInstanceStore(),
-                    electionCredentialsProvider
-            );
+                    electionCredentialsProvider,
+                    mock(ClusterManagement.class) );
             server.addBindingListener( electionCredentialsProvider );
             final Cluster cluster2 = server.newClient( Cluster.class );
             final AtomicReference<ClusterConfiguration> config2 = clusterStateListener( uri, cluster2 );

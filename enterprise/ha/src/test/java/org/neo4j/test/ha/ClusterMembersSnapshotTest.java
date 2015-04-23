@@ -47,31 +47,6 @@ public class ClusterMembersSnapshotTest
 {
     private static final String URI = "http://me";
 
-    @Test
-    public void snapshotListPrunesSameMemberOnIdenticalAvailabilityEvents() throws Exception
-    {
-        // GIVEN
-        // -- a snapshot containing one member with a role
-        ClusterMembersSnapshot snapshot = new ClusterMembersSnapshot(
-                new PaxosClusterMemberEvents.UniqueRoleFilter()
-        );
-        URI clusterUri = new URI( URI );
-        InstanceId instanceId = new InstanceId( 1 );
-        MemberIsAvailable memberIsAvailable =
-                new MemberIsAvailable( MASTER, instanceId, clusterUri, new URI( URI + "?something" ), DEFAULT );
-        snapshot.availableMember( memberIsAvailable );
-
-        // WHEN
-        // -- the same member and role gets added to the snapshot
-        snapshot.availableMember( memberIsAvailable );
-
-        // THEN
-        // -- getting the snapshot list should only reveal the last one
-        assertEquals( 1, count( snapshot.getCurrentAvailable( instanceId ) ) );
-        assertThat( snapshot.getCurrentAvailable( instanceId ), hasItem( memberIsAvailable( memberIsAvailable ) ) );
-        assertEquals( 1, count( snapshot.getCurrentAvailableMembers() ) );
-        assertThat( snapshot.getCurrentAvailableMembers(), hasItems( memberIsAvailable( memberIsAvailable ) ) );
-    }
 
     @Test
     public void snapshotListShouldContainOnlyOneEventForARoleWithTheSameIdWhenSwitchingFromMasterToSlave()

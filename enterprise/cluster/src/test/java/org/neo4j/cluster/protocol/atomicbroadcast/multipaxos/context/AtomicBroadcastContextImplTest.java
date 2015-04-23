@@ -47,7 +47,7 @@ public class AtomicBroadcastContextImplTest
         when( configuration.getMembers() ).thenReturn( members( 3 ) );
 
         AtomicBroadcastContextImpl context = new AtomicBroadcastContextImpl( null, commonState, null, null, null,
-                heartbeatContext ); // we do not care about other args
+                null ); // we do not care about other args
         //When
         boolean hasQuorum = context.hasQuorum();
         //Then
@@ -67,7 +67,7 @@ public class AtomicBroadcastContextImplTest
         when( configuration.getMembers() ).thenReturn( members( 3 ) );
 
         AtomicBroadcastContextImpl context = new AtomicBroadcastContextImpl( null, commonState, null, null, null,
-                heartbeatContext ); // we do not care about other args
+                null ); // we do not care about other args
         //When
         boolean hasQuorum = context.hasQuorum();
         //Then
@@ -87,7 +87,7 @@ public class AtomicBroadcastContextImplTest
         when( configuration.getMembers() ).thenReturn( members( 1 ) );
 
         AtomicBroadcastContextImpl context = new AtomicBroadcastContextImpl( null, commonState, null, null, null,
-                heartbeatContext ); // we do not care about other args
+                null ); // we do not care about other args
         //When
         boolean hasQuorum = context.hasQuorum();
         //Then

@@ -61,11 +61,8 @@ public class TestSlaveOnlyCluster
             cluster.await( allSeesAllAsAvailable() );
 
             final HighlyAvailableGraphDatabase master = cluster.getMaster();
-            final CountDownLatch masterFailedLatch = createMasterFailLatch( cluster );
 
             final ClusterManager.RepairKit repairKit = cluster.fail( master );
-
-            masterFailedLatch.await( 60, TimeUnit.SECONDS );
 
             repairKit.repair();
 
@@ -130,29 +127,4 @@ public class TestSlaveOnlyCluster
         }
     }
 
-    private CountDownLatch createMasterFailLatch( ClusterManager.ManagedCluster cluster )
-    {
-        final CountDownLatch failedLatch = new CountDownLatch( 2 );
-        for ( HighlyAvailableGraphDatabase db : cluster.getAllMembers() )
-        {
-            if ( !db.isMaster() )
-            {
-                db.getDependencyResolver().resolveDependency( ClusterClient.class )
-                        .addHeartbeatListener( new HeartbeatListener()
-                        {
-                            @Override
-                            public void failed( InstanceId server )
-                            {
-                                failedLatch.countDown();
-                            }
-
-                            @Override
-                            public void alive( InstanceId server )
-                            {
-                            }
-                        } );
-            }
-        }
-        return failedLatch;
-    }
 }

@@ -19,6 +19,8 @@
  */
 package org.neo4j.cluster.protocol.atomicbroadcast.multipaxos.context;
 
+import sun.reflect.generics.reflectiveObjects.NotImplementedException;
+
 import static org.neo4j.cluster.util.Quorums.isQuorum;
 import static org.neo4j.helpers.collection.Iterables.filter;
 import static org.neo4j.helpers.collection.Iterables.map;
@@ -32,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.neo4j.cluster.ClusterManagement;
 import org.neo4j.cluster.InstanceId;
 import org.neo4j.cluster.protocol.atomicbroadcast.multipaxos.BiasedWinnerStrategy;
 import org.neo4j.cluster.protocol.atomicbroadcast.multipaxos.Vote;
@@ -42,51 +45,47 @@ import org.neo4j.cluster.protocol.election.ElectionContext;
 import org.neo4j.cluster.protocol.election.ElectionCredentialsProvider;
 import org.neo4j.cluster.protocol.election.ElectionRole;
 import org.neo4j.cluster.protocol.election.NotElectableElectionCredentials;
-import org.neo4j.cluster.protocol.heartbeat.HeartbeatContext;
-import org.neo4j.cluster.protocol.heartbeat.HeartbeatListener;
 import org.neo4j.cluster.timeout.Timeouts;
 import org.neo4j.function.Predicate;
 import org.neo4j.helpers.Function;
 import org.neo4j.logging.LogProvider;
 
 public class ElectionContextImpl
-        extends AbstractContextImpl
-        implements ElectionContext, HeartbeatListener
+        extends NotAbstractContextImpl
+        implements ElectionContext
 {
     private final ClusterContext clusterContext;
-    private final HeartbeatContext heartbeatContext;
 
     private final List<ElectionRole> roles;
     private final Map<String, Election> elections;
     private final ElectionCredentialsProvider electionCredentialsProvider;
+    private ClusterManagement clusterManagement;
 
-    ElectionContextImpl( org.neo4j.cluster.InstanceId me, CommonContextState commonState,
-                         LogProvider logProvider,
-                         Timeouts timeouts, Iterable<ElectionRole> roles, ClusterContext clusterContext,
-                         HeartbeatContext heartbeatContext, ElectionCredentialsProvider electionCredentialsProvider )
+    ElectionContextImpl( InstanceId me, CommonContextState commonState,
+            LogProvider logProvider,
+            Timeouts timeouts, Iterable<ElectionRole> roles, ClusterContext clusterContext,
+            ElectionCredentialsProvider electionCredentialsProvider,
+            ClusterManagement clusterManagement )
     {
         super( me, commonState, logProvider, timeouts );
         this.electionCredentialsProvider = electionCredentialsProvider;
+        this.clusterManagement = clusterManagement;
         this.roles = new ArrayList<>(toList(roles));
         this.elections = new HashMap<>();
         this.clusterContext = clusterContext;
-        this.heartbeatContext = heartbeatContext;
-
-        heartbeatContext.addHeartbeatListener( this );
     }
 
     ElectionContextImpl( InstanceId me, CommonContextState commonState, LogProvider logProvider, Timeouts timeouts,
-                         ClusterContext clusterContext, HeartbeatContext heartbeatContext, List<ElectionRole> roles,
-                         Map<String, Election> elections, ElectionCredentialsProvider electionCredentialsProvider )
+            ClusterContext clusterContext, List<ElectionRole> roles,
+            Map<String,Election> elections, ElectionCredentialsProvider electionCredentialsProvider,
+            ClusterManagement clusterManagement )
     {
         super( me, commonState, logProvider, timeouts );
         this.clusterContext = clusterContext;
-        this.heartbeatContext = heartbeatContext;
         this.roles = roles;
         this.elections = elections;
         this.electionCredentialsProvider = electionCredentialsProvider;
-
-        heartbeatContext.addHeartbeatListener( this );
+        this.clusterManagement = clusterManagement;
     }
 
     @Override
@@ -130,10 +129,6 @@ public class ElectionContextImpl
         return clusterContext;
     }
 
-    public HeartbeatContext getHeartbeatContext()
-    {
-        return heartbeatContext;
-    }
 
     @Override
     public void unelect( String roleName )
@@ -252,8 +247,9 @@ public class ElectionContextImpl
     @Override
     public int getNeededVoteCount()
     {
-        return clusterContext.getConfiguration().getMembers().size() - heartbeatContext.getFailed().size();
-        // TODO increment election epoch
+        //return clusterContext.getConfiguration().getMembers().size() - heartbeatContext.getFailed().size();
+        throw new NotImplementedException();
+
     }
 
     @Override
@@ -286,8 +282,8 @@ public class ElectionContextImpl
     @Override
     public boolean electionOk()
     {
-        int total = clusterContext.getConfiguration().getMembers().size();
-        int available = total - heartbeatContext.getFailed().size();
+        int total = clusterManagement.getMembers().size();
+        int available = total - clusterManagement.getFailed().size();
         return isQuorum( available, total );
     }
 
@@ -300,7 +296,7 @@ public class ElectionContextImpl
     @Override
     public Iterable<org.neo4j.cluster.InstanceId> getAlive()
     {
-        return heartbeatContext.getAlive();
+        return clusterManagement.getAlive();
     }
 
     @Override
@@ -321,7 +317,7 @@ public class ElectionContextImpl
     @Override
     public boolean isFailed( org.neo4j.cluster.InstanceId key )
     {
-        return heartbeatContext.getFailed().contains( key );
+        return clusterManagement.getFailed().contains( key );
     }
 
     @Override
@@ -339,13 +335,13 @@ public class ElectionContextImpl
     @Override
     public Set<InstanceId> getFailed()
     {
-        return heartbeatContext.getFailed();
+        return clusterManagement.getFailed();
     }
 
-    public ElectionContextImpl snapshot( CommonContextState commonStateSnapshot, LogProvider logProvider, Timeouts timeouts,
-                                         ClusterContextImpl snapshotClusterContext,
-                                         HeartbeatContextImpl snapshotHeartbeatContext,
-                                         ElectionCredentialsProvider credentialsProvider )
+    public ElectionContextImpl snapshot( CommonContextState commonStateSnapshot, LogProvider logProvider,
+            Timeouts timeouts,
+            ClusterContextImpl snapshotClusterContext,
+            ElectionCredentialsProvider credentialsProvider )
 
     {
         Map<String, Election> electionsSnapshot = new HashMap<>();
@@ -355,7 +351,8 @@ public class ElectionContextImpl
         }
 
         return new ElectionContextImpl( me, commonStateSnapshot, logProvider, timeouts, snapshotClusterContext,
-                snapshotHeartbeatContext, new ArrayList<>(roles), electionsSnapshot, credentialsProvider );
+                new ArrayList<>(roles), electionsSnapshot, credentialsProvider,
+                clusterManagement );
     }
 
     private static class Election
@@ -439,21 +436,6 @@ public class ElectionContextImpl
         int result = roles != null ? roles.hashCode() : 0;
         result = 31 * result + (elections != null ? elections.hashCode() : 0);
         return result;
-    }
-
-    @Override
-    public void failed( org.neo4j.cluster.InstanceId server )
-    {
-        for ( Map.Entry<String, Election> ongoingElection : elections.entrySet() )
-        {
-            ongoingElection.getValue().getVotes().remove( server );
-        }
-    }
-
-    @Override
-    public void alive( org.neo4j.cluster.InstanceId server )
-    {
-        // Not needed
     }
 
     public static List<Vote> removeBlankVotes( Collection<Vote> voteList )

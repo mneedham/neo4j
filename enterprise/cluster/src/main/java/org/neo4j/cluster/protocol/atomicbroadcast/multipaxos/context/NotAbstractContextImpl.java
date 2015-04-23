@@ -36,7 +36,7 @@ import org.neo4j.logging.LogProvider;
 import static org.neo4j.helpers.collection.Iterables.limit;
 import static org.neo4j.helpers.collection.Iterables.toList;
 
-class AbstractContextImpl
+class NotAbstractContextImpl
         implements TimeoutsContext, LogProvider, ConfigurationContext
 {
     protected final org.neo4j.cluster.InstanceId me;
@@ -44,9 +44,9 @@ class AbstractContextImpl
     protected final LogProvider logProvider;
     protected final Timeouts timeouts;
 
-    AbstractContextImpl( org.neo4j.cluster.InstanceId me, CommonContextState commonState,
-                         LogProvider logProvider,
-                         Timeouts timeouts )
+    NotAbstractContextImpl( org.neo4j.cluster.InstanceId me, CommonContextState commonState,
+            LogProvider logProvider,
+            Timeouts timeouts )
     {
         this.me = me;
         this.commonState = commonState;

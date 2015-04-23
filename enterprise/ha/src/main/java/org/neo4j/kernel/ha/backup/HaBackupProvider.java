@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.neo4j.cluster.ClusterManagement;
 import org.neo4j.cluster.ClusterSettings;
 import org.neo4j.cluster.InstanceId;
 import org.neo4j.cluster.client.ClusterClient;
@@ -45,6 +46,7 @@ import org.neo4j.helpers.Exceptions;
 import org.neo4j.helpers.NamedThreadFactory;
 import org.neo4j.kernel.configuration.Config;
 import org.neo4j.kernel.ha.cluster.HANewSnapshotFunction;
+import org.neo4j.kernel.ha.factory.HazelcastClusterManagement;
 import org.neo4j.logging.FormattedLogProvider;
 import org.neo4j.kernel.impl.logging.LogService;
 import org.neo4j.kernel.impl.store.StoreId;
@@ -113,9 +115,10 @@ public final class HaBackupProvider //extends BackupExtensionService
         Monitors monitors = new Monitors();
         final ClusterClient clusterClient = life.add( new ClusterClient( monitors,
                 ClusterClient.adapt( config ), logService,
-                new NotElectableElectionCredentialsProvider(), objectStreamFactory, objectStreamFactory ) );
+                new NotElectableElectionCredentialsProvider(), objectStreamFactory, objectStreamFactory,
+                new HazelcastClusterManagement() ) );
         ClusterMemberEvents events = life.add( new PaxosClusterMemberEvents( clusterClient, clusterClient,
-                clusterClient, clusterClient, FormattedLogProvider.toOutputStream( System.out ),
+                clusterClient, FormattedLogProvider.toOutputStream( System.out ),
                 Predicates.<PaxosClusterMemberEvents.ClusterMembersSnapshot>alwaysTrue(), new HANewSnapshotFunction(),
                 objectStreamFactory, objectStreamFactory, monitors.newMonitor( NamedThreadFactory.Monitor.class ) ) );
 

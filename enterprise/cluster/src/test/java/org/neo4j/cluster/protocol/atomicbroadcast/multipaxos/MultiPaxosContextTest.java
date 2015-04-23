@@ -50,7 +50,7 @@ public class MultiPaxosContextTest
                 mock( ClusterConfiguration.class ), mock( Executor.class ),
                 NullLogProvider.getInstance(), new ObjectStreamFactory(),
                 new ObjectStreamFactory(), mock( AcceptorInstanceStore.class ), mock( Timeouts.class ),
-                mock( ElectionCredentialsProvider.class) );
+                mock( ElectionCredentialsProvider.class), null );
 
         InstanceId joiningId = new InstanceId( 12 );
         String joiningUri = "http://127.0.0.1:900";
@@ -79,7 +79,7 @@ public class MultiPaxosContextTest
                 Collections.<ElectionRole>emptyList(),
                 clusterConfig, executor,
                 NullLogProvider.getInstance(), objStream,
-                objStream, acceptorInstances, timeouts, electionCredentials );
+                objStream, acceptorInstances, timeouts, electionCredentials, null );
 
         // When
         MultiPaxosContext snapshot = ctx.snapshot( NullLogProvider.getInstance(), timeouts, executor, acceptorInstances, objStream, objStream,

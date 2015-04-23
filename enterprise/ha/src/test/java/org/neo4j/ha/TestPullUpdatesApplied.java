@@ -132,17 +132,6 @@ public class TestPullUpdatesApplied
         // through the heartbeat and not through the cluster change as above.
         final CountDownLatch latch2 = new CountDownLatch( 1 );
 
-        masterDb.getDependencyResolver().resolveDependency( ClusterClient.class ).addHeartbeatListener(
-                new HeartbeatListener.Adapter()
-                {
-                    @Override
-                    public void failed( InstanceId server )
-                    {
-                        latch2.countDown();
-                        masterDb.getDependencyResolver().resolveDependency( ClusterClient.class )
-                                .removeHeartbeatListener( this );
-                    }
-                } );
 
         runInOtherJvmToGetExitCode( targetDirectory.getAbsolutePath(), "" + toKill );
 

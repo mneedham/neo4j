@@ -27,14 +27,14 @@ import org.neo4j.cluster.timeout.Timeouts;
 import org.neo4j.logging.LogProvider;
 
 class AcceptorContextImpl
-        extends AbstractContextImpl
+        extends NotAbstractContextImpl
         implements AcceptorContext
 {
     private final AcceptorInstanceStore instanceStore;
 
     AcceptorContextImpl( org.neo4j.cluster.InstanceId me, CommonContextState commonState,
-                         LogProvider logProvider,
-                         Timeouts timeouts, AcceptorInstanceStore instanceStore )
+            LogProvider logProvider,
+            Timeouts timeouts, AcceptorInstanceStore instanceStore )
     {
         super( me, commonState, logProvider, timeouts );
         this.instanceStore = instanceStore;

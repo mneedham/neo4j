@@ -38,7 +38,6 @@ import org.neo4j.cluster.member.ClusterMemberListener;
 import org.neo4j.cluster.protocol.cluster.Cluster;
 import org.neo4j.cluster.protocol.cluster.ClusterConfiguration;
 import org.neo4j.cluster.protocol.cluster.ClusterListener;
-import org.neo4j.cluster.protocol.heartbeat.Heartbeat;
 import org.neo4j.helpers.Clock;
 import org.neo4j.helpers.FakeClock;
 import org.neo4j.kernel.ha.cluster.member.ClusterMemberVersionCheck.Outcome;
@@ -253,7 +252,7 @@ public class ClusterMemberVersionCheckTest
         Cluster cluster = cluster( clusterListenerSlot );
 
         final ClusterMembers members =
-                new ClusterMembers( cluster, mock( Heartbeat.class ), clusterMemberEvents, mock( InstanceId.class ) );
+                new ClusterMembers( cluster, clusterMemberEvents, mock( InstanceId.class ) );
 
         ClusterMemberListener memberListener = memberListenerSlot[0];
         ClusterListener clusterListener = clusterListenerSlot[0];

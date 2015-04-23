@@ -43,13 +43,15 @@ import org.neo4j.cluster.timeout.MessageTimeoutStrategy;
 import org.neo4j.helpers.Pair;
 import org.neo4j.kernel.monitoring.Monitors;
 
+import static org.mockito.Mockito.mock;
+
 /**
  * This mocks message delivery, message loss, and time for timeouts and message latency
  * between protocol servers.
  */
 public class NetworkMock
 {
-    Map<String, TestProtocolServer> participants = new LinkedHashMap<String, TestProtocolServer>();
+    Map<String,TestProtocolServer> participants = new LinkedHashMap<String,TestProtocolServer>();
 
     private List<MessageDelivery> messageDeliveries = new ArrayList<MessageDelivery>();
 
@@ -60,11 +62,12 @@ public class NetworkMock
     private MessageTimeoutStrategy timeoutStrategy;
     private LogProvider logProvider;
     protected final Log log;
-    private final List<Pair<Future<?>, Runnable>> futureWaiter;
+    private final List<Pair<Future<?>,Runnable>> futureWaiter;
 
 
-    public NetworkMock( LogProvider logProvider, Monitors monitors, long tickDuration, MultipleFailureLatencyStrategy strategy,
-                        MessageTimeoutStrategy timeoutStrategy )
+    public NetworkMock( LogProvider logProvider, Monitors monitors, long tickDuration,
+            MultipleFailureLatencyStrategy strategy,
+            MessageTimeoutStrategy timeoutStrategy )
     {
         this.monitors = monitors;
         this.tickDuration = tickDuration;
@@ -72,7 +75,7 @@ public class NetworkMock
         this.timeoutStrategy = timeoutStrategy;
         this.logProvider = logProvider;
         this.log = logProvider.getLog( NetworkMock.class );
-        futureWaiter = new LinkedList<Pair<Future<?>, Runnable>>();
+        futureWaiter = new LinkedList<Pair<Future<?>,Runnable>>();
     }
 
     public TestProtocolServer addServer( int serverId, URI serverUri )
@@ -88,12 +91,16 @@ public class NetworkMock
 
     protected TestProtocolServer newTestProtocolServer( int serverId, URI serverUri )
     {
-        ProtocolServerFactory protocolServerFactory = new MultiPaxosServerFactory( new ClusterConfiguration( "default", logProvider ), logProvider, monitors.newMonitor( StateMachines.Monitor.class ) );
+        ProtocolServerFactory protocolServerFactory =
+                new MultiPaxosServerFactory( new ClusterConfiguration( "default", logProvider ), logProvider,
+                        monitors.newMonitor( StateMachines.Monitor.class ) );
 
         ServerIdElectionCredentialsProvider electionCredentialsProvider = new ServerIdElectionCredentialsProvider();
         electionCredentialsProvider.listeningAt( serverUri );
-        TestProtocolServer protocolServer = new TestProtocolServer( logProvider, timeoutStrategy, protocolServerFactory, serverUri,
-                new InstanceId( serverId ), new InMemoryAcceptorInstanceStore(), electionCredentialsProvider );
+        TestProtocolServer protocolServer =
+                new TestProtocolServer( logProvider, timeoutStrategy, protocolServerFactory, serverUri,
+                        new InstanceId( serverId ), new InMemoryAcceptorInstanceStore(), electionCredentialsProvider,
+                        mock( ClusterManagement.class ) );
         protocolServer.addStateTransitionListener( new StateTransitionLogger( logProvider ) );
         return protocolServer;
     }
@@ -111,7 +118,7 @@ public class NetworkMock
 
     public void addFutureWaiter( Future<?> future, Runnable toRun )
     {
-        futureWaiter.add( Pair.<Future<?>, Runnable>of( future, toRun ) );
+        futureWaiter.add( Pair.<Future<?>,Runnable>of( future, toRun ) );
     }
 
     public int tick()
@@ -176,10 +183,10 @@ public class NetworkMock
             }
         }
 
-        Iterator<Pair<Future<?>, Runnable>> waiters = futureWaiter.iterator();
+        Iterator<Pair<Future<?>,Runnable>> waiters = futureWaiter.iterator();
         while ( waiters.hasNext() )
         {
-            Pair<Future<?>, Runnable> next = waiters.next();
+            Pair<Future<?>,Runnable> next = waiters.next();
             if ( next.first().isDone() )
             {
                 next.other().run();
@@ -258,7 +265,7 @@ public class NetworkMock
         TestProtocolServer server;
 
         private MessageDelivery( long messageDeliveryTime, Message<? extends MessageType> message,
-                                 TestProtocolServer server )
+                TestProtocolServer server )
         {
             this.messageDeliveryTime = messageDeliveryTime;
             this.message = message;
@@ -284,7 +291,7 @@ public class NetworkMock
         public String toString()
         {
             return "Deliver " + message.getMessageType().name() + " to " + server.getServer().getServerId() + " at "
-                    + messageDeliveryTime;
+                   + messageDeliveryTime;
         }
     }
 }

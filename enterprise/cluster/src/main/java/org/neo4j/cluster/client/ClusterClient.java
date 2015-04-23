@@ -32,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 import org.jboss.netty.logging.InternalLoggerFactory;
 
 import org.neo4j.cluster.BindingListener;
+import org.neo4j.cluster.ClusterManagement;
 import org.neo4j.cluster.ClusterMonitor;
 import org.neo4j.cluster.ClusterSettings;
 import org.neo4j.cluster.ExecutorLifecycleAdapter;
@@ -59,9 +60,6 @@ import org.neo4j.cluster.protocol.cluster.ClusterMessage;
 import org.neo4j.cluster.protocol.election.Election;
 import org.neo4j.cluster.protocol.election.ElectionCredentialsProvider;
 import org.neo4j.cluster.protocol.election.ElectionMessage;
-import org.neo4j.cluster.protocol.heartbeat.Heartbeat;
-import org.neo4j.cluster.protocol.heartbeat.HeartbeatListener;
-import org.neo4j.cluster.protocol.heartbeat.HeartbeatMessage;
 import org.neo4j.cluster.protocol.snapshot.Snapshot;
 import org.neo4j.cluster.protocol.snapshot.SnapshotProvider;
 import org.neo4j.cluster.statemachine.StateMachine;
@@ -257,22 +255,19 @@ public class ClusterClient extends LifecycleAdapter
     private final LifeSupport life = new LifeSupport();
     private final Cluster cluster;
     private final AtomicBroadcast broadcast;
-    private final Heartbeat heartbeat;
     private final Snapshot snapshot;
     private final Election election;
 
     private final ProtocolServer server;
 
     public ClusterClient( final Monitors monitors, final Configuration config, final LogService logService,
-                          ElectionCredentialsProvider electionCredentialsProvider,
-                          ObjectInputStreamFactory objectInputStreamFactory,
-                          ObjectOutputStreamFactory objectOutputStreamFactory )
+            ElectionCredentialsProvider electionCredentialsProvider,
+            ObjectInputStreamFactory objectInputStreamFactory,
+            ObjectOutputStreamFactory objectOutputStreamFactory, ClusterManagement clusterManagement )
     {
         this.monitors = monitors;
         MessageTimeoutStrategy timeoutStrategy = new MessageTimeoutStrategy(
                 new FixedTimeoutStrategy( config.defaultTimeout() ) )
-                .timeout( HeartbeatMessage.sendHeartbeat, config.heartbeatInterval() )
-                .timeout( HeartbeatMessage.timed_out, config.heartbeatTimeout() )
                 .timeout( AtomicBroadcastMessage.broadcastTimeout, config.broadcastTimeout() )
                 .timeout( LearnerMessage.learnTimedout, config.learnTimeout() )
                 .timeout( ProposerMessage.phase1Timeout, config.phase1Timeout() )
@@ -342,7 +337,7 @@ public class ClusterClient extends LifecycleAdapter
         server = protocolServerFactory.newProtocolServer( config.getServerId(), timeoutStrategy,
                 receiver, sender,
                 acceptorInstanceStore, electionCredentialsProvider, stateMachineExecutor, objectInputStreamFactory,
-                objectOutputStreamFactory );
+                objectOutputStreamFactory, clusterManagement );
 
         receiver.addNetworkChannelsListener( new NetworkReceiver.NetworkChannelsListener()
         {
@@ -409,7 +404,6 @@ public class ClusterClient extends LifecycleAdapter
 
         cluster = server.newClient( Cluster.class );
         broadcast = server.newClient( AtomicBroadcast.class );
-        heartbeat = server.newClient( Heartbeat.class );
         snapshot = server.newClient( Snapshot.class );
         election = server.newClient( Election.class );
     }
@@ -478,18 +472,6 @@ public class ClusterClient extends LifecycleAdapter
     public void removeClusterListener( ClusterListener listener )
     {
         cluster.removeClusterListener( listener );
-    }
-
-    @Override
-    public void addHeartbeatListener( HeartbeatListener listener )
-    {
-        heartbeat.addHeartbeatListener( listener );
-    }
-
-    @Override
-    public void removeHeartbeatListener( HeartbeatListener listener )
-    {
-        heartbeat.removeHeartbeatListener( listener );
     }
 
     @Override
