@@ -51,6 +51,7 @@ public enum ElectionState
                 )
                         throws Throwable
                 {
+                    System.out.println(">+>+>+ElectionState#handle " + message + " " + context);
                     switch ( message.getMessageType() )
                     {
                         case created:

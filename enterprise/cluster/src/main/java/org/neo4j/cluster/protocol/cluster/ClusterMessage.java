@@ -434,6 +434,7 @@ public enum ClusterMessage
 
             if ( getRoleWon() != null )
             {
+                System.out.println(">>>ELECTED>>> VersionedConfigurationStateChange");
                 context.elected( getRoleWon(), getWinner(), elector, version );
             }
 

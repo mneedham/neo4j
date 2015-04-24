@@ -93,6 +93,7 @@ public class StateMachineRules
         @Override
         public void stateTransition( StateTransition transition )
         {
+            System.out.println(">_>_>StateTransition#" +  messageType.getClass() + " -> " + transition);
             if (oldState.equals( transition.getOldState() ) &&
                 transition.getMessage().getMessageType().equals( messageType ) &&
                 newState.equals( transition.getNewState() ))

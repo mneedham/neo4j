@@ -196,22 +196,7 @@ class ClusterContextImpl
             @Override
             public void notify( ClusterListener listener )
             {
-                listener.enteredCluster( commonState.configuration() );
-            }
-        } );
-    }
-
-    @Override
-    public void left()
-    {
-        timeouts.cancelAllTimeouts();
-        commonState.configuration().left();
-        Listeners.notifyListeners( clusterListeners, executor, new Listeners.Notification<ClusterListener>()
-        {
-            @Override
-            public void notify( ClusterListener listener )
-            {
-//                listener.leftCluster();
+//                listener.enteredCluster( commonState.configuration() );
             }
         } );
     }
@@ -242,6 +227,21 @@ class ClusterContextImpl
     }
 
     @Override
+    public void left()
+    {
+        timeouts.cancelAllTimeouts();
+        commonState.configuration().left();
+        Listeners.notifyListeners( clusterListeners, executor, new Listeners.Notification<ClusterListener>()
+        {
+            @Override
+            public void notify( ClusterListener listener )
+            {
+//                listener.leftCluster();
+            }
+        } );
+    }
+
+    @Override
     public void left( final InstanceId node )
     {
         final URI member = commonState.configuration().getUriForId( node );
@@ -260,12 +260,14 @@ class ClusterContextImpl
     @Override
     public void elected( final String roleName, final InstanceId instanceId )
     {
+        System.out.println(">>>ELECTED>>> NO_ELECTION_VERSION");
         elected( roleName, instanceId, InstanceId.NONE, NO_ELECTOR_VERSION );
     }
 
     @Override
     public void elected( final String roleName, final InstanceId instanceId, InstanceId electorId, long version )
     {
+        System.out.println(">>>ELECTED>>> " + roleName + " " + instanceId + " " + version);
         if ( electorId != null )
         {
             if ( electorId.equals( getMyId() ) )

@@ -95,6 +95,7 @@ public class ElectionContextImpl
         for ( ElectionRole role : roles )
         {
             // Elect myself for all roles
+            System.out.println(">>>ELECTED>>> elect myself for all the things");
             clusterContext.elected( role.getName(), clusterContext.getMyId(), clusterContext.getMyId(), 1 );
         }
     }

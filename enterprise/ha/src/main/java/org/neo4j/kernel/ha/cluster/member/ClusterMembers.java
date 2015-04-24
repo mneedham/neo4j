@@ -117,6 +117,7 @@ public class ClusterMembers
         @Override
         public void enteredCluster( ClusterConfiguration configuration )
         {
+            System.out.println("<<<<<>>>>>> enteredClusterListenerFired " + configuration);
             Map<InstanceId, ClusterMember> newMembers = new HashMap<>();
             for ( InstanceId memberClusterId : configuration.getMemberIds() )
             {
@@ -170,6 +171,10 @@ public class ClusterMembers
         @Override
         public void memberIsAvailable( String role, InstanceId instanceId, URI roleUri, StoreId storeId )
         {
+            System.out.println(">>>>>> MEMBER AVAILABLE role = " + role + ", instanceId = " + instanceId + ", roleUri" +
+                               " = " + roleUri + ", " +
+                                "storeId = " + storeId );
+
             members.put( instanceId, getMember( instanceId ).availableAs( role, roleUri, storeId ) );
             eventOccurred();
         }

@@ -311,6 +311,7 @@ public class PaxosClusterMemberEvents implements ClusterMemberEvents, Lifecycle
         @Override
         public void elected( String role, final InstanceId instanceId, final URI electedMember )
         {
+            System.out.println(">->->->-> ClusterListenerImpl#elected " + role + ", " + instanceId + ", " + electedMember);
             if ( role.equals( ClusterConfiguration.COORDINATOR ) )
             {
                 // Use the cluster coordinator as master for HA

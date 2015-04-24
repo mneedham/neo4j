@@ -190,7 +190,7 @@ public class MultiPaxosServerFactory
                         internal( AcceptorMessage.join ),
                         internal( LearnerMessage.join ),
                         internal( HeartbeatMessage.join ),
-                        internal( ElectionMessage.created ),
+//                        internal( ElectionMessage.created ),
                         internal( SnapshotMessage.join ) )
 
                 .rule( ClusterState.discovery, ClusterMessage.configurationResponse, ClusterState.joining,
