@@ -20,6 +20,7 @@
 package org.neo4j.cluster.client;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -29,6 +30,11 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+import com.hazelcast.core.MemberAttributeEvent;
+import com.hazelcast.core.MembershipEvent;
+import com.hazelcast.core.MembershipListener;
+import com.hazelcast.instance.MemberImpl;
+import com.hazelcast.nio.Address;
 import org.jboss.netty.logging.InternalLoggerFactory;
 
 import org.neo4j.cluster.BindingListener;
@@ -72,6 +78,7 @@ import org.neo4j.cluster.timeout.Timeouts;
 import org.neo4j.graphdb.config.Setting;
 import org.neo4j.helpers.Factory;
 import org.neo4j.helpers.HostnamePort;
+import org.neo4j.helpers.Listeners;
 import org.neo4j.helpers.NamedThreadFactory;
 import org.neo4j.helpers.Settings;
 import org.neo4j.kernel.configuration.Config;
@@ -90,6 +97,9 @@ public class ClusterClient extends LifecycleAdapter
     public static final Setting<Long> clusterJoinTimeout = Settings.setting( "ha.cluster_join_timeout",
             Settings.DURATION, "0s" );
     private final Monitors monitors;
+    private final Neo4jHazelcastInstance neo4jHazelcastInstance;
+    private final ExecutorLifecycleAdapter hazelcastExecutor;
+    private List<ClusterListener> listeners = new ArrayList<>();
 
     public interface Configuration
     {
@@ -412,6 +422,21 @@ public class ClusterClient extends LifecycleAdapter
         heartbeat = server.newClient( Heartbeat.class );
         snapshot = server.newClient( Snapshot.class );
         election = server.newClient( Election.class );
+
+
+        hazelcastExecutor = new ExecutorLifecycleAdapter( new Factory<ExecutorService>()
+        {
+            @Override
+            public ExecutorService newInstance()
+            {
+                return Executors.newSingleThreadExecutor( new NamedThreadFactory( "HC", monitors.newMonitor
+                        ( NamedThreadFactory.Monitor.class ) ) );
+            }
+        } );
+        life.add(hazelcastExecutor);
+
+        neo4jHazelcastInstance = new Neo4jHazelcastInstance( config );
+        life.add(neo4jHazelcastInstance);
     }
 
     @Override
@@ -424,6 +449,53 @@ public class ClusterClient extends LifecycleAdapter
     public void start() throws Throwable
     {
         life.start();
+
+        neo4jHazelcastInstance.getHazelcastInstance().getCluster().addMembershipListener( new MembershipListener()
+        {
+            @Override
+            public void memberAdded( final MembershipEvent membershipEvent )
+            {
+                Listeners.notifyListeners( listeners, hazelcastExecutor, new Listeners
+                        .Notification<ClusterListener>()
+                {
+                    @Override
+                    public void notify( ClusterListener listener )
+                    {
+                        System.out.println("*******HC joined cluster event ===> " + membershipEvent);
+                        Address address = ((MemberImpl) membershipEvent.getMember()).getAddress();
+
+                        listener.joinedCluster( new InstanceId( ((MemberImpl) membershipEvent.getMember()).getId() ),
+                                URI.create( "cluster://" + address.getHost() + ":" + address.getPort() ) );
+                    }
+                } );
+            }
+
+            @Override
+            public void memberRemoved( final MembershipEvent membershipEvent )
+            {
+                Listeners.notifyListeners( listeners, hazelcastExecutor, new Listeners
+                        .Notification<ClusterListener>()
+                {
+                    @Override
+                    public void notify( ClusterListener listener )
+                    {
+                        System.out.println("*******HC joined cluster event ===> " + membershipEvent);
+                        Address address = ((MemberImpl) membershipEvent.getMember()).getAddress();
+
+                        listener.leftCluster( new InstanceId(((MemberImpl)membershipEvent.getMember()).getId()),
+                                URI.create( "cluster://" + address.getHost()+":"+address.getPort() ) );
+                    }
+                } );
+            }
+
+            @Override
+            public void memberAttributeChanged( MemberAttributeEvent memberAttributeEvent )
+            {
+
+            }
+        } );
+
+
     }
 
     @Override
@@ -471,6 +543,7 @@ public class ClusterClient extends LifecycleAdapter
     @Override
     public void addClusterListener( ClusterListener listener )
     {
+        listeners.add( listener );
         cluster.addClusterListener( listener );
     }
 

@@ -53,6 +53,7 @@ public class HAClusterStartupIT
     public void instantiateClusterManager()
     {
         clusterManager = new ClusterManager( clusterOfSize( 3 ), dir.directory(), stringMap() );
+        System.out.println(dir.directory());
     }
 
     @Before

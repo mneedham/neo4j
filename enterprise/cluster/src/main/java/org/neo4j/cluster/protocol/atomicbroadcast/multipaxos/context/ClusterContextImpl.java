@@ -211,7 +211,7 @@ class ClusterContextImpl
             @Override
             public void notify( ClusterListener listener )
             {
-                listener.leftCluster();
+//                listener.leftCluster();
             }
         } );
     }
@@ -229,7 +229,7 @@ class ClusterContextImpl
                 @Override
                 public void notify( ClusterListener listener )
                 {
-                    listener.joinedCluster( instanceId, atURI );
+//                    listener.joinedCluster( instanceId, atURI );
                 }
             } );
         }
@@ -252,7 +252,7 @@ class ClusterContextImpl
             @Override
             public void notify( ClusterListener listener )
             {
-                listener.leftCluster( node, member );
+//                listener.leftCluster( node, member );
             }
         } );
     }

@@ -47,6 +47,12 @@
   </licenses>
 
   <dependencies>
+      <dependency>
+          <groupId>com.hazelcast</groupId>
+          <artifactId>hazelcast-all</artifactId>
+          <version>3.4.2</version>
+    </dependency>
+
     <dependency>
       <groupId>org.neo4j</groupId>
       <artifactId>neo4j-kernel</artifactId>
