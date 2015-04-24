@@ -56,7 +56,7 @@ public enum ElectionState
                     {
                         case created:
                         {
-                            context.created();
+//                            context.created();
                             return election;
                         }
 

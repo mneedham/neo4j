@@ -666,7 +666,7 @@ public class ClusterClient extends LifecycleAdapter
                 @Override
                 public void notify( ClusterListener listener )
                 {
-                    System.out.println("*******HC joined cluster event ===> " + membershipEvent);
+                    System.out.println("*******HC left cluster event ===> " + membershipEvent);
                     Address address = ((MemberImpl) membershipEvent.getMember()).getAddress();
 
                     listener.leftCluster( new InstanceId(((MemberImpl)membershipEvent.getMember()).getId()),
@@ -682,17 +682,27 @@ public class ClusterClient extends LifecycleAdapter
         }
 
         @Override
-        public void init( InitialMembershipEvent event )
+        public void init( final InitialMembershipEvent event )
         {
+            System.out.println("*******HC init event===> " + event);
             List<URI> members = new ArrayList<>(  );
             for ( Member member : event.getMembers() )
             {
                 MemberImpl m = (MemberImpl) member;
                 members.add( URI.create( "cluster://" + m.getAddress().getHost() + ":" + m.getAddress().getPort() ) );
             }
+            System.out.println("*******HC init event===> members: " + members);
 
             final ClusterConfiguration clusterConfiguration =
                     new ClusterConfiguration( "neo4j.ha", internalLogProvider, members );
+
+            for ( Member member : event.getMembers() )
+            {
+                MemberImpl m = (MemberImpl) member;
+                URI uri = URI.create( "cluster://" + m.getAddress().getHost() + ":" + m.getAddress().getPort() );
+                System.out.println("*******HC init event===> members joining: " + m.getId() + "  " + uri);
+                clusterConfiguration.joined( new InstanceId(m.getId()), uri );
+            }
 
             Listeners.notifyListeners( listeners, hazelcastExecutor, new Listeners
                     .Notification<ClusterListener>()
@@ -700,7 +710,7 @@ public class ClusterClient extends LifecycleAdapter
                 @Override
                 public void notify( ClusterListener listener )
                 {
-
+                    System.out.println("*******HC init event===> " + clusterConfiguration);
                     listener.enteredCluster(clusterConfiguration);
                 }
             } );
