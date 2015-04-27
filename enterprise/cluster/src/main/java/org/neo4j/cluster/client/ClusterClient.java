@@ -698,10 +698,14 @@ public class ClusterClient extends LifecycleAdapter
 
             for ( Member member : event.getMembers() )
             {
+
                 MemberImpl m = (MemberImpl) member;
+
+                Integer serverId = member.getIntAttribute( "server_id" );
+
                 URI uri = URI.create( "cluster://" + m.getAddress().getHost() + ":" + m.getAddress().getPort() );
-                System.out.println("*******HC init event===> members joining: " + m.getId() + "  " + uri);
-                clusterConfiguration.joined( new InstanceId(m.getId()), uri );
+                System.out.println("*******HC init event===> members joining: " + serverId + "  " + uri);
+                clusterConfiguration.joined( new InstanceId(serverId), uri );
             }
 
             Listeners.notifyListeners( listeners, hazelcastExecutor, new Listeners

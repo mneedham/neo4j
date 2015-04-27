@@ -123,8 +123,10 @@ public class ClusterMembers
             {
                 newMembers.put( memberClusterId, new ClusterMember( memberClusterId, true ) );
             }
+            System.out.println("<<<<<>>>>>> enteredClusterListenerFired newMembers: " + newMembers);
             members.clear();
             members.putAll( newMembers );
+            System.out.println("<<<<<>>>>>> enteredClusterListenerFired members: " + members.size());
         }
 
         @Override

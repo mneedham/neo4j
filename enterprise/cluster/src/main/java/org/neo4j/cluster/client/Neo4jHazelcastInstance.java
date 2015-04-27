@@ -2,6 +2,7 @@ package org.neo4j.cluster.client;
 
 
 import com.hazelcast.config.JoinConfig;
+import com.hazelcast.config.MemberAttributeConfig;
 import com.hazelcast.config.NetworkConfig;
 import com.hazelcast.config.TcpIpConfig;
 import com.hazelcast.core.Hazelcast;
@@ -78,6 +79,11 @@ public class Neo4jHazelcastInstance extends LifecycleAdapter
         c.setNetworkConfig( networkConfig );
 
         System.out.println( "creating HC instance with " + c.getInstanceName() );
+
+        MemberAttributeConfig memberAttributeConfig = new MemberAttributeConfig();
+        memberAttributeConfig.setIntAttribute( "server_id",  config.getServerId().toIntegerIndex());
+        c.setMemberAttributeConfig( memberAttributeConfig );
+
         return Hazelcast.newHazelcastInstance( c );
     }
 
