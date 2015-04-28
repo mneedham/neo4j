@@ -24,11 +24,11 @@ import java.net.URI;
 import org.neo4j.cluster.InstanceId;
 import org.neo4j.cluster.member.ClusterMemberEvents;
 import org.neo4j.cluster.member.ClusterMemberListener;
-import org.neo4j.cluster.protocol.election.Election;
 import org.neo4j.helpers.Listeners;
 import org.neo4j.helpers.collection.Iterables;
 import org.neo4j.kernel.AvailabilityGuard;
 import org.neo4j.kernel.ha.cluster.member.ClusterMembers;
+import org.neo4j.kernel.ha.factory.MemberAvailabilityWhiteboard;
 import org.neo4j.kernel.impl.store.StoreId;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 import org.neo4j.logging.Log;
@@ -51,20 +51,20 @@ public class HighAvailabilityMemberStateMachine extends LifecycleAdapter impleme
     private Log log;
     private Iterable<HighAvailabilityMemberListener> memberListeners = Listeners.newListeners();
     private volatile HighAvailabilityMemberState state;
-    private StateMachineClusterEventListener eventsListener;
+    private ClusterMemberListener eventsListener;
     private final ClusterMembers members;
-    private final Election election;
+//    private final Election election;
 
     public HighAvailabilityMemberStateMachine( HighAvailabilityMemberContext context,
                                                AvailabilityGuard availabilityGuard,
-                                               ClusterMembers members, ClusterMemberEvents events, Election election,
+                                               ClusterMembers members, ClusterMemberEvents events,
                                                LogProvider logProvider )
     {
         this.context = context;
         this.availabilityGuard = availabilityGuard;
         this.members = members;
         this.events = events;
-        this.election = election;
+//        this.election = election;
         this.log = logProvider.getLog( getClass() );
         state = HighAvailabilityMemberState.PENDING;
     }
@@ -73,6 +73,7 @@ public class HighAvailabilityMemberStateMachine extends LifecycleAdapter impleme
     public void init() throws Throwable
     {
         events.addClusterMemberListener( eventsListener = new StateMachineClusterEventListener() );
+//        events.addClusterMemberListener( eventsListener = new StateMachineClusterEventListener() );
         // On initial startup, disallow database access
         availabilityGuard.deny( this );
     }
@@ -80,7 +81,7 @@ public class HighAvailabilityMemberStateMachine extends LifecycleAdapter impleme
     @Override
     public void stop() throws Throwable
     {
-        events.removeClusterMemberListener( eventsListener );
+//        events.removeClusterMemberListener( eventsListener );
         HighAvailabilityMemberState oldState = state;
         state = HighAvailabilityMemberState.PENDING;
         final HighAvailabilityMemberChangeEvent event =
@@ -279,7 +280,7 @@ public class HighAvailabilityMemberStateMachine extends LifecycleAdapter impleme
         {
             if ( isQuorum(getAliveCount(), getTotalCount()) && state.equals( HighAvailabilityMemberState.PENDING ) )
             {
-                election.performRoleElections();
+//                election.performRoleElections();
             }
         }
 

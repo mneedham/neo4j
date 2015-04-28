@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.ha.cluster;
 
+import java.io.Serializable;
 import java.net.URI;
 
 import org.neo4j.cluster.InstanceId;
@@ -27,7 +28,7 @@ import org.neo4j.cluster.InstanceId;
  * This event represents a change in the cluster members internal state. The possible states
  * are enumerated in ClusterMemberState.
  */
-public class HighAvailabilityMemberChangeEvent
+public class HighAvailabilityMemberChangeEvent implements Serializable
 {
     private final HighAvailabilityMemberState oldState;
     private final HighAvailabilityMemberState newState;

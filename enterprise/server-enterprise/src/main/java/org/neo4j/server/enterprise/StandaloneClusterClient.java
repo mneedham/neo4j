@@ -24,6 +24,10 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.hazelcast.core.InitialMembershipEvent;
+import com.hazelcast.core.InitialMembershipListener;
+import com.hazelcast.core.MemberAttributeEvent;
+import com.hazelcast.core.MembershipEvent;
 import org.jboss.netty.channel.ChannelException;
 
 import org.neo4j.cluster.ClusterSettings;
@@ -32,6 +36,7 @@ import org.neo4j.cluster.protocol.atomicbroadcast.ObjectStreamFactory;
 import org.neo4j.cluster.protocol.election.NotElectableElectionCredentialsProvider;
 import org.neo4j.function.Predicates;
 import org.neo4j.graphdb.config.Setting;
+import org.neo4j.ha.MyElection;
 import org.neo4j.helpers.Args;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
 import org.neo4j.io.fs.FileSystemAbstraction;
@@ -111,9 +116,39 @@ public class StandaloneClusterClient
             JobScheduler jobScheduler = new Neo4jJobScheduler();
             LogService logService = logService( new DefaultFileSystemAbstraction(), jobScheduler );
             ObjectStreamFactory objectStreamFactory = new ObjectStreamFactory();
+            final MyElection myElection1 = new MyElection();
             new StandaloneClusterClient( jobScheduler, new ClusterClient( new Monitors(), adapt( new Config( config ) ),
                     logService, new NotElectableElectionCredentialsProvider(), objectStreamFactory,
-                    objectStreamFactory ) );
+                    objectStreamFactory, new InitialMembershipListener()
+            {
+                private final MyElection myElection = myElection1;
+
+                @Override
+                public void memberAdded( final MembershipEvent membershipEvent )
+                {
+                    myElection.triggerElection( membershipEvent.getMembers() );
+                }
+
+                @Override
+                public void memberRemoved( final MembershipEvent membershipEvent )
+                {
+                    myElection.triggerElection( membershipEvent.getMembers() );
+                }
+
+                @Override
+                public void memberAttributeChanged( MemberAttributeEvent memberAttributeEvent )
+                {
+
+                }
+
+                @Override
+                public void init( final InitialMembershipEvent event )
+                {
+                    System.out.println("*******HC init event===> " + event);
+
+                    myElection.triggerElection( event.getMembers() );
+                }
+            } ) );
         }
         catch ( LifecycleException e )
         {

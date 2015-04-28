@@ -33,7 +33,6 @@ import java.util.List;
 import org.neo4j.cluster.ClusterSettings;
 import org.neo4j.cluster.InstanceId;
 import org.neo4j.cluster.member.ClusterMemberEvents;
-import org.neo4j.cluster.protocol.election.Election;
 import org.neo4j.com.RequestContext;
 import org.neo4j.com.Response;
 import org.neo4j.kernel.AvailabilityGuard;
@@ -410,7 +409,7 @@ public class UpdatePullerTest
         public CapturingHighAvailabilityMemberStateMachine( InstanceId myId )
         {
             super( mock( HighAvailabilityMemberContext.class ), mock( AvailabilityGuard.class ),
-                    mock( ClusterMembers.class ), mock( ClusterMemberEvents.class ), mock( Election.class ),
+                    mock( ClusterMembers.class ), mock( ClusterMemberEvents.class ),
                     NullLogProvider.getInstance() );
             this.myId = myId;
             this.uri = URI.create( "ha://me" );

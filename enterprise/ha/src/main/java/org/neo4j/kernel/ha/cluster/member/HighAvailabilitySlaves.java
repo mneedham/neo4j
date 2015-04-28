@@ -50,14 +50,14 @@ public class HighAvailabilitySlaves implements Lifecycle, Slaves
     private final LifeSupport life = new LifeSupport();
     private final Map<ClusterMember, Slave> slaves = new CopyOnWriteHashMap<ClusterMember, Slave>();
     private final ClusterMembers clusterMembers;
-    private final Cluster cluster;
+//    private final Cluster cluster;
     private final SlaveFactory slaveFactory;
     private HighAvailabilitySlaves.HASClusterListener clusterListener;
 
-    public HighAvailabilitySlaves( ClusterMembers clusterMembers, Cluster cluster, SlaveFactory slaveFactory )
+    public HighAvailabilitySlaves( ClusterMembers clusterMembers, SlaveFactory slaveFactory )
     {
         this.clusterMembers = clusterMembers;
-        this.cluster = cluster;
+//        this.cluster = cluster;
         this.slaveFactory = slaveFactory;
 
     }
@@ -100,7 +100,7 @@ public class HighAvailabilitySlaves implements Lifecycle, Slaves
         life.init();
 
         clusterListener = new HASClusterListener();
-        cluster.addClusterListener( clusterListener );
+//        cluster.addClusterListener( clusterListener );
     }
 
     @Override
@@ -118,7 +118,7 @@ public class HighAvailabilitySlaves implements Lifecycle, Slaves
     @Override
     public void shutdown() throws Throwable
     {
-        cluster.removeClusterListener( clusterListener );
+//        cluster.removeClusterListener( clusterListener );
 
         life.shutdown();
         slaves.clear();

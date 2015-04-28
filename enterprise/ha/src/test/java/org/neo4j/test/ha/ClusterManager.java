@@ -41,6 +41,10 @@ import java.util.concurrent.TimeUnit;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
+import com.hazelcast.core.InitialMembershipEvent;
+import com.hazelcast.core.InitialMembershipListener;
+import com.hazelcast.core.MemberAttributeEvent;
+import com.hazelcast.core.MembershipEvent;
 import org.w3c.dom.Document;
 
 import org.neo4j.backup.OnlineBackupSettings;
@@ -63,6 +67,7 @@ import org.neo4j.graphdb.factory.GraphDatabaseBuilder;
 import org.neo4j.graphdb.factory.GraphDatabaseSettings;
 import org.neo4j.graphdb.factory.HighlyAvailableGraphDatabaseFactory;
 import org.neo4j.graphdb.factory.TestHighlyAvailableGraphDatabaseFactory;
+import org.neo4j.ha.MyElection;
 import org.neo4j.helpers.Function;
 import org.neo4j.helpers.Settings;
 import org.neo4j.helpers.collection.Iterables;
@@ -386,7 +391,8 @@ public class ClusterManager
                 // Everyone sees everyone else as available!
                 for( HighlyAvailableGraphDatabase database : cluster.getAllMembers() )
                 {
-                    Log log = database.getDependencyResolver().resolveDependency( LogService.class ).getInternalLog( getClass() );
+                    Log log = database.getDependencyResolver().resolveDependency( LogService.class ).getInternalLog(
+                            getClass() );
                     log.debug( this.toString() );
                 }
                 return true;
@@ -1015,9 +1021,39 @@ public class ClusterManager
                         GraphDatabaseSettings.class );
 
                 ObjectStreamFactory objectStreamFactory = new ObjectStreamFactory();
+                final MyElection myElection1 = new MyElection();
                 ClusterClient clusterClient = new ClusterClient( new Monitors(), ClusterClient.adapt( config1 ),
                         NullLogService.getInstance(), new NotElectableElectionCredentialsProvider(), objectStreamFactory,
-                        objectStreamFactory );
+                        objectStreamFactory, new InitialMembershipListener()
+                {
+                    private final MyElection myElection = myElection1;
+
+                    @Override
+                    public void memberAdded( final MembershipEvent membershipEvent )
+                    {
+                        myElection.triggerElection( membershipEvent.getMembers() );
+                    }
+
+                    @Override
+                    public void memberRemoved( final MembershipEvent membershipEvent )
+                    {
+                        myElection.triggerElection( membershipEvent.getMembers() );
+                    }
+
+                    @Override
+                    public void memberAttributeChanged( MemberAttributeEvent memberAttributeEvent )
+                    {
+
+                    }
+
+                    @Override
+                    public void init( final InitialMembershipEvent event )
+                    {
+                        System.out.println("*******HC init event===> " + event);
+
+                        myElection.triggerElection( event.getMembers() );
+                    }
+                } );
 
                 arbiters.add( new ClusterMembers( clusterClient, clusterClient, new ClusterMemberEvents()
                 {

@@ -29,6 +29,10 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.hazelcast.core.InitialMembershipEvent;
+import com.hazelcast.core.InitialMembershipListener;
+import com.hazelcast.core.MemberAttributeEvent;
+import com.hazelcast.core.MembershipEvent;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -42,6 +46,7 @@ import org.neo4j.cluster.protocol.cluster.ClusterConfiguration;
 import org.neo4j.cluster.protocol.cluster.ClusterListener;
 import org.neo4j.cluster.protocol.cluster.ClusterListener.Adapter;
 import org.neo4j.cluster.protocol.election.ServerIdElectionCredentialsProvider;
+import org.neo4j.ha.MyElection;
 import org.neo4j.kernel.configuration.Config;
 import org.neo4j.kernel.lifecycle.LifeSupport;
 import org.neo4j.kernel.impl.logging.NullLogService;
@@ -186,8 +191,39 @@ public class StandaloneClusterClientIT
             config.put( server_id.name(), "" + i );
             config.put( initial_hosts.name(), ":5001" );
             ObjectStreamFactory objectStreamFactory = new ObjectStreamFactory();
+            final MyElection myElection1 = new MyElection();
             final ClusterClient client = new ClusterClient( new Monitors(), adapt( new Config( config ) ), NullLogService.getInstance(),
-                    new ServerIdElectionCredentialsProvider(), objectStreamFactory, objectStreamFactory );
+                    new ServerIdElectionCredentialsProvider(), objectStreamFactory, objectStreamFactory,
+                    new InitialMembershipListener()
+                    {
+                        private final MyElection myElection = myElection1;
+
+                        @Override
+                        public void memberAdded( final MembershipEvent membershipEvent )
+                        {
+                            myElection.triggerElection( membershipEvent.getMembers() );
+                        }
+
+                        @Override
+                        public void memberRemoved( final MembershipEvent membershipEvent )
+                        {
+                            myElection.triggerElection( membershipEvent.getMembers() );
+                        }
+
+                        @Override
+                        public void memberAttributeChanged( MemberAttributeEvent memberAttributeEvent )
+                        {
+
+                        }
+
+                        @Override
+                        public void init( final InitialMembershipEvent event )
+                        {
+                            System.out.println("*******HC init event===> " + event);
+
+                            myElection.triggerElection( event.getMembers() );
+                        }
+                    } );
             final CountDownLatch latch = new CountDownLatch( 1 );
             client.addClusterListener( new ClusterListener.Adapter()
             {

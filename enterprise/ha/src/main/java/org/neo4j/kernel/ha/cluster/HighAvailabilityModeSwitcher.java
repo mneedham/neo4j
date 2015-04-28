@@ -81,7 +81,7 @@ public class HighAvailabilityModeSwitcher implements HighAvailabilityMemberListe
 
     private SwitchToSlave switchToSlave;
     private SwitchToMaster switchToMaster;
-    private final Election election;
+//    private final Election election;
     private final ClusterMemberAvailability clusterMemberAvailability;
     private ClusterClient clusterClient;
     private Supplier<StoreId> storeIdSupplier;
@@ -100,17 +100,15 @@ public class HighAvailabilityModeSwitcher implements HighAvailabilityMemberListe
 
     public HighAvailabilityModeSwitcher( SwitchToSlave switchToSlave,
                                          SwitchToMaster switchToMaster,
-                                         Election election,
                                          ClusterMemberAvailability clusterMemberAvailability,
-                                         ClusterClient clusterClient,
                                          Supplier<StoreId> storeIdSupplier,
                                          InstanceId instanceId, LogService logService )
     {
         this.switchToSlave = switchToSlave;
         this.switchToMaster = switchToMaster;
-        this.election = election;
+//        this.election = election;
         this.clusterMemberAvailability = clusterMemberAvailability;
-        this.clusterClient = clusterClient;
+//        this.clusterClient = clusterClient;
         this.storeIdSupplier = storeIdSupplier;
         this.instanceId = instanceId;
         this.msgLog = logService.getInternalLog( getClass() );
@@ -161,6 +159,7 @@ public class HighAvailabilityModeSwitcher implements HighAvailabilityMemberListe
     @Override
     public void masterIsElected( HighAvailabilityMemberChangeEvent event )
     {
+        System.out.println("*(*(*(need)HAMS received masterIsElected " + event);
         if ( event.getNewState() == event.getOldState() && event.getOldState() == HighAvailabilityMemberState.MASTER )
         {
             clusterMemberAvailability.memberIsAvailable( MASTER, masterHaURI, storeIdSupplier.get() );
@@ -194,15 +193,6 @@ public class HighAvailabilityModeSwitcher implements HighAvailabilityMemberListe
     public void instanceStops( HighAvailabilityMemberChangeEvent event )
     {
         stateChanged( event );
-    }
-
-    public void forceElections()
-    {
-        if ( canAskForElections.compareAndSet( true, false ) )
-        {
-            clusterMemberAvailability.memberIsUnavailable( HighAvailabilityModeSwitcher.SLAVE );
-            election.performRoleElections();
-        }
     }
 
     private void stateChanged( HighAvailabilityMemberChangeEvent event )
@@ -256,19 +246,24 @@ public class HighAvailabilityModeSwitcher implements HighAvailabilityMemberListe
 
     private void switchToMaster()
     {
+        System.out.println(">>>>HAMS#switchToMaster");
         final CancellationHandle cancellationHandle = new CancellationHandle();
         startModeSwitching( new Runnable()
         {
             @Override
             public void run()
             {
+                System.out.println(">>>>HAMS#switchToMaster Runnable");
+                System.out.println( "currentTargetState = " + currentTargetState );
                 // We just got scheduled. Maybe we are already obsolete - test
                 if ( cancellationHandle.cancellationRequested() )
                 {
+                    System.out.println( "currentTargetState = " + currentTargetState );
                     msgLog.info( "Switch to master cancelled in the beginning of switching to master." );
                     return;
                 }
 
+                System.out.println( "currentTargetState = " + currentTargetState );
                 if ( currentTargetState != HighAvailabilityMemberState.TO_MASTER )
                 {
                     return;
@@ -279,14 +274,16 @@ public class HighAvailabilityModeSwitcher implements HighAvailabilityMemberListe
 
                 try
                 {
+                    System.out.println(">>>>HAMS#switchToMaster.switchToMaster");
                     masterHaURI = switchToMaster.switchToMaster( haCommunicationLife, me );
                     canAskForElections.set( true );
                 }
                 catch ( Throwable e )
                 {
+                    e.printStackTrace();
                     msgLog.error( "Failed to switch to master", e );
                     // Since this master switch failed, elect someone else
-                    election.demote( instanceId );
+//                    election.demote( instanceId );
                 }
             }
         }, cancellationHandle );
@@ -349,11 +346,11 @@ public class HighAvailabilityModeSwitcher implements HighAvailabilityMemberListe
                     msgLog.error( "Unable to start up as slave", e );
 
                     clusterMemberAvailability.memberIsUnavailable( SLAVE );
-                    ClusterClient clusterClient = HighAvailabilityModeSwitcher.this.clusterClient;
+//                    ClusterClient clusterClient = HighAvailabilityModeSwitcher.this.clusterClient;
                     try
                     {
-                        clusterClient.leave();
-                        clusterClient.stop();
+//                        clusterClient.leave();
+//                        clusterClient.stop();
                         haCommunicationLife.shutdown();
                     }
                     catch ( Throwable t )

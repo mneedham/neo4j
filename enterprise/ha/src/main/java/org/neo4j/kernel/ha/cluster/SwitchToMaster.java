@@ -95,6 +95,7 @@ public class SwitchToMaster implements AutoCloseable
      */
     public URI switchToMaster( LifeSupport haCommunicationLife, URI me )
     {
+        System.out.println( String.format("I am %s, moving to master", myId()) );
         userLog.info( "I am %s, moving to master", myId() );
 
         /*
@@ -139,6 +140,8 @@ public class SwitchToMaster implements AutoCloseable
 
     private URI getMasterUri( URI me, MasterServer masterServer )
     {
+        System.out.println( "me = " + me );
+        System.out.println( "masterServer = " + masterServer );
         String hostname = ServerUtil.getHostString( masterServer.getSocketAddress() ).contains( "0.0.0.0" ) ?
                             me.getHost() :
                             ServerUtil.getHostString( masterServer.getSocketAddress() );

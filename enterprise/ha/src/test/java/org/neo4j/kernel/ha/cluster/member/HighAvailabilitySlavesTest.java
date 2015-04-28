@@ -77,7 +77,7 @@ public class HighAvailabilitySlavesTest
         SlaveFactory slaveFactory = mock( SlaveFactory.class );
 
         // when
-        new HighAvailabilitySlaves( clusterMembers, cluster, slaveFactory ).init();
+        new HighAvailabilitySlaves( clusterMembers, slaveFactory ).init();
 
         // then
         verify( cluster ).addClusterListener( any( ClusterListener.class ) );
@@ -93,7 +93,7 @@ public class HighAvailabilitySlavesTest
 
         SlaveFactory slaveFactory = mock( SlaveFactory.class );
 
-        HighAvailabilitySlaves slaves = new HighAvailabilitySlaves( clusterMembers, cluster, slaveFactory );
+        HighAvailabilitySlaves slaves = new HighAvailabilitySlaves( clusterMembers, slaveFactory );
         slaves.init();
 
         // when
@@ -114,7 +114,7 @@ public class HighAvailabilitySlavesTest
 
         SlaveFactory slaveFactory = mock( SlaveFactory.class );
 
-        HighAvailabilitySlaves slaves = new HighAvailabilitySlaves( clusterMembers, cluster, slaveFactory );
+        HighAvailabilitySlaves slaves = new HighAvailabilitySlaves( clusterMembers, slaveFactory );
         slaves.init();
 
         // when
@@ -136,7 +136,7 @@ public class HighAvailabilitySlavesTest
         SlaveFactory slaveFactory = mock( SlaveFactory.class );
         when( slaveFactory.newSlave( (ClusterMember) any() ) ).thenReturn( mock( Slave.class ) );
 
-        HighAvailabilitySlaves slaves = new HighAvailabilitySlaves( clusterMembers, cluster, slaveFactory );
+        HighAvailabilitySlaves slaves = new HighAvailabilitySlaves( clusterMembers, slaveFactory );
         slaves.init();
 
         // when
@@ -158,7 +158,7 @@ public class HighAvailabilitySlavesTest
         SlaveFactory slaveFactory = mock( SlaveFactory.class );
         when( slaveFactory.newSlave( (ClusterMember) any() ) ).thenReturn( mock( Slave.class ), mock( Slave.class ) );
 
-        HighAvailabilitySlaves slaves = new HighAvailabilitySlaves( clusterMembers, cluster, slaveFactory );
+        HighAvailabilitySlaves slaves = new HighAvailabilitySlaves( clusterMembers, slaveFactory );
         slaves.init();
 
         ArgumentCaptor<ClusterListener> listener = ArgumentCaptor.forClass( ClusterListener.class );
@@ -180,7 +180,7 @@ public class HighAvailabilitySlavesTest
     {
         // Given
         HighAvailabilitySlaves haSlaves = new HighAvailabilitySlaves(
-                clusterMembersOfSize( 1000 ), mock( Cluster.class ), slaveFactoryMock() );
+                clusterMembersOfSize( 1000 ), slaveFactoryMock() );
 
         // When
         ExecutorService executor = Executors.newFixedThreadPool( 5 );

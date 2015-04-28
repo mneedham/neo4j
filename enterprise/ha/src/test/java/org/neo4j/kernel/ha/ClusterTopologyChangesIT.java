@@ -24,6 +24,10 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.hazelcast.core.InitialMembershipEvent;
+import com.hazelcast.core.InitialMembershipListener;
+import com.hazelcast.core.MemberAttributeEvent;
+import com.hazelcast.core.MembershipEvent;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -42,6 +46,7 @@ import org.neo4j.cluster.protocol.heartbeat.HeartbeatListener;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseSettings;
+import org.neo4j.ha.MyElection;
 import org.neo4j.helpers.collection.Iterables;
 import org.neo4j.helpers.collection.MapUtil;
 import org.neo4j.kernel.GraphDatabaseAPI;
@@ -291,8 +296,39 @@ public class ClusterTopologyChangesIT
         Config config = new Config( configMap, GraphDatabaseFacadeFactory.Configuration.class,
                 GraphDatabaseSettings.class );
 
+        final MyElection myElection1 = new MyElection();
         return new ClusterClient( new Monitors(), ClusterClient.adapt( config ), NullLogService.getInstance(),
-                new NotElectableElectionCredentialsProvider(), new ObjectStreamFactory(), new ObjectStreamFactory() );
+                new NotElectableElectionCredentialsProvider(), new ObjectStreamFactory(), new ObjectStreamFactory(),
+                new InitialMembershipListener()
+                {
+                    private final MyElection myElection = myElection1;
+
+                    @Override
+                    public void memberAdded( final MembershipEvent membershipEvent )
+                    {
+                        myElection.triggerElection( membershipEvent.getMembers() );
+                    }
+
+                    @Override
+                    public void memberRemoved( final MembershipEvent membershipEvent )
+                    {
+                        myElection.triggerElection( membershipEvent.getMembers() );
+                    }
+
+                    @Override
+                    public void memberAttributeChanged( MemberAttributeEvent memberAttributeEvent )
+                    {
+
+                    }
+
+                    @Override
+                    public void init( final InitialMembershipEvent event )
+                    {
+                        System.out.println("*******HC init event===> " + event);
+
+                        myElection.triggerElection( event.getMembers() );
+                    }
+                } );
     }
 
     private static void attemptTransactions( HighlyAvailableGraphDatabase... dbs )

@@ -30,14 +30,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-import com.hazelcast.core.InitialMembershipEvent;
 import com.hazelcast.core.InitialMembershipListener;
-import com.hazelcast.core.Member;
-import com.hazelcast.core.MemberAttributeEvent;
-import com.hazelcast.core.MembershipEvent;
-import com.hazelcast.core.MembershipListener;
-import com.hazelcast.instance.MemberImpl;
-import com.hazelcast.nio.Address;
 import org.jboss.netty.logging.InternalLoggerFactory;
 
 import org.neo4j.cluster.BindingListener;
@@ -81,7 +74,6 @@ import org.neo4j.cluster.timeout.Timeouts;
 import org.neo4j.graphdb.config.Setting;
 import org.neo4j.helpers.Factory;
 import org.neo4j.helpers.HostnamePort;
-import org.neo4j.helpers.Listeners;
 import org.neo4j.helpers.NamedThreadFactory;
 import org.neo4j.helpers.Settings;
 import org.neo4j.kernel.configuration.Config;
@@ -100,10 +92,11 @@ public class ClusterClient extends LifecycleAdapter
     public static final Setting<Long> clusterJoinTimeout = Settings.setting( "ha.cluster_join_timeout",
             Settings.DURATION, "0s" );
     private final Monitors monitors;
-    private final Neo4jHazelcastInstance neo4jHazelcastInstance;
+    private final HazelcastLifecycle hazelcastLifecycle;
     private final ExecutorLifecycleAdapter hazelcastExecutor;
     private List<ClusterListener> listeners = new ArrayList<>();
     private final LogProvider internalLogProvider;
+    private final InitialMembershipListener membershipListener;
 
     public interface Configuration
     {
@@ -280,9 +273,10 @@ public class ClusterClient extends LifecycleAdapter
     public ClusterClient( final Monitors monitors, final Configuration config, final LogService logService,
                           ElectionCredentialsProvider electionCredentialsProvider,
                           ObjectInputStreamFactory objectInputStreamFactory,
-                          ObjectOutputStreamFactory objectOutputStreamFactory )
+                          ObjectOutputStreamFactory objectOutputStreamFactory, InitialMembershipListener membershipListener )
     {
         this.monitors = monitors;
+        this.membershipListener = membershipListener;
         MessageTimeoutStrategy timeoutStrategy = new MessageTimeoutStrategy(
                 new FixedTimeoutStrategy( config.defaultTimeout() ) )
                 .timeout( HeartbeatMessage.sendHeartbeat, config.heartbeatInterval() )
@@ -439,8 +433,8 @@ public class ClusterClient extends LifecycleAdapter
         } );
         life.add(hazelcastExecutor);
 
-        neo4jHazelcastInstance = new Neo4jHazelcastInstance( config );
-        life.add(neo4jHazelcastInstance);
+        hazelcastLifecycle = new HazelcastLifecycle( config );
+        life.add( hazelcastLifecycle );
     }
 
     @Override
@@ -454,9 +448,7 @@ public class ClusterClient extends LifecycleAdapter
     {
         life.start();
 
-        neo4jHazelcastInstance.getHazelcastInstance().getCluster().addMembershipListener( new MyMembershipListener() );
-
-
+        hazelcastLifecycle.addMembershipListener( membershipListener );
     }
 
     @Override
@@ -504,7 +496,6 @@ public class ClusterClient extends LifecycleAdapter
     @Override
     public void addClusterListener( ClusterListener listener )
     {
-        listeners.add( listener );
         cluster.addClusterListener( listener );
     }
 
@@ -637,88 +628,5 @@ public class ClusterClient extends LifecycleAdapter
         }
     }
 
-    private class MyMembershipListener implements MembershipListener, InitialMembershipListener
-    {
-        @Override
-        public void memberAdded( final MembershipEvent membershipEvent )
-        {
-            Listeners.notifyListeners( listeners, hazelcastExecutor, new Listeners
-                    .Notification<ClusterListener>()
-            {
-                @Override
-                public void notify( ClusterListener listener )
-                {
-                    System.out.println( "*******HC joined cluster event ===> " + membershipEvent );
-                    Address address = ((MemberImpl) membershipEvent.getMember()).getAddress();
 
-                    listener.joinedCluster( new InstanceId( ((MemberImpl) membershipEvent.getMember()).getId() ),
-                            URI.create( "cluster://" + address.getHost() + ":" + address.getPort() ) );
-                }
-            } );
-        }
-
-        @Override
-        public void memberRemoved( final MembershipEvent membershipEvent )
-        {
-            Listeners.notifyListeners( listeners, hazelcastExecutor, new Listeners
-                    .Notification<ClusterListener>()
-            {
-                @Override
-                public void notify( ClusterListener listener )
-                {
-                    System.out.println("*******HC left cluster event ===> " + membershipEvent);
-                    Address address = ((MemberImpl) membershipEvent.getMember()).getAddress();
-
-                    listener.leftCluster( new InstanceId(((MemberImpl)membershipEvent.getMember()).getId()),
-                            URI.create( "cluster://" + address.getHost()+":"+address.getPort() ) );
-                }
-            } );
-        }
-
-        @Override
-        public void memberAttributeChanged( MemberAttributeEvent memberAttributeEvent )
-        {
-
-        }
-
-        @Override
-        public void init( final InitialMembershipEvent event )
-        {
-            System.out.println("*******HC init event===> " + event);
-            List<URI> members = new ArrayList<>(  );
-            for ( Member member : event.getMembers() )
-            {
-                MemberImpl m = (MemberImpl) member;
-                members.add( URI.create( "cluster://" + m.getAddress().getHost() + ":" + m.getAddress().getPort() ) );
-            }
-            System.out.println("*******HC init event===> members: " + members);
-
-            final ClusterConfiguration clusterConfiguration =
-                    new ClusterConfiguration( "neo4j.ha", internalLogProvider, members );
-
-            for ( Member member : event.getMembers() )
-            {
-
-                MemberImpl m = (MemberImpl) member;
-
-                Integer serverId = member.getIntAttribute( "server_id" );
-
-                URI uri = URI.create( "cluster://" + m.getAddress().getHost() + ":" + m.getAddress().getPort() );
-                System.out.println("*******HC init event===> members joining: " + serverId + "  " + uri);
-                clusterConfiguration.joined( new InstanceId(serverId), uri );
-            }
-
-            Listeners.notifyListeners( listeners, hazelcastExecutor, new Listeners
-                    .Notification<ClusterListener>()
-            {
-                @Override
-                public void notify( ClusterListener listener )
-                {
-                    System.out.println("*******HC init event===> " + clusterConfiguration);
-                    listener.enteredCluster(clusterConfiguration);
-                }
-            } );
-
-        }
-    }
 }

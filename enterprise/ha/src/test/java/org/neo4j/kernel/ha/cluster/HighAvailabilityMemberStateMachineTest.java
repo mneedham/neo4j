@@ -63,9 +63,8 @@ public class HighAvailabilityMemberStateMachineTest
         AvailabilityGuard guard = mock( AvailabilityGuard.class );
         ClusterMembers members = mock( ClusterMembers.class );
         ClusterMemberEvents events = mock( ClusterMemberEvents.class );
-        Election election = mock( Election.class );
         HighAvailabilityMemberStateMachine toTest =
-                new HighAvailabilityMemberStateMachine( context, guard, members, events, election, NullLogProvider.getInstance() );
+                new HighAvailabilityMemberStateMachine( context, guard, members, events, NullLogProvider.getInstance() );
 
         // Then
         assertThat( toTest.getCurrentState(), equalTo( HighAvailabilityMemberState.PENDING ) );
@@ -94,9 +93,8 @@ public class HighAvailabilityMemberStateMachineTest
 
         } ).when( events ).addClusterMemberListener( Matchers.<ClusterMemberListener>any() );
 
-        Election election = mock( Election.class );
         HighAvailabilityMemberStateMachine toTest =
-                new HighAvailabilityMemberStateMachine( context, guard, members, events, election, NullLogProvider.getInstance() );
+                new HighAvailabilityMemberStateMachine( context, guard, members, events, NullLogProvider.getInstance() );
         toTest.init();
         ClusterMemberListener theListener = listener.iterator().next();
 
@@ -133,7 +131,7 @@ public class HighAvailabilityMemberStateMachineTest
 
         Election election = mock( Election.class );
         HighAvailabilityMemberStateMachine toTest =
-                new HighAvailabilityMemberStateMachine( context, guard, members, events, election, NullLogProvider.getInstance() );
+                new HighAvailabilityMemberStateMachine( context, guard, members, events, NullLogProvider.getInstance() );
         toTest.init();
         ClusterMemberListener theListener = listener.iterator().next();
 
@@ -170,7 +168,7 @@ public class HighAvailabilityMemberStateMachineTest
 
         Election election = mock( Election.class );
         HighAvailabilityMemberStateMachine toTest =
-                new HighAvailabilityMemberStateMachine( context, guard, members, events, election, NullLogProvider.getInstance() );
+                new HighAvailabilityMemberStateMachine( context, guard, members, events, NullLogProvider.getInstance() );
         toTest.init();
         ClusterMemberListener theListener = listener.iterator().next();
         HAStateChangeListener probe = new HAStateChangeListener();
@@ -221,7 +219,7 @@ public class HighAvailabilityMemberStateMachineTest
 
         Election election = mock( Election.class );
         HighAvailabilityMemberStateMachine toTest =
-                new HighAvailabilityMemberStateMachine( context, guard, members, events, election, NullLogProvider.getInstance() );
+                new HighAvailabilityMemberStateMachine( context, guard, members, events, NullLogProvider.getInstance() );
         toTest.init();
         ClusterMemberListener theListener = listener.iterator().next();
         HAStateChangeListener probe = new HAStateChangeListener();
@@ -279,7 +277,7 @@ public class HighAvailabilityMemberStateMachineTest
 
         Election election = mock( Election.class );
         HighAvailabilityMemberStateMachine toTest =
-                new HighAvailabilityMemberStateMachine( context, guard, members, events, election, NullLogProvider.getInstance() );
+                new HighAvailabilityMemberStateMachine( context, guard, members, events, NullLogProvider.getInstance() );
         toTest.init();
         ClusterMemberListener theListener = listener.iterator().next();
         HAStateChangeListener probe = new HAStateChangeListener();
@@ -337,7 +335,7 @@ public class HighAvailabilityMemberStateMachineTest
 
         Election election = mock( Election.class );
         HighAvailabilityMemberStateMachine toTest =
-                new HighAvailabilityMemberStateMachine( context, guard, members, events, election, NullLogProvider.getInstance() );
+                new HighAvailabilityMemberStateMachine( context, guard, members, events, NullLogProvider.getInstance() );
         toTest.init();
         ClusterMemberListener theListener = listener.iterator().next();
         HAStateChangeListener probe = new HAStateChangeListener();
@@ -394,7 +392,7 @@ public class HighAvailabilityMemberStateMachineTest
 
         Election election = mock( Election.class );
         HighAvailabilityMemberStateMachine toTest =
-                new HighAvailabilityMemberStateMachine( context, guard, members, events, election, NullLogProvider.getInstance() );
+                new HighAvailabilityMemberStateMachine( context, guard, members, events, NullLogProvider.getInstance() );
         toTest.init();
         ClusterMemberListener theListener = listener.iterator().next();
         HAStateChangeListener probe = new HAStateChangeListener();
@@ -440,7 +438,7 @@ public class HighAvailabilityMemberStateMachineTest
 
         Election election = mock( Election.class );
         HighAvailabilityMemberStateMachine toTest =
-                new HighAvailabilityMemberStateMachine( context, guard, members, events, election, NullLogProvider.getInstance() );
+                new HighAvailabilityMemberStateMachine( context, guard, members, events, NullLogProvider.getInstance() );
 
         toTest.init();
 
