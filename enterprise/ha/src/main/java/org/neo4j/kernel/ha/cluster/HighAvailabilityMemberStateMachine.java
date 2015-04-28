@@ -181,6 +181,7 @@ public class HighAvailabilityMemberStateMachine extends LifecycleAdapter impleme
         @Override
         public synchronized void memberIsAvailable( String role, InstanceId instanceId, URI roleUri, StoreId storeId )
         {
+            System.out.println("**HAMSM#memberIsAvailable " + role + " " + instanceId + " " + roleUri + " " + storeId);
             try
             {
                 if ( role.equals( HighAvailabilityModeSwitcher.MASTER ) )
@@ -191,9 +192,10 @@ public class HighAvailabilityMemberStateMachine extends LifecycleAdapter impleme
                         context.setAvailableHaMasterId( roleUri );
                         state = state.masterIsAvailable( context, instanceId, roleUri );
                         log.debug( "Got masterIsAvailable(" + instanceId + "), moved to " + state + " from " +
-                                oldState );
+                                   oldState );
                         final HighAvailabilityMemberChangeEvent event = new HighAvailabilityMemberChangeEvent( oldState,
                                 state, instanceId, roleUri );
+
                         Listeners.notifyListeners( memberListeners,
                                 new Listeners.Notification<HighAvailabilityMemberListener>()
                                 {
@@ -204,6 +206,7 @@ public class HighAvailabilityMemberStateMachine extends LifecycleAdapter impleme
                                     }
                                 } );
 
+                        System.out.println("**HAMSM#memberIsAvailable " + oldState + " " + state);
                         if ( oldState == HighAvailabilityMemberState.TO_MASTER && state ==
                                 HighAvailabilityMemberState.MASTER )
                         {
@@ -238,6 +241,7 @@ public class HighAvailabilityMemberStateMachine extends LifecycleAdapter impleme
             }
             catch ( Throwable throwable )
             {
+                throwable.printStackTrace();
                 log.warn( "Exception while receiving member availability notification", throwable );
             }
         }

@@ -7,7 +7,10 @@ import com.hazelcast.core.EntryAdapter;
 import com.hazelcast.core.EntryEvent;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
+import com.hazelcast.core.ITopic;
 import com.hazelcast.core.MapEvent;
+import com.hazelcast.core.Message;
+import com.hazelcast.core.MessageListener;
 
 import org.neo4j.cluster.client.HazelcastLifecycle;
 import org.neo4j.ha.MyElection;
@@ -29,35 +32,30 @@ public class ElectionOutcomeWhiteboard extends LifecycleAdapter
     {
         this.hazelcastLifecycle = hazelcastLifecycle;
         this.election = election;
-        hazelcastLifecycle.addStartupListener( new HazelcastLifecycle.StartupListener()
+        this.hazelcastLifecycle.addStartupListener( new HazelcastLifecycle.StartupListener()
         {
             @Override
             public void hazelcastStarted( final HazelcastInstance hazelcastInstance )
             {
-                final IMap<Integer, HighAvailabilityMemberChangeEvent> map = hazelcastInstance.getMap( MAP_ROLES );
-                map.addEntryListener( new EntryAdapter<Integer, HighAvailabilityMemberChangeEvent>()
+                final ITopic<HighAvailabilityMemberChangeEvent> topic = hazelcastInstance.getTopic( MAP_ROLES );
+                topic.addMessageListener( new MessageListener<HighAvailabilityMemberChangeEvent>()
                 {
                     @Override
-                    public void entryUpdated( EntryEvent<Integer, HighAvailabilityMemberChangeEvent> event )
+                    public void onMessage( Message<HighAvailabilityMemberChangeEvent> message )
                     {
-                        if ( event.getKey().equals(hazelcastLifecycle.myId().toIntegerIndex()) )
+                        HighAvailabilityMemberChangeEvent event = message.getMessageObject();
+                        if ( event.getInstanceId().toIntegerIndex() == hazelcastLifecycle.myId().toIntegerIndex() )
                         {
-                            notifyElectionOutcome( event.getValue() );
+                            System.out.println("*&*&*& notify masterIsElected " + event);
+                            notifyElectionOutcome( event );
                         }
                     }
+                } );
 
-                    @Override
-                    public void entryAdded( EntryEvent<Integer, HighAvailabilityMemberChangeEvent> event )
-                    {
-                        if ( event.getKey().equals(hazelcastLifecycle.myId().toIntegerIndex()) )
-                        {
-                            notifyElectionOutcome( event.getValue() );
-                        }
-                    }
-                }, true );
+                final IMap<Integer, HighAvailabilityMemberChangeEvent> map = hazelcastInstance.getMap( MAP_ROLES );
                 HighAvailabilityMemberChangeEvent availabilityState = map.get( hazelcastLifecycle.myId().toIntegerIndex() );
-
                 notifyElectionOutcome( availabilityState );
+
 
                 ElectionOutcomeWhiteboard.this.election.addOutcomeListener( new MyElection.OutcomeListener()
                 {
@@ -65,6 +63,7 @@ public class ElectionOutcomeWhiteboard extends LifecycleAdapter
                     public void elected( HighAvailabilityMemberChangeEvent event )
                     {
                         map.put( event.getInstanceId().toIntegerIndex(), event );
+                        topic.publish( event );
                     }
                 } );
             }

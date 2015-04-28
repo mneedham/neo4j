@@ -38,8 +38,6 @@ public interface ClusterMemberListener extends ClusterMemberAvailabilityListener
      */
     void coordinatorIsElected( InstanceId coordinatorId );
 
-
-
     void memberIsFailed( InstanceId instanceId );
 
     void memberIsAlive( InstanceId instanceId );

@@ -8,6 +8,9 @@ import com.hazelcast.core.EntryAdapter;
 import com.hazelcast.core.EntryEvent;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
+import com.hazelcast.core.ITopic;
+import com.hazelcast.core.Message;
+import com.hazelcast.core.MessageListener;
 
 import org.neo4j.cluster.InstanceId;
 import org.neo4j.cluster.client.HazelcastLifecycle;
@@ -27,6 +30,7 @@ public class MemberAvailabilityWhiteboard extends LifecycleAdapter implements Cl
     private List<ClusterMemberListener> listeners = new ArrayList<>();
     public static final String MAP_AVAILABILITY = "AVAILABILITY";
     private IMap<Integer, ClusterMemberAvailabilityState> map;
+    private ITopic<ClusterMemberAvailabilityState> topic;
 
     public MemberAvailabilityWhiteboard( final HazelcastLifecycle hazelcastLifecycle )
     {
@@ -36,30 +40,28 @@ public class MemberAvailabilityWhiteboard extends LifecycleAdapter implements Cl
         {
             @Override public void hazelcastStarted( HazelcastInstance hazelcastInstance )
             {
-                map = hazelcastInstance.getMap( MAP_AVAILABILITY );
-                map.addEntryListener( new EntryAdapter<Integer, ClusterMemberAvailabilityState>()
+                topic = hazelcastInstance.getTopic( MAP_AVAILABILITY );
+                topic.addMessageListener( new MessageListener<ClusterMemberAvailabilityState>()
                 {
                     @Override
-                    public void entryUpdated( EntryEvent<Integer, ClusterMemberAvailabilityState> event )
+                    public void onMessage( Message<ClusterMemberAvailabilityState> message )
                     {
-                        if ( event.getKey().equals(hazelcastLifecycle.myId().toIntegerIndex()) )
-                        {
-                            notifyAvailability( event.getValue() );
-                        }
-                    }
+                        ClusterMemberAvailabilityState state = message.getMessageObject();
 
-                    @Override
-                    public void entryAdded( EntryEvent<Integer, ClusterMemberAvailabilityState> event )
-                    {
-                        if ( event.getKey().equals(hazelcastLifecycle.myId().toIntegerIndex()) )
+                        if ( state.getInstanceId().toIntegerIndex() == hazelcastLifecycle.myId().toIntegerIndex() )
                         {
-                            notifyAvailability( event.getValue() );
+                            System.out.println("()()() notifying memberIsAvailable " + state);
+                            notifyAvailability( state );
                         }
                     }
-                }, true );
+                } );
+
+                map = hazelcastInstance.getMap( MAP_AVAILABILITY );
+
                 ClusterMemberAvailabilityState availabilityState =
                         map.get( hazelcastLifecycle.myId().toIntegerIndex() );
                 notifyAvailability( availabilityState );
+
             }
         } );
 
@@ -67,6 +69,7 @@ public class MemberAvailabilityWhiteboard extends LifecycleAdapter implements Cl
 
     private void notifyAvailability( ClusterMemberAvailabilityState availabilityState )
     {
+        System.out.println("*MemberAvailabilityWhiteBoard#notifying " + listeners.size() + " listeners");
         if ( availabilityState != null )
         {
             for ( ClusterMemberListener listener : listeners )
@@ -109,15 +112,20 @@ public class MemberAvailabilityWhiteboard extends LifecycleAdapter implements Cl
     public void memberIsAvailable( String role, URI roleUri, StoreId storeId )
     {
         InstanceId instanceId = hazelcastLifecycle.myId();
-        map.put( instanceId.toIntegerIndex(),
-                new ClusterMemberAvailabilityState( instanceId, role, FAKE_URI, storeId, true ) );
+        ClusterMemberAvailabilityState state =
+                new ClusterMemberAvailabilityState( instanceId, role, FAKE_URI, storeId, true );
+        map.put( instanceId.toIntegerIndex(), state );
+        topic.publish( state );
     }
 
     @Override
     public void memberIsUnavailable( String role )
     {
         InstanceId instanceId = hazelcastLifecycle.myId();
+        ClusterMemberAvailabilityState state =
+            new ClusterMemberAvailabilityState( instanceId, role, FAKE_URI, null, false );
         map.put( instanceId.toIntegerIndex(),
-                new ClusterMemberAvailabilityState( instanceId, role, FAKE_URI, null, false ) );
+                state );
+        topic.publish( state );
     }
 }

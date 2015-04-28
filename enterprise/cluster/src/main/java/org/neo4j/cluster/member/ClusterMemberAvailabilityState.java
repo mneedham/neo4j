@@ -48,4 +48,16 @@ public class ClusterMemberAvailabilityState implements Serializable
     {
         return available;
     }
+
+    @Override
+    public String toString()
+    {
+        return "ClusterMemberAvailabilityState{" +
+               "instanceId=" + instanceId +
+               ", role='" + role + '\'' +
+               ", atUri=" + atUri +
+               ", storeId=" + storeId +
+               ", available=" + available +
+               '}';
+    }
 }

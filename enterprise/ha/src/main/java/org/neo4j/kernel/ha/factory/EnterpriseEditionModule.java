@@ -71,6 +71,7 @@ import org.neo4j.kernel.ha.cluster.HighAvailabilityMemberListener;
 import org.neo4j.kernel.ha.cluster.HighAvailabilityMemberState;
 import org.neo4j.kernel.ha.cluster.HighAvailabilityMemberStateMachine;
 import org.neo4j.kernel.ha.cluster.HighAvailabilityModeSwitcher;
+import org.neo4j.kernel.ha.cluster.SimpleHighAvailabilityMemberContext;
 import org.neo4j.kernel.ha.cluster.SwitchToMaster;
 import org.neo4j.kernel.ha.cluster.SwitchToSlave;
 import org.neo4j.kernel.ha.cluster.member.ClusterMembers;
@@ -264,15 +265,16 @@ public class EnterpriseEditionModule
 //            }
 //        } );
 
-//        HighAvailabilityMemberContext localMemberContext = new SimpleHighAvailabilityMemberContext( clusterClient
-//                .getServerId(), config.get( HaSettings.slave_only ) );
+        HighAvailabilityMemberContext localMemberContext = new SimpleHighAvailabilityMemberContext(
+                new InstanceId(config.get( ClusterSettings.server_id ).toIntegerIndex()) ,
+                config.get( HaSettings.slave_only ) );
 
 
 //        PaxosClusterMemberAvailability localClusterMemberAvailability = new PaxosClusterMemberAvailability(
 //                clusterClient.getServerId(), clusterClient, clusterClient, logging.getInternalLogProvider(), objectStreamFactory,
 //                objectStreamFactory );
 //
-//        memberContextDelegateInvocationHandler.setDelegate( localMemberContext );
+        memberContextDelegateInvocationHandler.setDelegate( localMemberContext );
 //        clusterEventsDelegateInvocationHandler.setDelegate( localClusterEvents );
 //        clusterMemberAvailabilityDelegateInvocationHandler.setDelegate( localClusterMemberAvailability );
 

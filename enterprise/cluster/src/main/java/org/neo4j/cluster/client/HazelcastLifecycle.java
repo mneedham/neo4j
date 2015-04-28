@@ -123,9 +123,9 @@ public class HazelcastLifecycle extends LifecycleAdapter
 
 
         List<HostnamePort> hostnamePorts = Arrays.asList(
-                new HostnamePort( "192.168.1.23:5701" ),
-                new HostnamePort( "192.168.1.23:5702" ),
-                new HostnamePort( "192.168.1.23:5703" ) );
+                new HostnamePort( "192.168.1.11:5701" ),
+                new HostnamePort( "192.168.1.11:5702" ),
+                new HostnamePort( "192.168.1.11:5703" ) );
 //        List<HostnamePort> hostnamePorts = config.get( ClusterSettings.initial_hosts );
         for ( HostnamePort hostnamePort : hostnamePorts )
         {
