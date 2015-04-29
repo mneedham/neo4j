@@ -1,7 +1,6 @@
 package org.neo4j.cluster.client;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -23,7 +22,6 @@ public class HazelcastLifecycle extends LifecycleAdapter
     private ClusterClient.Configuration config;
     private HazelcastInstance hazelcastInstance;
 
-//    private List<HighAvailabilityMemberChangeEvent> roleListeners = new ArrayList<>();
     private List<StartupListener> startupListeners = new ArrayList<>();
 
     public HazelcastLifecycle( ClusterClient.Configuration config )
@@ -40,73 +38,7 @@ public class HazelcastLifecycle extends LifecycleAdapter
         {
             startupListener.hazelcastStarted( hazelcastInstance );
         }
-//        bindRoleMap();
-//        bindAvailabilityMap();
     }
-
-//    private void bindAvailabilityMap()
-//    {
-//        IMap<Integer, ClusterMemberAvailabilityState> map = hazelcastInstance.getMap( MAP_AVAILABILITY );
-//        map.addEntryListener( new EntryListener<Integer, ClusterMemberAvailabilityState>()
-//        {
-//            @Override public void entryAdded( EntryEvent<Integer, ClusterMemberAvailabilityState> event )
-//            {
-//
-//            }
-//
-//            @Override public void entryRemoved( EntryEvent<Integer, ClusterMemberAvailabilityState> event )
-//            {
-//
-//            }
-//
-//            @Override
-//            public void entryUpdated( EntryEvent<Integer, ClusterMemberAvailabilityState> event )
-//            {
-//                if ( event.getKey() == myId().toIntegerIndex() )
-//                {
-//                    notifyAvailability( event.getValue() );
-//                }
-//            }
-//
-//            @Override public void entryEvicted( EntryEvent<Integer, ClusterMemberAvailabilityState> event )
-//            {
-//
-//            }
-//
-//            @Override public void mapEvicted( MapEvent event )
-//            {
-//
-//            }
-//
-//            @Override public void mapCleared( MapEvent event )
-//            {
-//
-//            }
-//        }, true );
-//        ClusterMemberAvailabilityState availabilityState = map.get( myId().toIntegerIndex() );
-//        notifyAvailability( availabilityState );
-//    }
-//
-//
-//
-//    private void notifyAvailability( ClusterMemberAvailabilityState availabilityState )
-//    {
-//        for ( StartupListener availabilityListener : startupListeners )
-//        {
-//            if ( availabilityState.isAvailable() )
-//            {
-//                availabilityListener.memberIsAvailable(
-//                        availabilityState.getRole(), availabilityState.getInstanceId(),
-//                        availabilityState.getAtUri(), availabilityState.getStoreId() );
-//            }
-//            else
-//            {
-//                availabilityListener.memberIsUnavailable(
-//                        availabilityState.getRole(), availabilityState.getInstanceId() );
-//
-//            }
-//        }
-//    }
 
     @Override
     public void stop() throws Throwable
@@ -122,24 +54,14 @@ public class HazelcastLifecycle extends LifecycleAdapter
         tcpIpConfig.setEnabled( true );
 
 
-        List<HostnamePort> hostnamePorts = Arrays.asList(
-                new HostnamePort( "192.168.1.11:5701" ),
-                new HostnamePort( "192.168.1.11:5702" ),
-                new HostnamePort( "192.168.1.11:5703" ) );
-//        List<HostnamePort> hostnamePorts = config.get( ClusterSettings.initial_hosts );
-        for ( HostnamePort hostnamePort : hostnamePorts )
+        for ( HostnamePort hostnamePort : config.getInitialHosts() )
         {
-            tcpIpConfig.addMember( hostnamePort.getHost() + ":" + hostnamePort.getPort() );
+            tcpIpConfig.addMember( hostnamePort.getHost() + ":" + (hostnamePort.getPort() + 700) );
         }
 
         NetworkConfig networkConfig = new NetworkConfig();
         networkConfig.setPort( config.getAddress().getPort() + 700 );
         networkConfig.setJoin( joinConfig );
-        //        networkConfig.getInterfaces().setInterfaces( Arrays.asList( "127.0.0.1" ) ).setEnabled( true );
-        //        networkConfig.getInterfaces().setInterfaces( Arrays.asList( "192.168.1.12" ) ).setEnabled( true );
-        //        networkConfig.getInterfaces()
-        //                .setInterfaces( Arrays.asList(config.get( ClusterSettings.cluster_server ).getHost()) )
-        //                .setEnabled( true );
         String instanceName = String.valueOf( config.getServerId().toIntegerIndex() );
         System.out.println( "instanceName = " + instanceName );
         com.hazelcast.config.Config c = new com.hazelcast.config.Config( instanceName );
