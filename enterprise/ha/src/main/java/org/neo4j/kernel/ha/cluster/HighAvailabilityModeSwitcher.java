@@ -159,7 +159,6 @@ public class HighAvailabilityModeSwitcher implements HighAvailabilityMemberListe
     @Override
     public void masterIsElected( HighAvailabilityMemberChangeEvent event )
     {
-        System.out.println("*(*(*(need)HAMS received masterIsElected " + event);
         if ( event.getNewState() == event.getOldState() && event.getOldState() == HighAvailabilityMemberState.MASTER )
         {
             clusterMemberAvailability.memberIsAvailable( MASTER, masterHaURI, storeIdSupplier.get() );
@@ -197,7 +196,6 @@ public class HighAvailabilityModeSwitcher implements HighAvailabilityMemberListe
 
     private void stateChanged( HighAvailabilityMemberChangeEvent event )
     {
-        System.out.println( "STATE CHANGED event = " + event );
         if ( event.getNewState() == event.getOldState() )
         {
             /*
@@ -247,24 +245,19 @@ public class HighAvailabilityModeSwitcher implements HighAvailabilityMemberListe
 
     private void switchToMaster()
     {
-        System.out.println(">>>>HAMS#switchToMaster");
         final CancellationHandle cancellationHandle = new CancellationHandle();
         startModeSwitching( new Runnable()
         {
             @Override
             public void run()
             {
-                System.out.println(">>>>HAMS#switchToMaster Runnable");
-                System.out.println( "currentTargetState = " + currentTargetState );
                 // We just got scheduled. Maybe we are already obsolete - test
                 if ( cancellationHandle.cancellationRequested() )
                 {
-                    System.out.println( "currentTargetState = " + currentTargetState );
                     msgLog.info( "Switch to master cancelled in the beginning of switching to master." );
                     return;
                 }
 
-                System.out.println( "currentTargetState = " + currentTargetState );
                 if ( currentTargetState != HighAvailabilityMemberState.TO_MASTER )
                 {
                     return;
@@ -275,7 +268,6 @@ public class HighAvailabilityModeSwitcher implements HighAvailabilityMemberListe
 
                 try
                 {
-                    System.out.println(">>>>HAMS#switchToMaster.switchToMaster");
                     masterHaURI = switchToMaster.switchToMaster( haCommunicationLife, me );
                     canAskForElections.set( true );
                 }

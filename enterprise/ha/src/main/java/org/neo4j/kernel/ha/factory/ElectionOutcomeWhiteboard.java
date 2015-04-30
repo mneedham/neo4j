@@ -56,7 +56,6 @@ public class ElectionOutcomeWhiteboard extends LifecycleAdapter implements Clust
                     public void onMessage( Message<InstanceId> message )
                     {
                         InstanceId instanceId = message.getMessageObject();
-                        System.out.println( "*&*&*& notify masterIsElected " + instanceId );
                         notifyElectionOutcome( instanceId );
                     }
                 } );

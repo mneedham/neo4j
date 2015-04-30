@@ -1049,8 +1049,6 @@ public class ClusterManager
                     @Override
                     public void init( final InitialMembershipEvent event )
                     {
-                        System.out.println("*******HC init event===> " + event);
-
                         myElection.triggerElection( event.getMembers() );
                     }
                 } );

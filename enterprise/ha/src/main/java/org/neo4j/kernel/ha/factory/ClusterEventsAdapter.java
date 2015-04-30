@@ -56,7 +56,6 @@ public class ClusterEventsAdapter implements Cluster
                     @Override
                     public void memberAdded( final MembershipEvent membershipEvent )
                     {
-                        System.out.println("Received memberAdded " + membershipEvent);
                         Listeners.notifyListeners(listeners, new Listeners.Notification<ClusterListener>()
                         {
                             @Override public void notify( ClusterListener listener )

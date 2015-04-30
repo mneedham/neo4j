@@ -66,7 +66,6 @@ public class MemberAvailabilityWhiteboard extends LifecycleAdapter implements Cl
                     {
                         ClusterMemberAvailabilityState state = message.getMessageObject();
 
-                        System.out.println( "()()() notifying memberIsAvailable " + state );
                         notifyAvailability( state );
                     }
                 } );
@@ -84,7 +83,6 @@ public class MemberAvailabilityWhiteboard extends LifecycleAdapter implements Cl
 
     private void notifyAvailability( final ClusterMemberAvailabilityState availabilityState )
     {
-        System.out.println( "*MemberAvailabilityWhiteBoard#notifying " + listeners.size() + " listeners" );
         if ( availabilityState != null )
         {
             Listeners.notifyListeners(listeners, new Listeners.Notification<ClusterMemberListener>()
@@ -117,7 +115,6 @@ public class MemberAvailabilityWhiteboard extends LifecycleAdapter implements Cl
     @Override
     public void addClusterMemberListener( ClusterMemberListener listener )
     {
-        System.out.println( "^^^^ Added cluster member listener" );
         listeners.add( listener );
     }
 

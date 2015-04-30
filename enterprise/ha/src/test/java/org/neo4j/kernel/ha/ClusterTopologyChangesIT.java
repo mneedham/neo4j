@@ -324,8 +324,6 @@ public class ClusterTopologyChangesIT
                     @Override
                     public void init( final InitialMembershipEvent event )
                     {
-                        System.out.println("*******HC init event===> " + event);
-
                         myElection.triggerElection( event.getMembers() );
                     }
                 } );

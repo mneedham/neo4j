@@ -140,7 +140,6 @@ public class HighAvailabilityMemberStateMachine extends LifecycleAdapter impleme
         @Override
         public synchronized void coordinatorIsElected( InstanceId coordinatorId )
         {
-            System.out.println("HAMSM#coordinatorIsElected " + coordinatorId );
             try
             {
                 HighAvailabilityMemberState oldState = state;
@@ -185,7 +184,6 @@ public class HighAvailabilityMemberStateMachine extends LifecycleAdapter impleme
         @Override
         public synchronized void memberIsAvailable( String role, InstanceId instanceId, URI roleUri, StoreId storeId )
         {
-            System.out.println("**HAMSM#&&&&&&memberIsAvailable " + role + " " + instanceId + " " + roleUri + " " + storeId);
             try
             {
                 if ( role.equals( HighAvailabilityModeSwitcher.MASTER ) )
@@ -197,8 +195,6 @@ public class HighAvailabilityMemberStateMachine extends LifecycleAdapter impleme
                         state = state.masterIsAvailable( context, instanceId, roleUri );
                         log.debug( "Got masterIsAvailable(" + instanceId + "), moved to " + state + " from " +
                                    oldState );
-                        System.out.println("Got masterIsAvailable(" + instanceId + "), moved to " + state + " from " +
-                                oldState);
                         final HighAvailabilityMemberChangeEvent event = new HighAvailabilityMemberChangeEvent( oldState,
                                 state, instanceId, roleUri );
 
@@ -225,8 +221,6 @@ public class HighAvailabilityMemberStateMachine extends LifecycleAdapter impleme
                     state = state.slaveIsAvailable( context, instanceId, roleUri );
                     log.debug( "Got slaveIsAvailable(" + instanceId + "), " +
                             "moved to " + state + " from " + oldState );
-                    System.out.println("Got slaveIsAvailable(" + instanceId + "), " +
-                            "moved to " + state + " from " + oldState);
                     final HighAvailabilityMemberChangeEvent event = new HighAvailabilityMemberChangeEvent( oldState,
                             state, instanceId, roleUri );
                     Listeners.notifyListeners( memberListeners,

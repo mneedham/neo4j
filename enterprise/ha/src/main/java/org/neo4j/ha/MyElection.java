@@ -53,13 +53,11 @@ public class MyElection
 
         if ( sortedMembers.isEmpty() )
         {
-            System.out.println( "**** No members :(; aborting election." );
             return;
         }
 
         if ( !sortedMembers.first().localMember() )
         {
-            System.out.println( "**** Not the elector; aborting election." );
             return;
         }
 
