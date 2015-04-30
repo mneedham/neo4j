@@ -83,14 +83,13 @@ public class HazelcastLifecycle extends LifecycleAdapter
         TcpIpConfig tcpIpConfig = joinConfig.getTcpIpConfig();
         tcpIpConfig.setEnabled( true );
 
-
         for ( HostnamePort hostnamePort : config.getInitialHosts() )
         {
-            tcpIpConfig.addMember( hostnamePort.getHost() + ":" + (hostnamePort.getPort() + 700) );
+            tcpIpConfig.addMember( hostnamePort.getHost() + ":" + (hostnamePort.getPort()) );
         }
 
         NetworkConfig networkConfig = new NetworkConfig();
-        networkConfig.setPort( config.getAddress().getPort() + 700 );
+        networkConfig.setPort( config.getAddress().getPort() );
         networkConfig.setJoin( joinConfig );
         String instanceName = String.valueOf( config.getServerId().toIntegerIndex() );
         System.out.println( "instanceName = " + instanceName );
@@ -98,16 +97,11 @@ public class HazelcastLifecycle extends LifecycleAdapter
         c.setProperty( "hazelcast.initial.min.cluster.size", "2" );
         c.setNetworkConfig( networkConfig );
 
-        System.out.println( "creating HC instance with " + c.getInstanceName() );
-
         MemberAttributeConfig memberAttributeConfig = new MemberAttributeConfig();
         memberAttributeConfig.setIntAttribute( SERVER_ID, config.getServerId().toIntegerIndex() );
         String clusterServer = "cluster://" + config.getAddress().getHost() + ":" + config.getAddress().getPort();
         memberAttributeConfig.setStringAttribute( CLUSTER_SERVER, clusterServer );
         c.setMemberAttributeConfig( memberAttributeConfig );
-
-
-
 
         return Hazelcast.newHazelcastInstance( c );
     }
