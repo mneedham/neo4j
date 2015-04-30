@@ -4,8 +4,6 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.hazelcast.core.EntryAdapter;
-import com.hazelcast.core.EntryEvent;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IMap;
 import com.hazelcast.core.ITopic;
@@ -18,6 +16,7 @@ import org.neo4j.cluster.member.ClusterMemberAvailability;
 import org.neo4j.cluster.member.ClusterMemberAvailabilityState;
 import org.neo4j.cluster.member.ClusterMemberEvents;
 import org.neo4j.cluster.member.ClusterMemberListener;
+import org.neo4j.helpers.Listeners;
 import org.neo4j.kernel.impl.store.StoreId;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 
@@ -48,45 +47,46 @@ public class MemberAvailabilityWhiteboard extends LifecycleAdapter implements Cl
                     {
                         ClusterMemberAvailabilityState state = message.getMessageObject();
 
-                        if ( state.getInstanceId().toIntegerIndex() == hazelcastLifecycle.myId().toIntegerIndex() )
-                        {
-                            System.out.println("()()() notifying memberIsAvailable " + state);
-                            notifyAvailability( state );
-                        }
+                        System.out.println( "()()() notifying memberIsAvailable " + state );
+                        notifyAvailability( state );
                     }
                 } );
 
                 map = hazelcastInstance.getMap( MAP_AVAILABILITY );
 
-                ClusterMemberAvailabilityState availabilityState =
-                        map.get( hazelcastLifecycle.myId().toIntegerIndex() );
-                notifyAvailability( availabilityState );
-
+                for ( ClusterMemberAvailabilityState value : map.values() )
+                {
+                    notifyAvailability( value );
+                }
             }
         } );
 
     }
 
-    private void notifyAvailability( ClusterMemberAvailabilityState availabilityState )
+    private void notifyAvailability( final ClusterMemberAvailabilityState availabilityState )
     {
-        System.out.println("*MemberAvailabilityWhiteBoard#notifying " + listeners.size() + " listeners");
+        System.out.println( "*MemberAvailabilityWhiteBoard#notifying " + listeners.size() + " listeners" );
         if ( availabilityState != null )
         {
-            for ( ClusterMemberListener listener : listeners )
+            Listeners.notifyListeners(listeners, new Listeners.Notification<ClusterMemberListener>()
             {
-                if ( availabilityState.isAvailable() )
+                @Override public void notify( ClusterMemberListener listener )
                 {
-                    listener.memberIsAvailable(
-                            availabilityState.getRole(), availabilityState.getInstanceId(),
-                            availabilityState.getAtUri(), availabilityState.getStoreId() );
-                }
-                else
-                {
-                    listener.memberIsUnavailable(
-                            availabilityState.getRole(), availabilityState.getInstanceId() );
+                    if ( availabilityState.isAvailable() )
+                    {
+                        listener.memberIsAvailable(
+                                availabilityState.getRole(), availabilityState.getInstanceId(),
+                                availabilityState.getAtUri(), availabilityState.getStoreId() );
+                    }
+                    else
+                    {
+                        listener.memberIsUnavailable(
+                                availabilityState.getRole(), availabilityState.getInstanceId() );
 
+                    }
                 }
-            }
+            });
+
         }
     }
 
@@ -98,7 +98,7 @@ public class MemberAvailabilityWhiteboard extends LifecycleAdapter implements Cl
     @Override
     public void addClusterMemberListener( ClusterMemberListener listener )
     {
-        System.out.println("^^^^ Added cluster member listener");
+        System.out.println( "^^^^ Added cluster member listener" );
         listeners.add( listener );
     }
 
@@ -113,7 +113,7 @@ public class MemberAvailabilityWhiteboard extends LifecycleAdapter implements Cl
     {
         InstanceId instanceId = hazelcastLifecycle.myId();
         ClusterMemberAvailabilityState state =
-                new ClusterMemberAvailabilityState( instanceId, role, FAKE_URI, storeId, true );
+                new ClusterMemberAvailabilityState( instanceId, role, roleUri, storeId, true );
         map.put( instanceId.toIntegerIndex(), state );
         topic.publish( state );
     }
@@ -123,7 +123,7 @@ public class MemberAvailabilityWhiteboard extends LifecycleAdapter implements Cl
     {
         InstanceId instanceId = hazelcastLifecycle.myId();
         ClusterMemberAvailabilityState state =
-            new ClusterMemberAvailabilityState( instanceId, role, FAKE_URI, null, false );
+                new ClusterMemberAvailabilityState( instanceId, role, null, null, false );
         map.put( instanceId.toIntegerIndex(),
                 state );
         topic.publish( state );

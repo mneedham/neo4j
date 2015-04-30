@@ -3,81 +3,73 @@ package org.neo4j.kernel.ha.factory;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.hazelcast.core.EntryAdapter;
-import com.hazelcast.core.EntryEvent;
 import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.core.IMap;
+import com.hazelcast.core.IAtomicReference;
 import com.hazelcast.core.ITopic;
-import com.hazelcast.core.MapEvent;
 import com.hazelcast.core.Message;
 import com.hazelcast.core.MessageListener;
 
+import org.neo4j.cluster.InstanceId;
 import org.neo4j.cluster.client.HazelcastLifecycle;
+import org.neo4j.cluster.member.ClusterMemberEvents;
+import org.neo4j.cluster.member.ClusterMemberListener;
 import org.neo4j.ha.MyElection;
-import org.neo4j.kernel.ha.cluster.HighAvailabilityMemberChangeEvent;
-import org.neo4j.kernel.ha.cluster.HighAvailabilityMemberListener;
+import org.neo4j.helpers.Listeners;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 
-import static org.neo4j.kernel.ha.cluster.HighAvailabilityMemberState.TO_MASTER;
 
-
-public class ElectionOutcomeWhiteboard extends LifecycleAdapter
+public class ElectionOutcomeWhiteboard extends LifecycleAdapter implements ClusterMemberEvents
 {
-    private final HazelcastLifecycle hazelcastLifecycle;
-    private final MyElection election;
-    private List<HighAvailabilityMemberListener> listeners = new ArrayList<>();
+    private List<ClusterMemberListener> listeners = new ArrayList<>();
     public static final String MAP_ROLES = "ROLES";
 
-    public ElectionOutcomeWhiteboard( final HazelcastLifecycle hazelcastLifecycle, MyElection election )
+    public ElectionOutcomeWhiteboard( final HazelcastLifecycle hazelcastLifecycle, final MyElection election )
     {
-        this.hazelcastLifecycle = hazelcastLifecycle;
-        this.election = election;
-        this.hazelcastLifecycle.addStartupListener( new HazelcastLifecycle.StartupListener()
+        hazelcastLifecycle.addStartupListener( new HazelcastLifecycle.StartupListener()
         {
             @Override
             public void hazelcastStarted( final HazelcastInstance hazelcastInstance )
             {
-                final ITopic<HighAvailabilityMemberChangeEvent> topic = hazelcastInstance.getTopic( MAP_ROLES );
-                topic.addMessageListener( new MessageListener<HighAvailabilityMemberChangeEvent>()
+                final ITopic<InstanceId> topic = hazelcastInstance.getTopic( MAP_ROLES );
+                topic.addMessageListener( new MessageListener<InstanceId>()
                 {
                     @Override
-                    public void onMessage( Message<HighAvailabilityMemberChangeEvent> message )
+                    public void onMessage( Message<InstanceId> message )
                     {
-                        HighAvailabilityMemberChangeEvent event = message.getMessageObject();
-                        if ( event.getInstanceId().toIntegerIndex() == hazelcastLifecycle.myId().toIntegerIndex() )
-                        {
-                            System.out.println("*&*&*& notify masterIsElected " + event);
-                            notifyElectionOutcome( event );
-                        }
+                        InstanceId instanceId = message.getMessageObject();
+                        System.out.println( "*&*&*& notify masterIsElected " + instanceId );
+                        notifyElectionOutcome( instanceId );
                     }
                 } );
 
-                final IMap<Integer, HighAvailabilityMemberChangeEvent> map = hazelcastInstance.getMap( MAP_ROLES );
-                HighAvailabilityMemberChangeEvent availabilityState = map.get( hazelcastLifecycle.myId().toIntegerIndex() );
-                notifyElectionOutcome( availabilityState );
+                final IAtomicReference<InstanceId> coordinator = hazelcastInstance.getAtomicReference( "coordinator" );
+                notifyElectionOutcome( coordinator.get() );
 
-
-                ElectionOutcomeWhiteboard.this.election.addOutcomeListener( new MyElection.OutcomeListener()
+                election.addOutcomeListener( new ClusterMemberListener.Adapter()
                 {
                     @Override
-                    public void elected( HighAvailabilityMemberChangeEvent event )
+                    public void coordinatorIsElected( InstanceId coordinatorId )
                     {
-                        map.put( event.getInstanceId().toIntegerIndex(), event );
-                        topic.publish( event );
+                        coordinator.set( coordinatorId );
+                        topic.publish( coordinatorId );
                     }
+
                 } );
             }
         } );
     }
 
-    private void notifyElectionOutcome( HighAvailabilityMemberChangeEvent state )
+    private void notifyElectionOutcome( final InstanceId instanceId )
     {
-        if ( state != null && state.getNewState().equals( TO_MASTER ) )
+        if ( instanceId != null )
         {
-            for ( HighAvailabilityMemberListener listener : listeners )
+            Listeners.notifyListeners(listeners, new Listeners.Notification<ClusterMemberListener>()
             {
-                listener.masterIsElected( state );
-            }
+                @Override public void notify( ClusterMemberListener listener )
+                {
+                    listener.coordinatorIsElected( instanceId );
+                }
+            });
         }
     }
 
@@ -86,8 +78,13 @@ public class ElectionOutcomeWhiteboard extends LifecycleAdapter
     {
     }
 
-    public void addHighAvailabilityMemberListener( HighAvailabilityMemberListener toAdd )
+    public void addClusterMemberListener( ClusterMemberListener toAdd )
     {
         listeners.add( toAdd );
+    }
+
+    @Override public void removeClusterMemberListener( ClusterMemberListener listener )
+    {
+
     }
 }

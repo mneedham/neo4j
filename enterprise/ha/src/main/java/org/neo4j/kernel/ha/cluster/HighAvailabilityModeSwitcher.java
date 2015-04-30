@@ -197,6 +197,7 @@ public class HighAvailabilityModeSwitcher implements HighAvailabilityMemberListe
 
     private void stateChanged( HighAvailabilityMemberChangeEvent event )
     {
+        System.out.println( "STATE CHANGED event = " + event );
         if ( event.getNewState() == event.getOldState() )
         {
             /*

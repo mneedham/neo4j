@@ -11,14 +11,17 @@ import com.hazelcast.config.TcpIpConfig;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.Member;
-import com.hazelcast.core.MembershipListener;
 
 import org.neo4j.cluster.InstanceId;
 import org.neo4j.helpers.HostnamePort;
+import org.neo4j.helpers.Listeners;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 
 public class HazelcastLifecycle extends LifecycleAdapter
 {
+    public static final String CLUSTER_SERVER = "cluster_server";
+    public static final String SERVER_ID = "server_id";
+
     private ClusterClient.Configuration config;
     private HazelcastInstance hazelcastInstance;
 
@@ -29,15 +32,23 @@ public class HazelcastLifecycle extends LifecycleAdapter
         this.config = config;
     }
 
+    public static InstanceId instanceIdFor( Member member )
+    {
+        return new InstanceId( member.getIntAttribute( "server_id" ) );
+    }
+
     @Override
     public void start() throws Throwable
     {
         hazelcastInstance = createHazelcastInstance();
 
-        for ( StartupListener startupListener : startupListeners )
+        Listeners.notifyListeners(startupListeners, new Listeners.Notification<StartupListener>()
         {
-            startupListener.hazelcastStarted( hazelcastInstance );
-        }
+            @Override public void notify( StartupListener listener )
+            {
+                listener.hazelcastStarted( hazelcastInstance );
+            }
+        });
     }
 
     @Override
@@ -71,15 +82,15 @@ public class HazelcastLifecycle extends LifecycleAdapter
         System.out.println( "creating HC instance with " + c.getInstanceName() );
 
         MemberAttributeConfig memberAttributeConfig = new MemberAttributeConfig();
-        memberAttributeConfig.setIntAttribute( "server_id", config.getServerId().toIntegerIndex() );
+        memberAttributeConfig.setIntAttribute( SERVER_ID, config.getServerId().toIntegerIndex() );
+        String clusterServer = "cluster://" + config.getAddress().getHost() + ":" + config.getAddress().getPort();
+        memberAttributeConfig.setStringAttribute( CLUSTER_SERVER, clusterServer );
         c.setMemberAttributeConfig( memberAttributeConfig );
 
-        return Hazelcast.newHazelcastInstance( c );
-    }
 
-    public String addMembershipListener( MembershipListener membershipListener )
-    {
-        return hazelcastInstance.getCluster().addMembershipListener( membershipListener );
+
+
+        return Hazelcast.newHazelcastInstance( c );
     }
 
     public interface StartupListener
@@ -99,6 +110,6 @@ public class HazelcastLifecycle extends LifecycleAdapter
 
     public InstanceId myId()
     {
-        return new InstanceId( hazelcastInstance.getCluster().getLocalMember().getIntAttribute( "server_id" ) );
+        return instanceIdFor( hazelcastInstance.getCluster().getLocalMember() );
     }
 }

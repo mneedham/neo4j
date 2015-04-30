@@ -984,7 +984,7 @@ public class ClusterManager
                 builder.setConfig( ClusterSettings.initial_hosts, initialHosts.toString() );
                 builder.setConfig( ClusterSettings.server_id, serverId + "" );
                 builder.setConfig( ClusterSettings.cluster_server, "0.0.0.0:" + clusterPort );
-                builder.setConfig( HaSettings.ha_server, ":" + haPort );
+                builder.setConfig( HaSettings.ha_server, "127.0.0.1:" + haPort );
                 builder.setConfig( OnlineBackupSettings.online_backup_enabled, Settings.FALSE );
                 builder.setConfig( commonConfig );
                 if ( instanceConfig.containsKey( serverId.toIntegerIndex() ) )
@@ -1055,7 +1055,20 @@ public class ClusterManager
                     }
                 } );
 
-                arbiters.add( new ClusterMembers( clusterClient, clusterClient, new ClusterMemberEvents()
+                arbiters.add( new ClusterMembers( clusterClient, new ClusterMemberEvents()
+                {
+                    @Override
+                    public void addClusterMemberListener( ClusterMemberListener listener )
+                    {
+                        // noop
+                    }
+
+                    @Override
+                    public void removeClusterMemberListener( ClusterMemberListener listener )
+                    {
+                        // noop
+                    }
+                }, new ClusterMemberEvents()
                 {
                     @Override
                     public void addClusterMemberListener( ClusterMemberListener listener )

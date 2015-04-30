@@ -29,8 +29,6 @@ import org.neo4j.cluster.member.ClusterMemberListener;
 import org.neo4j.cluster.protocol.cluster.Cluster;
 import org.neo4j.cluster.protocol.cluster.ClusterConfiguration;
 import org.neo4j.cluster.protocol.cluster.ClusterListener;
-import org.neo4j.cluster.protocol.heartbeat.Heartbeat;
-import org.neo4j.cluster.protocol.heartbeat.HeartbeatListener;
 import org.neo4j.function.Predicate;
 import org.neo4j.kernel.ha.cluster.HighAvailabilityModeSwitcher;
 import org.neo4j.kernel.impl.store.StoreId;
@@ -67,12 +65,15 @@ public class ClusterMembers
 
     private final Map<InstanceId, ClusterMember> members = new CopyOnWriteHashMap<>();
 
-    public ClusterMembers( Cluster cluster, Heartbeat heartbeat, ClusterMemberEvents events, InstanceId me )
+    public ClusterMembers( Cluster cluster, ClusterMemberEvents electionEvents,
+                           ClusterMemberEvents availabilityEvents, InstanceId me )
     {
         this.me = me;
         cluster.addClusterListener( new HAMClusterListener() );
-        heartbeat.addHeartbeatListener( new HAMHeartbeatListener() );
-        events.addClusterMemberListener( new HAMClusterMemberListener() );
+
+        HAMClusterMemberListener listener = new HAMClusterMemberListener();
+        electionEvents.addClusterMemberListener( listener );
+        availabilityEvents.addClusterMemberListener( listener );
     }
 
     public Iterable<ClusterMember> getMembers()
@@ -107,7 +108,7 @@ public class ClusterMembers
         ClusterMember clusterMember = members.get( server );
         if ( clusterMember == null )
         {
-            throw new IllegalStateException( "Member " + server + " not found in " + new HashMap<>( members ) );
+            clusterMember = new ClusterMember( server );
         }
         return clusterMember;
     }
@@ -124,8 +125,8 @@ public class ClusterMembers
                 newMembers.put( memberClusterId, new ClusterMember( memberClusterId, true ) );
             }
             System.out.println("<<<<<>>>>>> enteredClusterListenerFired newMembers: " + newMembers);
-            members.clear();
-            members.putAll( newMembers );
+//            members.clear();
+//            members.putAll( newMembers );
             System.out.println("<<<<<>>>>>> enteredClusterListenerFired members: " + members.size());
         }
 
@@ -138,6 +139,7 @@ public class ClusterMembers
         @Override
         public void joinedCluster( InstanceId member, URI memberUri )
         {
+            System.out.println("CM#joinedCluster " + member + " " + memberUri);
             members.put( member, new ClusterMember( member ) );
         }
 
@@ -209,24 +211,4 @@ public class ClusterMembers
         }
     }
 
-    private class HAMHeartbeatListener extends HeartbeatListener.Adapter
-    {
-        @Override
-        public void failed( InstanceId server )
-        {
-            if ( members.containsKey( server ) )
-            {
-                members.put( server, getMember( server ).failed() );
-            }
-        }
-
-        @Override
-        public void alive( InstanceId server )
-        {
-            if ( members.containsKey( server ) )
-            {
-                members.put( server, getMember( server ).alive() );
-            }
-        }
-    }
 }

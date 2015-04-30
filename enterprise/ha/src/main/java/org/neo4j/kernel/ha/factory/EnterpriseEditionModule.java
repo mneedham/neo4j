@@ -205,7 +205,7 @@ public class EnterpriseEditionModule
         life.add( hazelcast );
         ElectionOutcomeWhiteboard electionOutcomeWhiteboard = life.add(new ElectionOutcomeWhiteboard( hazelcast, election ));
 
-        final ElectionInstigator electionInstigator = life.add( new ElectionInstigator( hazelcast, election ) );
+        final ElectionInstigator electionInstigator = new ElectionInstigator( hazelcast, election );
 
 //        final ClusterClient clusterClient =
 //                dependencies.satisfyDependency( new ClusterClient( platformModule.monitors, ClusterClient.adapt(
@@ -278,15 +278,15 @@ public class EnterpriseEditionModule
 //        clusterEventsDelegateInvocationHandler.setDelegate( localClusterEvents );
 //        clusterMemberAvailabilityDelegateInvocationHandler.setDelegate( localClusterMemberAvailability );
 
-//        members = dependencies.satisfyDependency( new ClusterMembers( clusterClient, clusterClient,
-//                clusterEvents,
-//                config.get( ClusterSettings.server_id ) ) );
-
         MemberAvailabilityWhiteboard memberAvailabilityWhiteboard = life.add(new MemberAvailabilityWhiteboard(hazelcast));
+        members = dependencies.satisfyDependency( new ClusterMembers( new ClusterEventsAdapter(hazelcast, logging.getInternalLogProvider()),
+                electionOutcomeWhiteboard, memberAvailabilityWhiteboard,
+                config.get( ClusterSettings.server_id ) ) );
+
 
         memberStateMachine = new HighAvailabilityMemberStateMachine(
                 memberContext, platformModule.availabilityGuard, members,
-                memberAvailabilityWhiteboard, logging.getInternalLogProvider() );
+                memberAvailabilityWhiteboard, logging.getInternalLogProvider(), electionOutcomeWhiteboard );
         electionProviderRef.set( memberStateMachine );
 
         HighAvailabilityLogger highAvailabilityLogger = new HighAvailabilityLogger( logging.getUserLogProvider(),
@@ -352,8 +352,8 @@ public class EnterpriseEditionModule
 //        exceptionHandlerRef.set( highAvailabilityModeSwitcher );
 
 //        clusterClient.addBindingListener( highAvailabilityModeSwitcher );
-//        memberStateMachine.addHighAvailabilityMemberListener( highAvailabilityModeSwitcher );
-        electionOutcomeWhiteboard.addHighAvailabilityMemberListener( highAvailabilityModeSwitcher );
+        memberStateMachine.addHighAvailabilityMemberListener( highAvailabilityModeSwitcher );
+//        electionOutcomeWhiteboard.addClusterMemberListener( highAvailabilityModeSwitcher );
 
         /*
          * We always need the mode switcher and we need it to restart on switchover.

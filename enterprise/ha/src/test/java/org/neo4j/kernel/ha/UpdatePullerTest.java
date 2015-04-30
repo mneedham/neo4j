@@ -410,7 +410,7 @@ public class UpdatePullerTest
         {
             super( mock( HighAvailabilityMemberContext.class ), mock( AvailabilityGuard.class ),
                     mock( ClusterMembers.class ), mock( ClusterMemberEvents.class ),
-                    NullLogProvider.getInstance() );
+                    NullLogProvider.getInstance(), mock( ClusterMemberEvents.class ) );
             this.myId = myId;
             this.uri = URI.create( "ha://me" );
         }

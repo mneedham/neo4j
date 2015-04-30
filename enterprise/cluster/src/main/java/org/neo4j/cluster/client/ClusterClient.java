@@ -92,8 +92,6 @@ public class ClusterClient extends LifecycleAdapter
     public static final Setting<Long> clusterJoinTimeout = Settings.setting( "ha.cluster_join_timeout",
             Settings.DURATION, "0s" );
     private final Monitors monitors;
-    private final HazelcastLifecycle hazelcastLifecycle;
-    private final ExecutorLifecycleAdapter hazelcastExecutor;
     private List<ClusterListener> listeners = new ArrayList<>();
     private final LogProvider internalLogProvider;
     private final InitialMembershipListener membershipListener;
@@ -422,19 +420,6 @@ public class ClusterClient extends LifecycleAdapter
         election = server.newClient( Election.class );
 
 
-        hazelcastExecutor = new ExecutorLifecycleAdapter( new Factory<ExecutorService>()
-        {
-            @Override
-            public ExecutorService newInstance()
-            {
-                return Executors.newSingleThreadExecutor( new NamedThreadFactory( "HC", monitors.newMonitor
-                        ( NamedThreadFactory.Monitor.class ) ) );
-            }
-        } );
-        life.add(hazelcastExecutor);
-
-        hazelcastLifecycle = new HazelcastLifecycle( config );
-        life.add( hazelcastLifecycle );
     }
 
     @Override
@@ -447,8 +432,6 @@ public class ClusterClient extends LifecycleAdapter
     public void start() throws Throwable
     {
         life.start();
-
-        hazelcastLifecycle.addMembershipListener( membershipListener );
     }
 
     @Override
