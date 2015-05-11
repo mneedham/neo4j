@@ -74,13 +74,13 @@ public class CommunityEditionModule
 {
     public CommunityEditionModule( PlatformModule platformModule )
     {
-        org.neo4j.kernel.impl.util.Dependencies deps = platformModule.dependencies;
-        Config config = platformModule.config;
-        LogService logging = platformModule.logging;
-        FileSystemAbstraction fileSystem = platformModule.fileSystem;
-        DataSourceManager dataSourceManager = platformModule.dataSourceManager;
-        LifeSupport life = platformModule.life;
-        GraphDatabaseFacade graphDatabaseFacade = platformModule.graphDatabaseFacade;
+        org.neo4j.kernel.impl.util.Dependencies deps = platformModule.getDependencies();
+        Config config = platformModule.getConfig();
+        LogService logging = platformModule.getLogging();
+        FileSystemAbstraction fileSystem = platformModule.getFileSystem();
+        DataSourceManager dataSourceManager = platformModule.getDataSourceManager();
+        LifeSupport life = platformModule.getLife();
+        GraphDatabaseFacade graphDatabaseFacade = platformModule.getGraphDatabaseFacade();
 
         lockManager = deps.satisfyDependency( createLockManager( config, logging ) );
 

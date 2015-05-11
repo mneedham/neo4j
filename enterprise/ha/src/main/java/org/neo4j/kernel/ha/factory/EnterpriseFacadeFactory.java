@@ -21,6 +21,7 @@ package org.neo4j.kernel.ha.factory;
 
 import java.util.Map;
 
+import org.neo4j.cluster.ClusterSettings;
 import org.neo4j.kernel.impl.factory.EditionModule;
 import org.neo4j.kernel.impl.factory.GraphDatabaseFacade;
 import org.neo4j.kernel.impl.factory.GraphDatabaseFacadeFactory;
@@ -30,21 +31,27 @@ import org.neo4j.kernel.impl.factory.PlatformModule;
  * This facade creates instances of the Enterprise edition of Neo4j.
  */
 public class EnterpriseFacadeFactory
-    extends GraphDatabaseFacadeFactory
+        extends GraphDatabaseFacadeFactory
 {
     @Override
-    public GraphDatabaseFacade newFacade( Map<String, String> params, Dependencies dependencies, GraphDatabaseFacade
+    public GraphDatabaseFacade newFacade( Map<String,String> params, Dependencies dependencies, GraphDatabaseFacade
             graphDatabaseFacade )
     {
-        params.put( Configuration.editionName.name(), "Enterprise");
+        params.put( Configuration.editionName.name(), "Enterprise" );
         return super.newFacade( params, dependencies, graphDatabaseFacade );
     }
 
     @Override
     protected EditionModule createEdition( PlatformModule platformModule )
     {
-        return new EnterpriseEditionModule(platformModule);
+        if ( platformModule.getConfig().get( ClusterSettings.consistency_mode ).toLowerCase()
+                .equals( ClusterSettings.ConsistencyMode.CORE_EDGE.name().toLowerCase() ) )
+        {
+            return new EnterpriseCoreEdgeEditionModule( platformModule );
+        }
+        else
+        {
+            return new EnterpriseEditionModule( platformModule );
+        }
     }
-
-
 }

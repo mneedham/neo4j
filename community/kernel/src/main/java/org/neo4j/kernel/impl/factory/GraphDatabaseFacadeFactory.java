@@ -128,16 +128,17 @@ public abstract class GraphDatabaseFacadeFactory
         Throwable error = null;
         try
         {
-            enableAvailabilityLogging( platform.availabilityGuard, platform.logging.getInternalLog( getClass() )
+            enableAvailabilityLogging(
+                    platform.getAvailabilityGuard(), platform.getLogging().getInternalLog( getClass() )
                     .infoLogger() ); // Done after create to avoid a redundant
             // "database is now unavailable"
 
-            platform.life.start();
+            platform.getLife().start();
         }
         catch ( final Throwable throwable )
         {
             error = new RuntimeException( "Error starting " + getClass().getName() + ", " +
-                    platform.storeDir.getAbsolutePath(), throwable );
+                    platform.getStoreDir().getAbsolutePath(), throwable );
         }
         finally
         {

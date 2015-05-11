@@ -46,6 +46,7 @@ import org.neo4j.kernel.impl.pagecache.ConfiguringPageCacheFactory;
 import org.neo4j.kernel.impl.pagecache.PageCacheLifecycle;
 import org.neo4j.kernel.impl.transaction.TransactionCounters;
 import org.neo4j.kernel.impl.transaction.state.DataSourceManager;
+import org.neo4j.kernel.impl.util.Dependencies;
 import org.neo4j.kernel.impl.util.JobScheduler;
 import org.neo4j.kernel.impl.util.Neo4jJobScheduler;
 import org.neo4j.kernel.info.DiagnosticsManager;
@@ -63,37 +64,37 @@ import org.neo4j.logging.NullLogProvider;
  */
 public class PlatformModule
 {
-    public final PageCache pageCache;
+    private final PageCache pageCache;
 
-    public final Monitors monitors;
+    private final Monitors monitors;
 
-    public final GraphDatabaseFacade graphDatabaseFacade;
+    private final GraphDatabaseFacade graphDatabaseFacade;
 
-    public final org.neo4j.kernel.impl.util.Dependencies dependencies;
+    private final org.neo4j.kernel.impl.util.Dependencies dependencies;
 
-    public final LogService logging;
+    private final LogService logging;
 
-    public final LifeSupport life;
+    private final LifeSupport life;
 
-    public final File storeDir;
+    private final File storeDir;
 
-    public final DiagnosticsManager diagnosticsManager;
+    private final DiagnosticsManager diagnosticsManager;
 
-    public final Tracers tracers;
+    private final Tracers tracers;
 
-    public final Config config;
+    private final Config config;
 
-    public final FileSystemAbstraction fileSystem;
+    private final FileSystemAbstraction fileSystem;
 
-    public final DataSourceManager dataSourceManager;
+    private final DataSourceManager dataSourceManager;
 
-    public final KernelExtensions kernelExtensions;
+    private final KernelExtensions kernelExtensions;
 
-    public final JobScheduler jobScheduler;
+    private final JobScheduler jobScheduler;
 
-    public final AvailabilityGuard availabilityGuard;
+    private final AvailabilityGuard availabilityGuard;
 
-    public final TransactionCounters transactionMonitor;
+    private final TransactionCounters transactionMonitor;
 
     public PlatformModule(Map<String, String> params, final GraphDatabaseFacadeFactory.Dependencies externalDependencies,
                                                   final GraphDatabaseFacade graphDatabaseFacade)
@@ -103,68 +104,68 @@ public class PlatformModule
             @Override
             public DependencyResolver get()
             {
-                return dataSourceManager.getDataSource().getDependencyResolver();
+                return getDataSourceManager().getDataSource().getDependencyResolver();
             }
         } );
-        life = dependencies.satisfyDependency( createLife() );
-        this.graphDatabaseFacade = dependencies.satisfyDependency(graphDatabaseFacade);
+        life = getDependencies().satisfyDependency( createLife() );
+        this.graphDatabaseFacade = getDependencies().satisfyDependency( graphDatabaseFacade );
 
         // SPI - provided services
-        config = dependencies.satisfyDependency( new Config( params, getSettingsClasses(
+        config = getDependencies().satisfyDependency( new Config( params, getSettingsClasses(
                 externalDependencies.settingsClasses(), externalDependencies.kernelExtensions() ) ) );
 
-        storeDir = getStoreDir();
+        storeDir = getConfig().get( GraphDatabaseFacadeFactory.Configuration.store_dir );
 
-        kernelExtensions = dependencies.satisfyDependency( new KernelExtensions(
+        kernelExtensions = getDependencies().satisfyDependency( new KernelExtensions(
                 externalDependencies.kernelExtensions(),
-                dependencies,
+                getDependencies(),
                 UnsatisfiedDependencyStrategies.fail() ) );
 
 
-        fileSystem = life.add( dependencies.satisfyDependency( createFileSystemAbstraction() ) );
+        fileSystem = getLife().add( getDependencies().satisfyDependency( createFileSystemAbstraction() ) );
 
         // Component monitoring
         monitors = externalDependencies.monitors() == null ? new Monitors() : externalDependencies.monitors();
-        dependencies.satisfyDependency( monitors );
+        getDependencies().satisfyDependency( getMonitors() );
 
-        jobScheduler = life.add( dependencies.satisfyDependency(createJobScheduler() ));
+        jobScheduler = getLife().add( getDependencies().satisfyDependency( createJobScheduler() ) );
 
         // If no logging was passed in from the outside then create logging and register
         // with this life
-        logging = life.add(dependencies.satisfyDependency(createLogService(externalDependencies.userLogProvider())));
+        logging = getLife().add( getDependencies()
+                .satisfyDependency( createLogService( externalDependencies.userLogProvider() ) ) );
 
-        config.setLogger( logging.getInternalLog( Config.class ) );
+        getConfig().setLogger( getLogging().getInternalLog( Config.class ) );
 
-        StoreLockerLifecycleAdapter storeLocker = life.add( dependencies.satisfyDependency( new StoreLockerLifecycleAdapter(
-                new StoreLocker( fileSystem ), storeDir ) ));
+        StoreLockerLifecycleAdapter storeLocker = getLife()
+                .add( getDependencies().satisfyDependency( new StoreLockerLifecycleAdapter(
+                        new StoreLocker( getFileSystem() ), getStoreDir() ) ) );
 
-        new JvmChecker( logging.getInternalLog( JvmChecker.class ), new JvmMetadataRepository() ).checkJvmCompatibilityAndIssueWarning();
+        new JvmChecker( getLogging().getInternalLog( JvmChecker.class ), new JvmMetadataRepository() ).checkJvmCompatibilityAndIssueWarning();
 
-        String desiredImplementationName = config.get( GraphDatabaseFacadeFactory.Configuration.tracer );
-        tracers = dependencies.satisfyDependency( new Tracers( desiredImplementationName, logging.getInternalLog( Tracers.class ) ) );
-        dependencies.satisfyDependency( tracers.pageCacheTracer );
+        String desiredImplementationName = getConfig().get( GraphDatabaseFacadeFactory.Configuration.tracer );
+        tracers = getDependencies().satisfyDependency(
+                new Tracers( desiredImplementationName, getLogging().getInternalLog( Tracers.class ) ) );
+        getDependencies().satisfyDependency( getTracers().pageCacheTracer );
 
-        pageCache = dependencies.satisfyDependency( createPageCache( fileSystem, config, logging, tracers ) );
-        life.add( new PageCacheLifecycle( pageCache ) );
+        pageCache = getDependencies()
+                .satisfyDependency( createPageCache( getFileSystem(), getConfig(), getLogging(), getTracers() ) );
+        getLife().add( new PageCacheLifecycle( getPageCache() ) );
 
-        diagnosticsManager = life.add( dependencies.satisfyDependency( new DiagnosticsManager( logging.getInternalLog(
-                DiagnosticsManager.class ) ) ) );
+        diagnosticsManager = getLife()
+                .add( getDependencies().satisfyDependency( new DiagnosticsManager( getLogging().getInternalLog(
+                        DiagnosticsManager.class ) ) ) );
 
         // TODO please fix the bad dependencies instead of doing this. Before the removal of JTA
         // this was the place of the XaDataSourceManager. NeoStoreXaDataSource is create further down than
         // (specifically) KernelExtensions, which creates an interesting out-of-order issue with #doAfterRecovery().
         // Anyways please fix this.
-        dataSourceManager = life.add( dependencies.satisfyDependency(new DataSourceManager() ));
+        dataSourceManager = getLife().add( getDependencies().satisfyDependency( new DataSourceManager() ) );
 
         availabilityGuard = new AvailabilityGuard( Clock.SYSTEM_CLOCK );
 
-        transactionMonitor = dependencies.satisfyDependency( createTransactionCounters() );
+        transactionMonitor = getDependencies().satisfyDependency( createTransactionCounters() );
 
-    }
-
-    public File getStoreDir()
-    {
-        return config.get( GraphDatabaseFacadeFactory.Configuration.store_dir );
     }
 
     public LifeSupport createLife()
@@ -184,32 +185,33 @@ public class PlatformModule
             userLogProvider = NullLogProvider.getInstance();
         }
 
-        long internalLogRotationThreshold = config.get( GraphDatabaseSettings.store_internal_log_rotation_threshold );
-        int internalLogRotationDelay = config.get( GraphDatabaseSettings.store_internal_log_rotation_delay );
-        int internalLogMaxArchives = config.get( GraphDatabaseSettings.store_internal_log_max_archives );
+        long internalLogRotationThreshold = getConfig()
+                .get( GraphDatabaseSettings.store_internal_log_rotation_threshold );
+        int internalLogRotationDelay = getConfig().get( GraphDatabaseSettings.store_internal_log_rotation_delay );
+        int internalLogMaxArchives = getConfig().get( GraphDatabaseSettings.store_internal_log_max_archives );
         LogService logService;
         try
         {
-            logService = new StoreLogService( userLogProvider, fileSystem, storeDir,
+            logService = new StoreLogService( userLogProvider, getFileSystem(), getStoreDir(),
                     internalLogRotationThreshold, internalLogRotationDelay, internalLogMaxArchives,
-                    jobScheduler, new Consumer<LogProvider>()
+                    getJobScheduler(), new Consumer<LogProvider>()
             {
                 @Override
                 public void accept( LogProvider logProvider )
                 {
-                    diagnosticsManager.dumpAll( logProvider.getLog( DiagnosticsManager.class ) );
+                    getDiagnosticsManager().dumpAll( logProvider.getLog( DiagnosticsManager.class ) );
                 }
             } );
         } catch ( IOException ex )
         {
             throw new RuntimeException( ex );
         }
-        return life.add( logService );
+        return getLife().add( logService );
     }
 
     protected Neo4jJobScheduler createJobScheduler()
     {
-        return new Neo4jJobScheduler( config.get( GraphDatabaseFacadeFactory.Configuration.editionName ));
+        return new Neo4jJobScheduler( getConfig().get( GraphDatabaseFacadeFactory.Configuration.editionName ));
     }
 
     protected PageCache createPageCache( FileSystemAbstraction fileSystem, Config config, LogService logging, Tracers tracers)
@@ -245,5 +247,85 @@ public class PlatformModule
         }
 
         return totalSettingsClasses;
+    }
+
+    public PageCache getPageCache()
+    {
+        return pageCache;
+    }
+
+    public Monitors getMonitors()
+    {
+        return monitors;
+    }
+
+    public GraphDatabaseFacade getGraphDatabaseFacade()
+    {
+        return graphDatabaseFacade;
+    }
+
+    public Dependencies getDependencies()
+    {
+        return dependencies;
+    }
+
+    public LogService getLogging()
+    {
+        return logging;
+    }
+
+    public LifeSupport getLife()
+    {
+        return life;
+    }
+
+    public DiagnosticsManager getDiagnosticsManager()
+    {
+        return diagnosticsManager;
+    }
+
+    public Tracers getTracers()
+    {
+        return tracers;
+    }
+
+    public Config getConfig()
+    {
+        return config;
+    }
+
+    public FileSystemAbstraction getFileSystem()
+    {
+        return fileSystem;
+    }
+
+    public DataSourceManager getDataSourceManager()
+    {
+        return dataSourceManager;
+    }
+
+    public KernelExtensions getKernelExtensions()
+    {
+        return kernelExtensions;
+    }
+
+    public JobScheduler getJobScheduler()
+    {
+        return jobScheduler;
+    }
+
+    public AvailabilityGuard getAvailabilityGuard()
+    {
+        return availabilityGuard;
+    }
+
+    public TransactionCounters getTransactionMonitor()
+    {
+        return transactionMonitor;
+    }
+
+    public File getStoreDir()
+    {
+        return storeDir;
     }
 }

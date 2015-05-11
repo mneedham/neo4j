@@ -21,6 +21,7 @@ package org.neo4j.cluster;
 
 import java.util.List;
 
+import org.neo4j.cluster.com.message.MessageType;
 import org.neo4j.graphdb.config.Setting;
 import org.neo4j.graphdb.factory.Description;
 import org.neo4j.helpers.HostnamePort;
@@ -143,4 +144,11 @@ public class ClusterSettings
     public static final Setting<Long> election_timeout = setting( "ha.election_timeout", DURATION, paxos_timeout );
 
     public static final Setting<String> instance_name = setting("ha.instance_name", STRING, (String) null);
+
+    public enum ConsistencyMode {
+        CORE_EDGE, EVENTUAL;
+    }
+
+    public static final Setting<String> consistency_mode = setting("ha.consistency_mode", STRING, ConsistencyMode
+            .CORE_EDGE.name().toLowerCase() );
 }

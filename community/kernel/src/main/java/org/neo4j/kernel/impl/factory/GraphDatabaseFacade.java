@@ -26,7 +26,6 @@ import org.neo4j.collection.primitive.PrimitiveLongCollections;
 import org.neo4j.collection.primitive.PrimitiveLongIterator;
 import org.neo4j.function.LongFunction;
 import org.neo4j.function.Supplier;
-import org.neo4j.function.primitive.FunctionFromPrimitiveLong;
 import org.neo4j.graphdb.ConstraintViolationException;
 import org.neo4j.graphdb.DependencyResolver;
 import org.neo4j.graphdb.Label;
@@ -144,17 +143,17 @@ public class GraphDatabaseFacade
         this.nodeManager = dataSourceModule.nodeManager;
         this.indexManager = dataSourceModule.indexManager;
         this.schema = dataSourceModule.schema;
-        this.availabilityGuard = platformModule.availabilityGuard;
-        this.msgLog = platformModule.logging.getInternalLog( getClass() );
-        this.life = platformModule.life;
+        this.availabilityGuard = platformModule.getAvailabilityGuard();
+        this.msgLog = platformModule.getLogging().getInternalLog( getClass() );
+        this.life = platformModule.getLife();
         this.kernel = dataSourceModule.kernelAPI;
         this.queryExecutor = dataSourceModule.queryExecutor;
         this.kernelEventHandlers = dataSourceModule.kernelEventHandlers;
         this.transactionEventHandlers = dataSourceModule.transactionEventHandlers;
         this.transactionStartTimeout = editionModule.transactionStartTimeout;
-        this.dependencies = platformModule.dependencies;
+        this.dependencies = platformModule.getDependencies();
         this.storeId = dataSourceModule.storeId;
-        this.storeDir = platformModule.storeDir.toString();
+        this.storeDir = platformModule.getStoreDir().toString();
 
         initialized = true;
     }
@@ -542,7 +541,7 @@ public class GraphDatabaseFacade
     @Override
     public String toString()
     {
-        return platformModule.config.get( GraphDatabaseFacadeFactory.Configuration.editionName)+" ["+storeDir+"]";
+        return platformModule.getConfig().get( GraphDatabaseFacadeFactory.Configuration.editionName )+" ["+storeDir+"]";
     }
 
     private static class PropertyValueFilteringNodeIdIterator extends PrimitiveLongCollections.PrimitiveLongBaseIterator

@@ -141,13 +141,12 @@ import org.neo4j.logging.LogProvider;
  * This implementation of {@link org.neo4j.kernel.impl.factory.EditionModule} creates the implementations of services
  * that are specific to the Enterprise edition.
  */
-public class EnterpriseEditionModule
-        extends EditionModule
+public class EnterpriseCoreEdgeEditionModule extends EditionModule
 {
     public HighAvailabilityMemberStateMachine memberStateMachine;
     public ClusterMembers members;
 
-    public EnterpriseEditionModule( final PlatformModule platformModule )
+    public EnterpriseCoreEdgeEditionModule( final PlatformModule platformModule )
     {
         final LifeSupport life = platformModule.getLife();
         final Config config = platformModule.getConfig();
@@ -193,26 +192,26 @@ public class EnterpriseEditionModule
                 new Class[]{HighAvailabilityMemberContext.class}, memberContextDelegateInvocationHandler );
         ClusterMemberAvailability clusterMemberAvailability = dependencies.satisfyDependency(
                 (ClusterMemberAvailability) Proxy.newProxyInstance(
-                ClusterMemberAvailability.class.getClassLoader(),
-                new Class[]{ClusterMemberAvailability.class}, clusterMemberAvailabilityDelegateInvocationHandler ) );
+                        ClusterMemberAvailability.class.getClassLoader(),
+                        new Class[]{ClusterMemberAvailability.class}, clusterMemberAvailabilityDelegateInvocationHandler ) );
 
         // TODO There's a cyclical dependency here that should be fixed
         final AtomicReference<HighAvailabilityMemberStateMachine> electionProviderRef = new AtomicReference<>(  );
         ElectionCredentialsProvider electionCredentialsProvider = config.get( HaSettings.slave_only ) ?
-                new NotElectableElectionCredentialsProvider() :
-                new DefaultElectionCredentialsProvider(
-                        config.get( ClusterSettings.server_id ),
-                        new OnDiskLastTxIdGetter( platformModule.getGraphDatabaseFacade() ),
-                        new HighAvailabilityMemberInfoProvider()
-                        {
-                            @Override
-                            public HighAvailabilityMemberState
-                            getHighAvailabilityMemberState()
-                            {
-                                return electionProviderRef.get().getCurrentState();
-                            }
-                        }
-                );
+                                                                  new NotElectableElectionCredentialsProvider() :
+                                                                  new DefaultElectionCredentialsProvider(
+                                                                          config.get( ClusterSettings.server_id ),
+                                                                          new OnDiskLastTxIdGetter( platformModule.getGraphDatabaseFacade() ),
+                                                                          new HighAvailabilityMemberInfoProvider()
+                                                                          {
+                                                                              @Override
+                                                                              public HighAvailabilityMemberState
+                                                                              getHighAvailabilityMemberState()
+                                                                              {
+                                                                                  return electionProviderRef.get().getCurrentState();
+                                                                              }
+                                                                          }
+                                                                  );
 
 
         ObjectStreamFactory objectStreamFactory = new ObjectStreamFactory();
@@ -238,9 +237,9 @@ public class EnterpriseEditionModule
                                 platformModule.getConfig().get( ClusterSettings.server_id ) ) )
                         {
                             logging.getInternalLog( PaxosClusterMemberEvents.class ).error( String.format( "Instance " +
-                                            "%s has" +
-                                            " the same serverId as ours (%s) - will not " +
-                                            "join this cluster",
+                                                                                                           "%s has" +
+                                                                                                           " the same serverId as ours (%s) - will not " +
+                                                                                                           "join this cluster",
                                     member.getRoleUri(), config.get( ClusterSettings.server_id ).toIntegerIndex()
                             ) );
                             return true;
@@ -414,8 +413,8 @@ public class EnterpriseEditionModule
                 {
                     throw new InvalidTransactionTypeKernelException(
                             "Modifying the database schema can only be done on the master server, " +
-                                    "this server is a slave. Please issue schema modification commands directly to " +
-                                    "the master."
+                            "this server is a slave. Please issue schema modification commands directly to " +
+                            "the master."
                     );
                 }
             }
@@ -427,7 +426,7 @@ public class EnterpriseEditionModule
     }
 
     protected TransactionHeaderInformationFactory createHeaderInformationFactory( final HighAvailabilityMemberContext
-                                                                                          memberContext )
+            memberContext )
     {
         return new TransactionHeaderInformationFactory.WithRandomBytes()
         {
@@ -441,11 +440,11 @@ public class EnterpriseEditionModule
     }
 
     protected CommitProcessFactory createCommitProcessFactory( Dependencies dependencies, LogService logging,
-                                                               Monitors monitors, Config config, LifeSupport life,
-                                                               ClusterClient clusterClient, ClusterMembers members,
-                                                               JobScheduler jobScheduler, final Master master,
-                                                               final RequestContextFactory requestContextFactory,
-                                                               final HighAvailabilityMemberStateMachine memberStateMachine )
+            Monitors monitors, Config config, LifeSupport life,
+            ClusterClient clusterClient, ClusterMembers members,
+            JobScheduler jobScheduler, final Master master,
+            final RequestContextFactory requestContextFactory,
+            final HighAvailabilityMemberStateMachine memberStateMachine )
     {
         final DelegateInvocationHandler<TransactionCommitProcess> commitProcessDelegate =
                 new DelegateInvocationHandler<>( TransactionCommitProcess.class );
@@ -463,11 +462,11 @@ public class EnterpriseEditionModule
         {
             @Override
             public TransactionCommitProcess create( LogicalTransactionStore logicalTransactionStore,
-                                                    KernelHealth kernelHealth, NeoStore neoStore,
-                                                    TransactionRepresentationStoreApplier storeApplier,
-                                                    NeoStoreInjectedTransactionValidator txValidator,
-                                                    IndexUpdatesValidator indexUpdatesValidator,
-                                                    TransactionApplicationMode mode, Config config )
+                    KernelHealth kernelHealth, NeoStore neoStore,
+                    TransactionRepresentationStoreApplier storeApplier,
+                    NeoStoreInjectedTransactionValidator txValidator,
+                    IndexUpdatesValidator indexUpdatesValidator,
+                    TransactionApplicationMode mode, Config config )
             {
                 if ( config.get( GraphDatabaseSettings.read_only ) )
                 {
@@ -477,7 +476,7 @@ public class EnterpriseEditionModule
                 {
 
                     TransactionCommitProcess inner = new TransactionRepresentationCommitProcess( logicalTransactionStore, kernelHealth,
-                                                neoStore, storeApplier, indexUpdatesValidator, mode );
+                            neoStore, storeApplier, indexUpdatesValidator, mode );
                     new CommitProcessSwitcher( pusher, master, commitProcessDelegate, requestContextFactory,
                             memberStateMachine, txValidator, inner );
 
@@ -505,7 +504,7 @@ public class EnterpriseEditionModule
     }
 
     protected Locks createLockManager(HighAvailabilityMemberStateMachine memberStateMachine, final Config config, DelegateInvocationHandler<Master> masterDelegateInvocationHandler,
-                                      RequestContextFactory requestContextFactory, AvailabilityGuard availabilityGuard, final LogService logging)
+            RequestContextFactory requestContextFactory, AvailabilityGuard availabilityGuard, final LogService logging)
     {
         DelegateInvocationHandler<Locks> lockManagerDelegate = new DelegateInvocationHandler<>( Locks.class );
         final Locks lockManager = (Locks) Proxy.newProxyInstance(
@@ -523,8 +522,8 @@ public class EnterpriseEditionModule
     }
 
     protected TokenCreator createRelationshipTypeCreator(Config config, HighAvailabilityMemberStateMachine memberStateMachine,
-                                                         DelegateInvocationHandler<Master> masterDelegateInvocationHandler, RequestContextFactory requestContextFactory,
-                                                         Supplier<KernelAPI> kernelProvider)
+            DelegateInvocationHandler<Master> masterDelegateInvocationHandler, RequestContextFactory requestContextFactory,
+            Supplier<KernelAPI> kernelProvider)
     {
         if ( config.get( GraphDatabaseSettings.read_only ) )
         {
@@ -546,8 +545,8 @@ public class EnterpriseEditionModule
     }
 
     protected TokenCreator createPropertyKeyCreator(Config config, HighAvailabilityMemberStateMachine memberStateMachine,
-                                                             DelegateInvocationHandler<Master> masterDelegateInvocationHandler, RequestContextFactory requestContextFactory,
-                                                             Supplier<KernelAPI> kernelProvider)
+            DelegateInvocationHandler<Master> masterDelegateInvocationHandler, RequestContextFactory requestContextFactory,
+            Supplier<KernelAPI> kernelProvider)
     {
         if ( config.get( GraphDatabaseSettings.read_only ) )
         {
@@ -567,8 +566,8 @@ public class EnterpriseEditionModule
     }
 
     protected TokenCreator createLabelIdCreator( Config config, HighAvailabilityMemberStateMachine memberStateMachine,
-                                                             DelegateInvocationHandler<Master> masterDelegateInvocationHandler, RequestContextFactory requestContextFactory,
-                                                             Supplier<KernelAPI> kernelProvider )
+            DelegateInvocationHandler<Master> masterDelegateInvocationHandler, RequestContextFactory requestContextFactory,
+            Supplier<KernelAPI> kernelProvider )
     {
         if ( config.get( GraphDatabaseSettings.read_only ) )
         {
@@ -633,7 +632,7 @@ public class EnterpriseEditionModule
             {
                 try
                 {
-                    EnterpriseEditionModule.this.doAfterRecoveryAndStartup( editionName, dependencyResolver, isMaster );
+                    EnterpriseCoreEdgeEditionModule.this.doAfterRecoveryAndStartup( editionName, dependencyResolver, isMaster );
                 }
                 catch ( Throwable throwable )
                 {
