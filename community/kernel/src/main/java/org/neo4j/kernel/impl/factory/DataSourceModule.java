@@ -114,16 +114,16 @@ public class DataSourceModule
     public DataSourceModule( final GraphDatabaseFacadeFactory.Dependencies dependencies,
                              final PlatformModule platformModule, EditionModule editionModule )
     {
-        final org.neo4j.kernel.impl.util.Dependencies deps = platformModule.dependencies;
-        Config config = platformModule.config;
-        LogService logging = platformModule.logging;
-        FileSystemAbstraction fileSystem = platformModule.fileSystem;
-        DataSourceManager dataSourceManager = platformModule.dataSourceManager;
-        LifeSupport life = platformModule.life;
-        final GraphDatabaseFacade graphDatabaseFacade = platformModule.graphDatabaseFacade;
+        final org.neo4j.kernel.impl.util.Dependencies deps = platformModule.getDependencies();
+        Config config = platformModule.getConfig();
+        LogService logging = platformModule.getLogging();
+        FileSystemAbstraction fileSystem = platformModule.getFileSystem();
+        DataSourceManager dataSourceManager = platformModule.getDataSourceManager();
+        LifeSupport life = platformModule.getLife();
+        final GraphDatabaseFacade graphDatabaseFacade = platformModule.getGraphDatabaseFacade();
         RelationshipTypeTokenHolder relationshipTypeTokenHolder = editionModule.relationshipTypeTokenHolder;
-        File storeDir = platformModule.storeDir;
-        DiagnosticsManager diagnosticsManager = platformModule.diagnosticsManager;
+        File storeDir = platformModule.getTheStoreDir();
+        DiagnosticsManager diagnosticsManager = platformModule.getDiagnosticsManager();
 
         threadToTransactionBridge = deps.satisfyDependency( life.add( new ThreadToStatementContextBridge() ) );
 
@@ -144,7 +144,7 @@ public class DataSourceModule
 
         diagnosticsManager.prependProvider( config );
 
-        life.add( platformModule.kernelExtensions );
+        life.add( platformModule.getKernelExtensions() );
 
         schema = new SchemaImpl( threadToTransactionBridge );
 
@@ -166,14 +166,15 @@ public class DataSourceModule
 
         // Factories for things that needs to be created later
         StoreFactory storeFactory = new StoreFactory( storeDir, config, editionModule.idGeneratorFactory,
-                platformModule.pageCache, fileSystem, logging.getInternalLogProvider(), platformModule.monitors );
+                platformModule.getPageCache(), fileSystem, logging.getInternalLogProvider(),
+                platformModule.getMonitors() );
 
         StartupStatisticsProvider startupStatistics = deps.satisfyDependency( new StartupStatisticsProvider() );
 
         SchemaWriteGuard schemaWriteGuard = deps.satisfyDependency( editionModule.schemaWriteGuard );
 
         StoreUpgrader storeMigrationProcess = new StoreUpgrader( editionModule.upgradeConfiguration, fileSystem,
-                platformModule.monitors.newMonitor( StoreUpgrader.Monitor.class ), logging.getInternalLogProvider() );
+                platformModule.getMonitors().newMonitor( StoreUpgrader.Monitor.class ), logging.getInternalLogProvider() );
 
         VisibleMigrationProgressMonitor progressMonitor =
                 new VisibleMigrationProgressMonitor( logging.getInternalLog( StoreMigrator.class ) );
@@ -194,26 +195,28 @@ public class DataSourceModule
                 logging.getInternalLog( KernelHealth.class ) ) );
 
         neoStoreDataSource = deps.satisfyDependency( new NeoStoreDataSource( storeDir, config,
-                storeFactory, logging.getInternalLogProvider(), platformModule.jobScheduler,
+                storeFactory, logging.getInternalLogProvider(), platformModule.getJobScheduler(),
+
                 new NonTransactionalTokenNameLookup( editionModule.labelTokenHolder,
                         editionModule.propertyKeyTokenHolder ),
                 deps, editionModule.propertyKeyTokenHolder, editionModule.labelTokenHolder, relationshipTypeTokenHolder,
                 editionModule.lockManager, schemaWriteGuard, transactionEventHandlers,
-                platformModule.monitors.newMonitor( IndexingService.Monitor.class ), fileSystem,
-                storeMigrationProcess, platformModule.transactionMonitor, kernelHealth,
-                platformModule.monitors.newMonitor( PhysicalLogFile.Monitor.class ),
+                platformModule.getMonitors().newMonitor( IndexingService.Monitor.class ), fileSystem,
+                storeMigrationProcess, platformModule.getTransactionMonitor(), kernelHealth,
+                platformModule.getMonitors().newMonitor( PhysicalLogFile.Monitor.class ),
                 editionModule.headerInformationFactory, startupStatistics, nodeManager, guard, indexStore,
-                editionModule.commitProcessFactory, platformModule.pageCache, platformModule.monitors,
-                platformModule.tracers ) );
+                editionModule.commitProcessFactory, platformModule.getPageCache(), platformModule.getMonitors(),
+                platformModule.getTracers() ) );
         dataSourceManager.register( neoStoreDataSource );
 
         life.add( new MonitorGc( config, logging.getInternalLog( MonitorGc.class ) ) );
 
         life.add( nodeManager );
 
-        life.add( new DatabaseAvailability( platformModule.availabilityGuard, platformModule.transactionMonitor ) );
+        life.add( new DatabaseAvailability( platformModule.getAvailabilityGuard(),
+                platformModule.getTransactionMonitor() ) );
 
-        life.add( new StartupWaiter( platformModule.availabilityGuard, editionModule.transactionStartTimeout ) );
+        life.add( new StartupWaiter( platformModule.getAvailabilityGuard(), editionModule.transactionStartTimeout ) );
 
         // Kernel event handlers should be the very last, i.e. very first to receive shutdown events
         life.add( kernelEventHandlers );
@@ -230,7 +233,7 @@ public class DataSourceModule
             {
                 if ( engine == null )
                 {
-                    engine = QueryEngineProvider.initialize( platformModule.graphDatabaseFacade,
+                    engine = QueryEngineProvider.initialize( platformModule.getGraphDatabaseFacade(),
                             dependencies.executionEngines() );
 
                     deps.satisfyDependency( engine );

@@ -187,7 +187,7 @@ public class StoreMigrator implements StoreMigrationParticipant
         NeoStoreUtil neoStoreAccess = new NeoStoreUtil( storeDir, fileSystem );
         long lastTxId = neoStoreAccess.getLastCommittedTx();
         long lastTxChecksum = extractTransactionChecksum( neoStoreAccess, storeDir, lastTxId );
-        // Write the tx checksum to file in migrationDir, because we need it later when moving files into storeDir
+        // Write the tx checksum to file in migrationDir, because we need it later when moving files into theFuckingStoreDir
         writeLastTxChecksum( migrationDir, lastTxChecksum );
 
         if ( versionToUpgradeFrom( storeDir ).equals( Legacy21Store.LEGACY_VERSION ) )

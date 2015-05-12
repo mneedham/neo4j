@@ -25,6 +25,7 @@ import org.neo4j.graphdb.config.Setting;
 import org.neo4j.graphdb.factory.Description;
 import org.neo4j.helpers.HostnamePort;
 
+import static org.neo4j.helpers.Settings.*;
 import static org.neo4j.helpers.Settings.ANY;
 import static org.neo4j.helpers.Settings.BOOLEAN;
 import static org.neo4j.helpers.Settings.DURATION;
@@ -38,6 +39,7 @@ import static org.neo4j.helpers.Settings.matches;
 import static org.neo4j.helpers.Settings.setting;
 
 import org.neo4j.helpers.Function;
+import org.neo4j.helpers.Settings;
 
 /**
  * Settings for cluster members
@@ -70,9 +72,17 @@ public class ClusterSettings
     @Description( "Id for a cluster instance. Must be unique within the cluster." )
     public static final Setting<InstanceId> server_id = setting( "ha.server_id", INSTANCE_ID, MANDATORY );
 
+    @Description( "Expected size of core cluster" )
+    public static final Setting<Integer> expected_core_cluster_size = setting( "ha.expected_core_cluster_size", INTEGER, "3" );
+
+
     @Description( "The name of a cluster." )
     public static final Setting<String> cluster_name = setting( "ha.cluster_name", STRING, "neo4j.ha",
             illegalValueMessage( "must be a valid cluster name", matches( ANY ) ) );
+
+    @Description( "The server type." )
+    public static final Setting<String> server_type = setting( "ha.server_type", STRING, "core",
+            illegalValueMessage( "must be a valid server type (core or edge)", matches( ANY ) ) );
 
     @Description( "A comma-separated list of other members of the cluster to join." )
     public static final Setting<List<HostnamePort>> initial_hosts = setting( "ha.initial_hosts",

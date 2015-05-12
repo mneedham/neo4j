@@ -155,7 +155,7 @@ public class StoreUpgrader
             File migrationStateFile = new File( migrationDirectory, MIGRATION_STATUS_FILE );
 
             // We don't need to migrate if we're at the phase where we have migrated successfully
-            // and it's just a matter of moving over the files to the storeDir.
+            // and it's just a matter of moving over the files to the theFuckingStoreDir.
             if ( !migrationStatusIs( migrationStateFile, MigrationStatus.moving ) )
             {
                 cleanMigrationDirectory( migrationDirectory );

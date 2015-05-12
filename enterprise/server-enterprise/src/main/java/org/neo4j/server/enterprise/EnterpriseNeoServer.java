@@ -22,10 +22,13 @@ package org.neo4j.server.enterprise;
 import java.io.File;
 import java.util.Map;
 
+import org.neo4j.cluster.ClusterSettings;
+import org.neo4j.coreedge.HazelcastClusterManagement;
 import org.neo4j.helpers.collection.Iterables;
 import org.neo4j.kernel.GraphDatabaseAPI;
 import org.neo4j.kernel.configuration.Config;
 import org.neo4j.kernel.ha.HighlyAvailableGraphDatabase;
+import org.neo4j.coreedge.CoreGraphDatabase;
 import org.neo4j.kernel.impl.factory.GraphDatabaseFacadeFactory.Dependencies;
 import org.neo4j.kernel.impl.storemigration.StoreUpgrader;
 import org.neo4j.logging.LogProvider;
@@ -53,13 +56,31 @@ public class EnterpriseNeoServer extends AdvancedNeoServer
 {
     public static final String SINGLE = "SINGLE";
     public static final String HA = "HA";
+    public static final String CORE_EDGE = "CORE_EDGE";
+
     private static final GraphFactory ENTERPRISE_FACTORY = new GraphFactory()
     {
         @Override
         public GraphDatabaseAPI newGraphDatabase( Config config, Dependencies dependencies )
         {
+
             File storeDir = config.get( ServerInternalSettings.legacy_db_location );
             return new HighlyAvailableGraphDatabase( storeDir, config.getParams(), dependencies );
+        }
+    };
+
+    private static final GraphFactory CORE_EDGE_FACTORY = new GraphFactory()
+    {
+        @Override
+        public GraphDatabaseAPI newGraphDatabase( Config config, Dependencies dependencies )
+        {
+
+            File storeDir = config.get( ServerInternalSettings.legacy_db_location );
+            return new CoreGraphDatabase(
+                    new HazelcastClusterManagement( config ),
+                    storeDir,
+                    config.getParams(),
+                    dependencies );
         }
     };
 
@@ -68,15 +89,20 @@ public class EnterpriseNeoServer extends AdvancedNeoServer
         super( configurator, createDbFactory( configurator.configuration() ), dependencies, logProvider );
     }
 
-    public EnterpriseNeoServer( ConfigurationBuilder configurator, Database.Factory dbFactory, Dependencies dependencies, LogProvider logProvider )
-    {
-        super( configurator, dbFactory, dependencies, logProvider );
-    }
-
     protected static Database.Factory createDbFactory( Config config )
     {
         final String mode = config.get( ServerInternalSettings.legacy_db_mode ).toUpperCase();
-        return mode.equals( HA ) ? lifecycleManagingDatabase( ENTERPRISE_FACTORY ) : lifecycleManagingDatabase( COMMUNITY_FACTORY );
+
+        switch ( mode )
+        {
+        case HA:
+            return lifecycleManagingDatabase( ENTERPRISE_FACTORY );
+        case CORE_EDGE:
+            return lifecycleManagingDatabase( CORE_EDGE_FACTORY );
+        default:
+            return lifecycleManagingDatabase( COMMUNITY_FACTORY );
+        }
+
     }
 
     @Override
@@ -84,9 +110,9 @@ public class EnterpriseNeoServer extends AdvancedNeoServer
     {
         return new PreFlightTasks( logProvider,
                 new EnsurePreparedForHttpLogging( configurator.configuration() ), new PerformUpgradeIfNecessary(
-                        getConfig(), configurator.getDatabaseTuningProperties(), logProvider,
-                        StoreUpgrader.NO_MONITOR ), new PerformRecoveryIfNecessary( getConfig(),
-                        configurator.getDatabaseTuningProperties(), logProvider ) );
+                getConfig(), configurator.getDatabaseTuningProperties(), logProvider,
+                StoreUpgrader.NO_MONITOR ), new PerformRecoveryIfNecessary( getConfig(),
+                configurator.getDatabaseTuningProperties(), logProvider ) );
     }
 
     @SuppressWarnings( "unchecked" )

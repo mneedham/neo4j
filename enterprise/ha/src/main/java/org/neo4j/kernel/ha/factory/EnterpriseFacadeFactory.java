@@ -27,6 +27,10 @@ import org.neo4j.kernel.impl.factory.GraphDatabaseFacade;
 import org.neo4j.kernel.impl.factory.GraphDatabaseFacadeFactory;
 import org.neo4j.kernel.impl.factory.PlatformModule;
 
+import static org.neo4j.helpers.Settings.STRING;
+import static org.neo4j.helpers.Settings.setting;
+
+
 /**
  * This facade creates instances of the Enterprise edition of Neo4j.
  */
@@ -46,6 +50,6 @@ public class EnterpriseFacadeFactory
     {
         return new EnterpriseEditionModule(platformModule);
     }
-
-
 }
+
+

@@ -39,6 +39,7 @@ import org.neo4j.kernel.ha.com.RequestContextFactory;
 import org.neo4j.kernel.ha.com.master.InvalidEpochException;
 import org.neo4j.kernel.ha.com.master.Master;
 import org.neo4j.kernel.ha.com.master.MasterImpl;
+import org.neo4j.kernel.ha.com.master.UpdateSource;
 import org.neo4j.kernel.ha.com.slave.InvalidEpochExceptionHandler;
 import org.neo4j.kernel.ha.com.slave.MasterClient;
 import org.neo4j.kernel.impl.transaction.log.TransactionIdStore;
@@ -125,7 +126,7 @@ public class UpdatePuller implements Runnable, Lifecycle
     private volatile boolean paused = true;
     private final AtomicInteger targetTicket = new AtomicInteger(), currentTicket = new AtomicInteger();
     private final RequestContextFactory requestContextFactory;
-    private final Master master;
+    private final UpdateSource master;
     private final Log log;
     private final CappedOperation<Pair<String, ? extends Exception>> cappedLogger;
     private final LastUpdateTime lastUpdateTime;
@@ -136,12 +137,13 @@ public class UpdatePuller implements Runnable, Lifecycle
     private Thread me;
 
     public UpdatePuller( HighAvailabilityMemberStateMachine memberStateMachine,
-                         RequestContextFactory requestContextFactory, Master master, LastUpdateTime lastUpdateTime,
+                         RequestContextFactory requestContextFactory, UpdateSource updateSource, LastUpdateTime
+            lastUpdateTime,
                          LogProvider logProvider, InstanceId instanceId, InvalidEpochExceptionHandler invalidEpochHandler )
     {
         this.memberStateMachine = memberStateMachine;
         this.requestContextFactory = requestContextFactory;
-        this.master = master;
+        this.master = updateSource;
         this.lastUpdateTime = lastUpdateTime;
         this.instanceId = instanceId;
         this.invalidEpochHandler = invalidEpochHandler;

@@ -151,18 +151,19 @@ public class EnterpriseEditionModule
 
     public EnterpriseEditionModule( final PlatformModule platformModule )
     {
-        final LifeSupport life = platformModule.life;
-        final FileSystemAbstraction fs = platformModule.fileSystem;
-        final File storeDir = platformModule.storeDir;
-        final Config config = platformModule.config;
-        final Dependencies dependencies = platformModule.dependencies;
-        final LogService logging = platformModule.logging;
-        final Monitors monitors = platformModule.monitors;
+        final LifeSupport life = platformModule.getLife();
+        final File storeDir = platformModule.getTheStoreDir();
+        final Config config = platformModule.getConfig();
+        final Dependencies dependencies = platformModule.getDependencies();
+        final LogService logging = platformModule.getLogging();
+        final Monitors monitors = platformModule.getMonitors();
+        final FileSystemAbstraction fs = platformModule.getFileSystem();
+
 
         // Set Netty logger
         InternalLoggerFactory.setDefaultFactory( new NettyLoggerFactory( logging.getInternalLogProvider() ) );
 
-        life.add( new BranchedDataMigrator( platformModule.storeDir ) );
+        life.add( new BranchedDataMigrator( platformModule.getTheStoreDir() ) );
         DelegateInvocationHandler<Master> masterDelegateInvocationHandler = new DelegateInvocationHandler<>( Master
                 .class );
         Master master = (Master) Proxy.newProxyInstance( Master.class.getClassLoader(), new Class[]{Master.class},
@@ -206,7 +207,7 @@ public class EnterpriseEditionModule
                 new NotElectableElectionCredentialsProvider() :
                 new DefaultElectionCredentialsProvider(
                         config.get( ClusterSettings.server_id ),
-                        new OnDiskLastTxIdGetter( platformModule.graphDatabaseFacade ),
+                        new OnDiskLastTxIdGetter( platformModule.getGraphDatabaseFacade() ),
                         new HighAvailabilityMemberInfoProvider()
                         {
                             @Override
@@ -223,7 +224,7 @@ public class EnterpriseEditionModule
 
 
         final ClusterClient clusterClient =
-                dependencies.satisfyDependency( new ClusterClient( platformModule.monitors, ClusterClient.adapt(
+                dependencies.satisfyDependency( new ClusterClient( platformModule.getMonitors(), ClusterClient.adapt(
                         config ), logging,
                         electionCredentialsProvider,
                         objectStreamFactory, objectStreamFactory ) );
@@ -239,7 +240,7 @@ public class EnterpriseEditionModule
                     if ( member.getRoleUri().getScheme().equals( "ha" ) )
                     {
                         if ( HighAvailabilityModeSwitcher.getServerId( member.getRoleUri() ).equals(
-                                platformModule.config.get( ClusterSettings.server_id ) ) )
+                                platformModule.getConfig().get( ClusterSettings.server_id ) ) )
                         {
                             logging.getInternalLog( PaxosClusterMemberEvents.class ).error( String.format( "Instance " +
                                             "%s has" +
@@ -254,7 +255,7 @@ public class EnterpriseEditionModule
                 return true;
             }
         }, new HANewSnapshotFunction(), objectStreamFactory, objectStreamFactory,
-                platformModule.monitors.newMonitor( NamedThreadFactory.Monitor.class )
+                platformModule.getMonitors().newMonitor( NamedThreadFactory.Monitor.class )
         );
 
         // Force a reelection after we enter the cluster
@@ -294,14 +295,14 @@ public class EnterpriseEditionModule
                 clusterEvents,
                 config.get( ClusterSettings.server_id ) ) );
         memberStateMachine = new HighAvailabilityMemberStateMachine(
-                memberContext, platformModule.availabilityGuard, members,
+                memberContext, platformModule.getAvailabilityGuard(), members,
                 clusterEvents,
                 clusterClient, logging.getInternalLogProvider() );
         electionProviderRef.set( memberStateMachine );
 
         HighAvailabilityLogger highAvailabilityLogger = new HighAvailabilityLogger( logging.getUserLogProvider(),
                 config.get( ClusterSettings.server_id ) );
-        platformModule.availabilityGuard.addListener( highAvailabilityLogger );
+        platformModule.getAvailabilityGuard().addListener( highAvailabilityLogger );
         clusterEvents.addClusterMemberListener( highAvailabilityLogger );
         clusterClient.addClusterListener( highAvailabilityLogger );
 
@@ -335,15 +336,15 @@ public class EnterpriseEditionModule
         SwitchToSlave switchToSlaveInstance = new SwitchToSlave( logging, fs, storeDir, config, dependencies,
                 (HaIdGeneratorFactory) idGeneratorFactory,
                 masterDelegateInvocationHandler, clusterMemberAvailability,
-                requestContextFactory, platformModule.kernelExtensions.listFactories(), masterClientResolver,
+                requestContextFactory, platformModule.getKernelExtensions().listFactories(), masterClientResolver,
                 monitors.newMonitor( ByteCounterMonitor.class, SlaveServer.class ),
                 monitors.newMonitor( RequestMonitor.class, SlaveServer.class ),
                 monitors.newMonitor( SwitchToSlave.Monitor.class ),
                 monitors.newMonitor( StoreCopyClient.Monitor.class ) );
 
-        SwitchToMaster switchToMasterInstance = new SwitchToMaster( logging, platformModule.graphDatabaseFacade,
+        SwitchToMaster switchToMasterInstance = new SwitchToMaster( logging, platformModule.getGraphDatabaseFacade(),
                 (HaIdGeneratorFactory) idGeneratorFactory, config, dependencies.provideDependency( SlaveFactory.class ),
-                masterDelegateInvocationHandler, clusterMemberAvailability, platformModule.dataSourceManager,
+                masterDelegateInvocationHandler, clusterMemberAvailability, platformModule.getDataSourceManager(),
                 monitors.newMonitor( ByteCounterMonitor.class, MasterServer.class ),
                 monitors.newMonitor( RequestMonitor.class, MasterServer.class ),
                 monitors.newMonitor( MasterImpl.Monitor.class, MasterImpl.class ) );
@@ -380,17 +381,19 @@ public class EnterpriseEditionModule
                 new UpdatePuller( memberStateMachine, requestContextFactory, master, lastUpdateTime,
                         logging.getInternalLogProvider(), serverId, invalidEpochHandler ) ) );
         dependencies.satisfyDependency( life.add( new UpdatePullerClient( config.get( HaSettings.pull_interval ),
-                platformModule.jobScheduler, logging.getInternalLogProvider(), updatePuller, platformModule.availabilityGuard ) ) );
+                platformModule.getJobScheduler(), logging.getInternalLogProvider(), updatePuller,
+                platformModule.getAvailabilityGuard() ) ) );
         dependencies.satisfyDependency( life.add( new UpdatePullingTransactionObligationFulfiller(
                 updatePuller, memberStateMachine, serverId, dependencies ) ) );
 
         life.add( paxosLife );
 
-        platformModule.diagnosticsManager.appendProvider( new HighAvailabilityDiagnostics( memberStateMachine,
+        platformModule.getDiagnosticsManager().appendProvider( new HighAvailabilityDiagnostics( memberStateMachine,
                 clusterClient ) );
 
         // Create HA services
-        lockManager = dependencies.satisfyDependency(createLockManager( memberStateMachine, config, masterDelegateInvocationHandler, requestContextFactory, platformModule.availabilityGuard, logging ));
+        lockManager = dependencies.satisfyDependency(createLockManager( memberStateMachine, config, masterDelegateInvocationHandler, requestContextFactory,
+                platformModule.getAvailabilityGuard(), logging ));
 
         propertyKeyTokenHolder = life.add( dependencies.satisfyDependency( new PropertyKeyTokenHolder(
                 createPropertyKeyCreator( config, memberStateMachine, masterDelegateInvocationHandler, requestContextFactory, kernelProvider ) )));
@@ -400,10 +403,11 @@ public class EnterpriseEditionModule
                 createRelationshipTypeCreator( config, memberStateMachine, masterDelegateInvocationHandler,
                         requestContextFactory, kernelProvider ) ) ) );
 
-        life.add( dependencies.satisfyDependency(createKernelData( fs, storeDir, config, platformModule.graphDatabaseFacade, members, lastUpdateTime ) ));
+        life.add( dependencies.satisfyDependency(createKernelData( fs, storeDir,config, platformModule
+                .getGraphDatabaseFacade(), members, lastUpdateTime ) ));
 
         commitProcessFactory = createCommitProcessFactory( dependencies, logging, monitors, config, life,
-                clusterClient, members, platformModule.jobScheduler, master, requestContextFactory, memberStateMachine );
+                clusterClient, members, platformModule.getJobScheduler(), master, requestContextFactory, memberStateMachine );
 
         headerInformationFactory = createHeaderInformationFactory( memberContext );
 

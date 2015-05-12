@@ -36,7 +36,7 @@ import org.neo4j.kernel.impl.transaction.TransactionRepresentation;
  * Represents the master-side of the HA communication between master and slave.
  * A master will receive calls to these methods from slaves when they do stuff.
  */
-public interface Master
+public interface Master extends UpdateSource
 {
     Response<IdAllocation> allocateIds( RequestContext context, IdType idType );
 
@@ -73,7 +73,6 @@ public interface Master
      */
     Response<HandshakeResult> handshake( long txId, StoreId myStoreId );
 
-    Response<Void> pullUpdates( RequestContext context );
 
     Response<Void> copyStore( RequestContext context, StoreWriter writer );
 
@@ -81,3 +80,4 @@ public interface Master
 
     Response<LockResult> acquireSharedLock( RequestContext context, Locks.ResourceType type, long... resourceIds );
 }
+

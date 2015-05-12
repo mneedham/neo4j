@@ -229,7 +229,7 @@ class ExecutionEngine(graph: GraphDatabaseService, logProvider: LogProvider = Nu
     }
     optGraphAs[GraphDatabaseFacade]
       .andThen(g => {
-      Option(g.platformModule.config.get(setting))
+      Option(g.platformModule.getConfig.get(setting))
     })
       .andThen(_.getOrElse(defaultValue))
       .applyOrElse(graph, (_: GraphDatabaseService) => defaultValue)
