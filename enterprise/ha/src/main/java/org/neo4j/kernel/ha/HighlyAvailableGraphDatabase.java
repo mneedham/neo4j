@@ -42,11 +42,11 @@ import static org.neo4j.kernel.GraphDatabaseDependencies.newDependencies;
  */
 public class HighlyAvailableGraphDatabase extends GraphDatabaseFacade
 {
-    private EnterpriseEditionModule enterpriseEditionModule;
+    private EditionModule myEditionModule;
 
     public HighlyAvailableGraphDatabase( String storeDir, Map<String,String> params,
-                                         Iterable<KernelExtensionFactory<?>> kernelExtensions,
-                                         Monitors monitors )
+            Iterable<KernelExtensionFactory<?>> kernelExtensions,
+            Monitors monitors )
     {
         this( storeDir, params, newDependencies()
                 .settingsClasses( GraphDatabaseSettings.class, ClusterSettings.class, HaSettings.class )
@@ -54,14 +54,15 @@ public class HighlyAvailableGraphDatabase extends GraphDatabaseFacade
     }
 
     public HighlyAvailableGraphDatabase( String storeDir, Map<String,String> params,
-                                         Iterable<KernelExtensionFactory<?>> kernelExtensions )
+            Iterable<KernelExtensionFactory<?>> kernelExtensions )
     {
         this( storeDir, params, newDependencies()
                 .settingsClasses( GraphDatabaseSettings.class, ClusterSettings.class, HaSettings.class )
                 .kernelExtensions( kernelExtensions ) );
     }
 
-    public HighlyAvailableGraphDatabase( String storeDir, Map<String,String> params, GraphDatabaseFacadeFactory.Dependencies dependencies )
+    public HighlyAvailableGraphDatabase( String storeDir, Map<String,String> params,
+            GraphDatabaseFacadeFactory.Dependencies dependencies )
     {
         params.put( GraphDatabaseSettings.store_dir.name(), storeDir );
         new EnterpriseFacadeFactory().newFacade( params, dependencies, this );
@@ -71,21 +72,42 @@ public class HighlyAvailableGraphDatabase extends GraphDatabaseFacade
     public void init( PlatformModule platformModule, EditionModule editionModule, DataSourceModule dataSourceModule )
     {
         super.init( platformModule, editionModule, dataSourceModule );
-        this.enterpriseEditionModule = (EnterpriseEditionModule) editionModule;
+        this.myEditionModule = editionModule;
     }
 
     public HighAvailabilityMemberState getInstanceState()
     {
-        return enterpriseEditionModule.memberStateMachine.getCurrentState();
+        if ( myEditionModule instanceof EnterpriseEditionModule )
+        {
+            return ((EnterpriseEditionModule) myEditionModule).memberStateMachine.getCurrentState();
+        }
+        else
+        {
+            throw new RuntimeException( "Return instance state for core or edge server" );
+        }
     }
 
     public String role()
     {
-        return enterpriseEditionModule.members.getSelf().getHARole();
+        if ( myEditionModule instanceof EnterpriseEditionModule )
+        {
+            return ((EnterpriseEditionModule) myEditionModule).members.getSelf().getHARole();
+        }
+        else
+        {
+            throw new RuntimeException( "Return role for core or edge server" );
+        }
     }
 
     public boolean isMaster()
     {
-        return enterpriseEditionModule.memberStateMachine.isMaster();
+        if ( myEditionModule instanceof EnterpriseEditionModule )
+        {
+        return ((EnterpriseEditionModule) myEditionModule).memberStateMachine.isMaster();
+        }
+        else
+        {
+            throw new RuntimeException( "No Such Thing as Master in Core-Edge Setup" );
+        }
     }
 }

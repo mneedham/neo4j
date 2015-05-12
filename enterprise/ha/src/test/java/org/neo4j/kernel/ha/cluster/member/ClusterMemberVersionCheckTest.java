@@ -81,7 +81,7 @@ public class ClusterMemberVersionCheckTest
     public void shouldReturnTrueIfAllAreAvailableAndNoMismatchesFound() throws InterruptedException
     {
         // Given
-        ClusterMembers members = clusterMembersWith(
+        HAClusterMembers members = clusterMembersWith(
                 member( ID_1, MASTER, true, EXPECTED_STORE_ID, true ),
                 member( ID_3, SLAVE, true, EXPECTED_STORE_ID, true ),
                 member( ID_4, SLAVE, true, EXPECTED_STORE_ID, true ),
@@ -102,7 +102,7 @@ public class ClusterMemberVersionCheckTest
     public void shouldReturnTrueIfAllAreAvailableAndNoMismatchesFoundWithOldVersion() throws InterruptedException
     {
         // Given
-        ClusterMembers members = clusterMembersWith(
+        HAClusterMembers members = clusterMembersWith(
                 member( ID_1, MASTER, true, StoreId.DEFAULT, true ),
                 member( ID_3, SLAVE, true, EXPECTED_STORE_ID, true ),
                 member( ID_4, SLAVE, true, StoreId.DEFAULT, true ),
@@ -123,7 +123,7 @@ public class ClusterMemberVersionCheckTest
     public void shouldReturnTrueIfAllAreAvailableAndHaveOldVersions() throws InterruptedException
     {
         // Given
-        ClusterMembers members = clusterMembersWith(
+        HAClusterMembers members = clusterMembersWith(
                 member( ID_1, MASTER, true, StoreId.DEFAULT, true ),
                 member( ID_2, SLAVE, true, StoreId.DEFAULT, true ),
                 member( ID_3, SLAVE, true, StoreId.DEFAULT, true ),
@@ -144,7 +144,7 @@ public class ClusterMemberVersionCheckTest
     public void shouldReturnFalseIfAllAreAvailableAndMismatchesFound() throws InterruptedException
     {
         // Given
-        ClusterMembers members = clusterMembersWith(
+        HAClusterMembers members = clusterMembersWith(
                 member( ID_1, MASTER, true, EXPECTED_STORE_ID, true ),
                 member( ID_3, SLAVE, true, EXPECTED_STORE_ID, true ),
                 member( ID_4, SLAVE, true, UNEXPECTED_STORE_ID, true ),
@@ -166,7 +166,7 @@ public class ClusterMemberVersionCheckTest
     public void shouldReturnFalseIfNotAllAreAvailableAndNoMismatchesFound() throws InterruptedException
     {
         // Given
-        ClusterMembers members = clusterMembersWith(
+        HAClusterMembers members = clusterMembersWith(
                 member( ID_1, MASTER, true, EXPECTED_STORE_ID, true ),
                 member( ID_3, SLAVE, true, EXPECTED_STORE_ID, true ),
                 member( ID_4, SLAVE, true, EXPECTED_STORE_ID, true ),
@@ -189,7 +189,7 @@ public class ClusterMemberVersionCheckTest
     public void shouldReturnTrueIfAllEventuallyBecomeAvailableAndNoMismatchesFound() throws InterruptedException
     {
         // Given
-        ClusterMembers members = changingClusterMembers(
+        HAClusterMembers members = changingClusterMembers(
                 asList( member( ID_1, MASTER, true, EXPECTED_STORE_ID, true ),
                         member( ID_3, SLAVE, true, EXPECTED_STORE_ID, true ),
                         member( ID_4, SLAVE, true, EXPECTED_STORE_ID, true ),
@@ -211,7 +211,7 @@ public class ClusterMemberVersionCheckTest
     public void shouldReturnFalseIfNotAllAreAvailableAndMismatchesFound() throws InterruptedException
     {
         // Given
-        ClusterMembers members = clusterMembersWith(
+        HAClusterMembers members = clusterMembersWith(
                 member( ID_1, MASTER, true, EXPECTED_STORE_ID, true ),
                 member( ID_3, SLAVE, true, EXPECTED_STORE_ID, true ),
                 member( ID_4, SLAVE, true, UNEXPECTED_STORE_ID, true ),
@@ -252,8 +252,8 @@ public class ClusterMemberVersionCheckTest
         ClusterListener[] clusterListenerSlot = new ClusterListener[1];
         Cluster cluster = cluster( clusterListenerSlot );
 
-        final ClusterMembers members =
-                new ClusterMembers( cluster, mock( Heartbeat.class ), clusterMemberEvents, mock( InstanceId.class ) );
+        final HAClusterMembers members =
+                new HAClusterMembers( cluster, mock( Heartbeat.class ), clusterMemberEvents, mock( InstanceId.class ) );
 
         ClusterMemberListener memberListener = memberListenerSlot[0];
         ClusterListener clusterListener = clusterListenerSlot[0];
@@ -298,16 +298,16 @@ public class ClusterMemberVersionCheckTest
         }
     }
 
-    private static ClusterMembers clusterMembersWith( ClusterMember... members )
+    private static HAClusterMembers clusterMembersWith( ClusterMember... members )
     {
-        ClusterMembers clusterMembers = mock( ClusterMembers.class );
+        HAClusterMembers clusterMembers = mock( HAClusterMembers.class );
         when( clusterMembers.getMembers() ).thenReturn( asList( members ) );
         return clusterMembers;
     }
 
-    private static ClusterMembers changingClusterMembers( List<ClusterMember> initialMembers, ClusterMember lastMember )
+    private static HAClusterMembers changingClusterMembers( List<ClusterMember> initialMembers, ClusterMember lastMember )
     {
-        ClusterMembers clusterMembers = mock( ClusterMembers.class );
+        HAClusterMembers clusterMembers = mock( HAClusterMembers.class );
         List<ClusterMember> finalMembers = new ArrayList<>( initialMembers );
         finalMembers.set( finalMembers.size() - 1, lastMember );
         when( clusterMembers.getMembers() ).thenReturn( initialMembers ).thenReturn( finalMembers );

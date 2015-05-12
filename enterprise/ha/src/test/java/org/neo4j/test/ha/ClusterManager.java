@@ -74,7 +74,7 @@ import org.neo4j.kernel.ha.UpdatePullerClient;
 import org.neo4j.kernel.ha.cluster.HighAvailabilityMemberState;
 import org.neo4j.kernel.ha.cluster.HighAvailabilityModeSwitcher;
 import org.neo4j.kernel.ha.cluster.member.ClusterMember;
-import org.neo4j.kernel.ha.cluster.member.ClusterMembers;
+import org.neo4j.kernel.ha.cluster.member.HAClusterMembers;
 import org.neo4j.kernel.ha.com.master.Slaves;
 import org.neo4j.kernel.impl.factory.GraphDatabaseFacadeFactory;
 import org.neo4j.kernel.impl.logging.LogService;
@@ -345,8 +345,8 @@ public class ClusterManager
             @Override
             public boolean test( ManagedCluster cluster )
             {
-                ClusterMembers members =
-                        cluster.getMaster().getDependencyResolver().resolveDependency( ClusterMembers.class );
+                HAClusterMembers members =
+                        cluster.getMaster().getDependencyResolver().resolveDependency( HAClusterMembers.class );
                 return count( members.getMembers() ) == count;
             }
 
@@ -372,7 +372,7 @@ public class ClusterManager
 
                 for ( HighlyAvailableGraphDatabase database : cluster.getAllMembers() )
                 {
-                    ClusterMembers members = database.getDependencyResolver().resolveDependency( ClusterMembers.class );
+                    HAClusterMembers members = database.getDependencyResolver().resolveDependency( HAClusterMembers.class );
 
                     for ( ClusterMember clusterMember : members.getMembers() )
                     {
@@ -411,7 +411,7 @@ public class ClusterManager
 
                 for ( HighlyAvailableGraphDatabase database : cluster.getAllMembers() )
                 {
-                    ClusterMembers members = database.getDependencyResolver().resolveDependency( ClusterMembers.class );
+                    HAClusterMembers members = database.getDependencyResolver().resolveDependency( HAClusterMembers.class );
 
                     if ( count( members.getMembers() ) < nrOfMembers )
                     {
@@ -419,7 +419,7 @@ public class ClusterManager
                     }
                 }
 
-                for ( ClusterMembers clusterMembers : cluster.getArbiters() )
+                for ( HAClusterMembers clusterMembers : cluster.getArbiters() )
                 {
                     if ( count( clusterMembers.getMembers() ) < nrOfMembers )
                     {
@@ -472,7 +472,7 @@ public class ClusterManager
                .append( ":State " ).append( database.getInstanceState() )
                .append( " (" ).append( client.getClusterServer() ).append( "):" ).append( "\n" );
 
-            ClusterMembers members = database.getDependencyResolver().resolveDependency( ClusterMembers.class );
+            HAClusterMembers members = database.getDependencyResolver().resolveDependency( HAClusterMembers.class );
 
             for ( ClusterMember clusterMember : members.getMembers() )
             {
@@ -774,7 +774,7 @@ public class ClusterManager
         private final Clusters.Cluster spec;
         private final String name;
         private final Map<InstanceId,HighlyAvailableGraphDatabaseProxy> members = new ConcurrentHashMap<>();
-        private final List<ClusterMembers> arbiters = new ArrayList<>();
+        private final List<HAClusterMembers> arbiters = new ArrayList<>();
 
         ManagedCluster( Clusters.Cluster spec ) throws URISyntaxException, IOException
         {
@@ -828,7 +828,7 @@ public class ClusterManager
             }, members.values() );
         }
 
-        public Iterable<ClusterMembers> getArbiters()
+        public Iterable<HAClusterMembers> getArbiters()
         {
             return arbiters;
         }
@@ -1019,7 +1019,7 @@ public class ClusterManager
                         NullLogService.getInstance(), new NotElectableElectionCredentialsProvider(), objectStreamFactory,
                         objectStreamFactory );
 
-                arbiters.add( new ClusterMembers( clusterClient, clusterClient, new ClusterMemberEvents()
+                arbiters.add( new HAClusterMembers( clusterClient, clusterClient, new ClusterMemberEvents()
                 {
                     @Override
                     public void addClusterMemberListener( ClusterMemberListener listener )

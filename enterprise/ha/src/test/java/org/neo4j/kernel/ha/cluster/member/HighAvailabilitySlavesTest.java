@@ -72,7 +72,7 @@ public class HighAvailabilitySlavesTest
     public void shouldRegisterItselfOnMonitors()
     {
         // given
-        ClusterMembers clusterMembers = mock( ClusterMembers.class );
+        HAClusterMembers clusterMembers = mock( HAClusterMembers.class );
         Cluster cluster = mock( Cluster.class );
         SlaveFactory slaveFactory = mock( SlaveFactory.class );
 
@@ -88,7 +88,7 @@ public class HighAvailabilitySlavesTest
     {
         // given
         Cluster cluster = mock( Cluster.class );
-        ClusterMembers clusterMembers = mock( ClusterMembers.class );
+        HAClusterMembers clusterMembers = mock( HAClusterMembers.class );
         when( clusterMembers.getMembers() ).thenReturn( Iterables.option( new ClusterMember( INSTANCE_ID ) ) );
 
         SlaveFactory slaveFactory = mock( SlaveFactory.class );
@@ -108,7 +108,7 @@ public class HighAvailabilitySlavesTest
     {
         // given
         Cluster cluster = mock( Cluster.class );
-        ClusterMembers clusterMembers = mock( ClusterMembers.class );
+        HAClusterMembers clusterMembers = mock( HAClusterMembers.class );
         when( clusterMembers.getMembers() ).thenReturn( Iterables.option(
                 new ClusterMember( INSTANCE_ID ).availableAs( SLAVE, HA_URI, StoreId.DEFAULT ).failed() ) );
 
@@ -129,7 +129,7 @@ public class HighAvailabilitySlavesTest
     {
         // given
         Cluster cluster = mock( Cluster.class );
-        ClusterMembers clusterMembers = mock( ClusterMembers.class );
+        HAClusterMembers clusterMembers = mock( HAClusterMembers.class );
         when( clusterMembers.getMembers() ).thenReturn( Iterables.option(
                 new ClusterMember( INSTANCE_ID ).availableAs( SLAVE, HA_URI, StoreId.DEFAULT ) ) );
 
@@ -151,7 +151,7 @@ public class HighAvailabilitySlavesTest
     {
         // given
         Cluster cluster = mock( Cluster.class );
-        ClusterMembers clusterMembers = mock( ClusterMembers.class );
+        HAClusterMembers clusterMembers = mock( HAClusterMembers.class );
         when( clusterMembers.getMembers() ).thenReturn( Iterables.option(
                 new ClusterMember( INSTANCE_ID ).availableAs( SLAVE, HA_URI, StoreId.DEFAULT ) ) );
 
@@ -204,7 +204,7 @@ public class HighAvailabilitySlavesTest
         assertEquals( "Unexpected number of slaves", 1000 - 1, slavesCount ); // One instance is master
     }
 
-    private static ClusterMembers clusterMembersOfSize( int size )
+    private static HAClusterMembers clusterMembersOfSize( int size )
     {
         List<ClusterMember> members = new ArrayList<>( size );
         members.add( mockClusterMemberWithRole( HighAvailabilityModeSwitcher.MASTER ) );
@@ -213,7 +213,7 @@ public class HighAvailabilitySlavesTest
             members.add( mockClusterMemberWithRole( SLAVE ) );
         }
 
-        ClusterMembers clusterMembers = mock( ClusterMembers.class );
+        HAClusterMembers clusterMembers = mock( HAClusterMembers.class );
         when( clusterMembers.getMembers() ).thenReturn( members );
 
         return clusterMembers;

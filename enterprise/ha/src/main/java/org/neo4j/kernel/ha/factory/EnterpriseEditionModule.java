@@ -81,7 +81,7 @@ import org.neo4j.kernel.ha.cluster.HighAvailabilityModeSwitcher;
 import org.neo4j.kernel.ha.cluster.SimpleHighAvailabilityMemberContext;
 import org.neo4j.kernel.ha.cluster.SwitchToMaster;
 import org.neo4j.kernel.ha.cluster.SwitchToSlave;
-import org.neo4j.kernel.ha.cluster.member.ClusterMembers;
+import org.neo4j.kernel.ha.cluster.member.HAClusterMembers;
 import org.neo4j.kernel.ha.cluster.member.HighAvailabilitySlaves;
 import org.neo4j.kernel.ha.com.RequestContextFactory;
 import org.neo4j.kernel.ha.com.master.DefaultSlaveFactory;
@@ -145,7 +145,7 @@ public class EnterpriseEditionModule
         extends EditionModule
 {
     public HighAvailabilityMemberStateMachine memberStateMachine;
-    public ClusterMembers members;
+    public HAClusterMembers members;
 
     public EnterpriseEditionModule( final PlatformModule platformModule )
     {
@@ -286,7 +286,7 @@ public class EnterpriseEditionModule
         clusterEventsDelegateInvocationHandler.setDelegate( localClusterEvents );
         clusterMemberAvailabilityDelegateInvocationHandler.setDelegate( localClusterMemberAvailability );
 
-        members = dependencies.satisfyDependency( new ClusterMembers( clusterClient, clusterClient,
+        members = dependencies.satisfyDependency( new HAClusterMembers( clusterClient, clusterClient,
                 clusterEvents,
                 config.get( ClusterSettings.server_id ) ) );
         memberStateMachine = new HighAvailabilityMemberStateMachine(
@@ -442,7 +442,7 @@ public class EnterpriseEditionModule
 
     protected CommitProcessFactory createCommitProcessFactory( Dependencies dependencies, LogService logging,
                                                                Monitors monitors, Config config, LifeSupport life,
-                                                               ClusterClient clusterClient, ClusterMembers members,
+                                                               ClusterClient clusterClient, HAClusterMembers members,
                                                                JobScheduler jobScheduler, final Master master,
                                                                final RequestContextFactory requestContextFactory,
                                                                final HighAvailabilityMemberStateMachine memberStateMachine )
@@ -587,7 +587,7 @@ public class EnterpriseEditionModule
         }
     }
 
-    protected KernelData createKernelData( Config config, GraphDatabaseAPI graphDb, ClusterMembers members, LastUpdateTime lastUpdateTime)
+    protected KernelData createKernelData( Config config, GraphDatabaseAPI graphDb, HAClusterMembers members, LastUpdateTime lastUpdateTime)
     {
         OnDiskLastTxIdGetter txIdGetter = new OnDiskLastTxIdGetter( graphDb );
         ClusterDatabaseInfoProvider databaseInfo = new ClusterDatabaseInfoProvider(

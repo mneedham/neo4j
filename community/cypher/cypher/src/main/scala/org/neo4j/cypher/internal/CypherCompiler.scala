@@ -153,13 +153,13 @@ class CypherCompiler(graph: GraphDatabaseService,
 
   private def getQueryCacheSize : Int =
     optGraphAs[GraphDatabaseFacade]
-      .andThen(_.platformModule.config.get(GraphDatabaseSettings.query_cache_size).intValue())
+      .andThen(_.platformModule.getConfig.get(GraphDatabaseSettings.query_cache_size).intValue())
       .applyOrElse(graph, (_: GraphDatabaseService) => DEFAULT_QUERY_CACHE_SIZE)
 
 
   private def getMinimumTimeBeforeReplanning: Long = {
     optGraphAs[GraphDatabaseFacade]
-      .andThen(_.platformModule.config.get(GraphDatabaseSettings.cypher_min_replan_interval).longValue())
+      .andThen(_.platformModule.getConfig.get(GraphDatabaseSettings.cypher_min_replan_interval).longValue())
       .applyOrElse(graph, (_: GraphDatabaseService) => DEFAULT_QUERY_PLAN_TTL)
   }
 

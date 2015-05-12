@@ -44,7 +44,7 @@ import org.neo4j.kernel.ha.cluster.HighAvailabilityMemberContext;
 import org.neo4j.kernel.ha.cluster.HighAvailabilityMemberListener;
 import org.neo4j.kernel.ha.cluster.HighAvailabilityMemberState;
 import org.neo4j.kernel.ha.cluster.HighAvailabilityMemberStateMachine;
-import org.neo4j.kernel.ha.cluster.member.ClusterMembers;
+import org.neo4j.kernel.ha.cluster.member.HAClusterMembers;
 import org.neo4j.kernel.ha.com.RequestContextFactory;
 import org.neo4j.kernel.ha.com.master.InvalidEpochException;
 import org.neo4j.kernel.ha.com.master.Master;
@@ -410,7 +410,7 @@ public class UpdatePullerTest
         public CapturingHighAvailabilityMemberStateMachine( InstanceId myId )
         {
             super( mock( HighAvailabilityMemberContext.class ), mock( AvailabilityGuard.class ),
-                    mock( ClusterMembers.class ), mock( ClusterMemberEvents.class ), mock( Election.class ),
+                    mock( HAClusterMembers.class ), mock( ClusterMemberEvents.class ), mock( Election.class ),
                     NullLogProvider.getInstance() );
             this.myId = myId;
             this.uri = URI.create( "ha://me" );

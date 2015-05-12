@@ -28,7 +28,7 @@ import org.neo4j.cluster.protocol.election.Election;
 import org.neo4j.helpers.Listeners;
 import org.neo4j.helpers.collection.Iterables;
 import org.neo4j.kernel.AvailabilityGuard;
-import org.neo4j.kernel.ha.cluster.member.ClusterMembers;
+import org.neo4j.kernel.ha.cluster.member.HAClusterMembers;
 import org.neo4j.kernel.impl.store.StoreId;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 import org.neo4j.logging.Log;
@@ -52,12 +52,12 @@ public class HighAvailabilityMemberStateMachine extends LifecycleAdapter impleme
     private Iterable<HighAvailabilityMemberListener> memberListeners = Listeners.newListeners();
     private volatile HighAvailabilityMemberState state;
     private StateMachineClusterEventListener eventsListener;
-    private final ClusterMembers members;
+    private final HAClusterMembers members;
     private final Election election;
 
     public HighAvailabilityMemberStateMachine( HighAvailabilityMemberContext context,
                                                AvailabilityGuard availabilityGuard,
-                                               ClusterMembers members, ClusterMemberEvents events, Election election,
+                                               HAClusterMembers members, ClusterMemberEvents events, Election election,
                                                LogProvider logProvider )
     {
         this.context = context;
@@ -310,7 +310,7 @@ public class HighAvailabilityMemberStateMachine extends LifecycleAdapter impleme
 
         private long getAliveCount()
         {
-            return Iterables.count( Iterables.filter( ClusterMembers.ALIVE, members.getMembers() ) );
+            return Iterables.count( Iterables.filter( HAClusterMembers.ALIVE, members.getMembers() ) );
         }
 
         private long getTotalCount()

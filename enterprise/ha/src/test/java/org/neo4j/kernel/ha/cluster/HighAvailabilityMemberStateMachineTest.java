@@ -36,7 +36,7 @@ import org.neo4j.cluster.member.ClusterMemberListener;
 import org.neo4j.cluster.protocol.election.Election;
 import org.neo4j.kernel.AvailabilityGuard;
 import org.neo4j.kernel.ha.cluster.member.ClusterMember;
-import org.neo4j.kernel.ha.cluster.member.ClusterMembers;
+import org.neo4j.kernel.ha.cluster.member.HAClusterMembers;
 import org.neo4j.kernel.impl.store.StoreId;
 import org.neo4j.logging.NullLogProvider;
 
@@ -61,7 +61,7 @@ public class HighAvailabilityMemberStateMachineTest
         // Given
         HighAvailabilityMemberContext context = mock( HighAvailabilityMemberContext.class );
         AvailabilityGuard guard = mock( AvailabilityGuard.class );
-        ClusterMembers members = mock( ClusterMembers.class );
+        HAClusterMembers members = mock( HAClusterMembers.class );
         ClusterMemberEvents events = mock( ClusterMemberEvents.class );
         Election election = mock( Election.class );
         HighAvailabilityMemberStateMachine toTest =
@@ -78,7 +78,7 @@ public class HighAvailabilityMemberStateMachineTest
         InstanceId me = new InstanceId( 1 );
         HighAvailabilityMemberContext context = new SimpleHighAvailabilityMemberContext( me, false );
         AvailabilityGuard guard = mock( AvailabilityGuard.class );
-        ClusterMembers members = mock( ClusterMembers.class );
+        HAClusterMembers members = mock( HAClusterMembers.class );
         ClusterMemberEvents events = mock( ClusterMemberEvents.class );
 
         final Set<ClusterMemberListener> listener = new HashSet<>();
@@ -115,7 +115,7 @@ public class HighAvailabilityMemberStateMachineTest
         InstanceId me = new InstanceId( 1 );
         HighAvailabilityMemberContext context = new SimpleHighAvailabilityMemberContext( me, false );
         AvailabilityGuard guard = mock( AvailabilityGuard.class );
-        ClusterMembers members = mock( ClusterMembers.class );
+        HAClusterMembers members = mock( HAClusterMembers.class );
         ClusterMemberEvents events = mock( ClusterMemberEvents.class );
 
         final Set<ClusterMemberListener> listener = new HashSet<>();
@@ -152,7 +152,7 @@ public class HighAvailabilityMemberStateMachineTest
         InstanceId me = new InstanceId( 1 );
         HighAvailabilityMemberContext context = new SimpleHighAvailabilityMemberContext( me, false );
         AvailabilityGuard guard = mock( AvailabilityGuard.class );
-        ClusterMembers members = mock( ClusterMembers.class );
+        HAClusterMembers members = mock( HAClusterMembers.class );
         ClusterMemberEvents events = mock( ClusterMemberEvents.class );
 
         final Set<ClusterMemberListener> listener = new HashSet<>();
@@ -193,7 +193,7 @@ public class HighAvailabilityMemberStateMachineTest
         InstanceId other = new InstanceId( 2 );
         HighAvailabilityMemberContext context = new SimpleHighAvailabilityMemberContext( me, false );
         AvailabilityGuard guard = mock( AvailabilityGuard.class );
-        ClusterMembers members = mock( ClusterMembers.class );
+        HAClusterMembers members = mock( HAClusterMembers.class );
         ClusterMemberEvents events = mock( ClusterMemberEvents.class );
 
         List<ClusterMember> membersList = new LinkedList<>();
@@ -251,7 +251,7 @@ public class HighAvailabilityMemberStateMachineTest
         InstanceId other = new InstanceId( 2 );
         HighAvailabilityMemberContext context = new SimpleHighAvailabilityMemberContext( me, false );
         AvailabilityGuard guard = mock( AvailabilityGuard.class );
-        ClusterMembers members = mock( ClusterMembers.class );
+        HAClusterMembers members = mock( HAClusterMembers.class );
         ClusterMemberEvents events = mock( ClusterMemberEvents.class );
 
         List<ClusterMember> membersList = new LinkedList<>();
@@ -309,7 +309,7 @@ public class HighAvailabilityMemberStateMachineTest
         InstanceId other = new InstanceId( 2 );
         HighAvailabilityMemberContext context = new SimpleHighAvailabilityMemberContext( me, false );
         AvailabilityGuard guard = mock( AvailabilityGuard.class );
-        ClusterMembers members = mock( ClusterMembers.class );
+        HAClusterMembers members = mock( HAClusterMembers.class );
         ClusterMemberEvents events = mock( ClusterMemberEvents.class );
 
         List<ClusterMember> membersList = new LinkedList<>();
@@ -366,7 +366,7 @@ public class HighAvailabilityMemberStateMachineTest
         InstanceId other = new InstanceId( 2 );
         HighAvailabilityMemberContext context = new SimpleHighAvailabilityMemberContext( me, false );
         AvailabilityGuard guard = mock( AvailabilityGuard.class );
-        ClusterMembers members = mock( ClusterMembers.class );
+        HAClusterMembers members = mock( HAClusterMembers.class );
         ClusterMemberEvents events = mock( ClusterMemberEvents.class );
 
         List<ClusterMember> membersList = new LinkedList<>();
@@ -422,7 +422,7 @@ public class HighAvailabilityMemberStateMachineTest
         InstanceId me = new InstanceId( 1 );
         HighAvailabilityMemberContext context = new SimpleHighAvailabilityMemberContext( me, true );
         AvailabilityGuard guard = mock( AvailabilityGuard.class );
-        ClusterMembers members = mock( ClusterMembers.class );
+        HAClusterMembers members = mock( HAClusterMembers.class );
         ClusterMemberEvents events = mock( ClusterMemberEvents.class );
 
         final Set<ClusterMemberListener> listener = new HashSet<>();

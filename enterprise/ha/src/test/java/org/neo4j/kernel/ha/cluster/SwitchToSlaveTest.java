@@ -40,7 +40,7 @@ import org.neo4j.kernel.ha.BranchedDataPolicy;
 import org.neo4j.kernel.ha.DelegateInvocationHandler;
 import org.neo4j.kernel.ha.HaSettings;
 import org.neo4j.kernel.ha.cluster.member.ClusterMember;
-import org.neo4j.kernel.ha.cluster.member.ClusterMembers;
+import org.neo4j.kernel.ha.cluster.member.HAClusterMembers;
 import org.neo4j.kernel.ha.com.RequestContextFactory;
 import org.neo4j.kernel.ha.com.master.HandshakeResult;
 import org.neo4j.kernel.ha.com.slave.MasterClient;
@@ -173,13 +173,13 @@ public class SwitchToSlaveTest
         when( transactionIdStore.getLastCommittedTransactionId() ).thenReturn( TransactionIdStore.BASE_TX_ID );
         when( resolver.resolveDependency( TransactionIdStore.class ) ).thenReturn( transactionIdStore );
 
-        ClusterMembers clusterMembers = mock( ClusterMembers.class );
+        HAClusterMembers clusterMembers = mock( HAClusterMembers.class );
         ClusterMember master = mock( ClusterMember.class );
         when( master.getStoreId() ).thenReturn( new StoreId( 42, 42, 42, 42 ) );
         when( master.getHARole() ).thenReturn( HighAvailabilityModeSwitcher.MASTER );
         when( master.hasRole( eq( HighAvailabilityModeSwitcher.MASTER ) ) ).thenReturn( true );
         when( clusterMembers.getMembers() ).thenReturn( asList( master ) );
-        when( resolver.resolveDependency( ClusterMembers.class ) ).thenReturn( clusterMembers );
+        when( resolver.resolveDependency( HAClusterMembers.class ) ).thenReturn( clusterMembers );
 
         return resolver;
     }

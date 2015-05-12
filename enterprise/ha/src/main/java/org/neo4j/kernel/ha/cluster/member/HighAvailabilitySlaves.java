@@ -39,7 +39,7 @@ import org.neo4j.kernel.lifecycle.Lifecycle;
 import static org.neo4j.helpers.Functions.withDefaults;
 import static org.neo4j.helpers.collection.Iterables.filter;
 import static org.neo4j.helpers.collection.Iterables.map;
-import static org.neo4j.kernel.ha.cluster.member.ClusterMembers.inRole;
+import static org.neo4j.kernel.ha.cluster.member.HAClusterMembers.inRole;
 
 /**
  * Keeps active connections to {@link Slave slaves} for a master to communicate to
@@ -89,7 +89,7 @@ public class HighAvailabilitySlaves implements Lifecycle, Slaves
         // Return all cluster members which are currently SLAVEs,
         // are alive, and convert to Slave with a cache if possible
         return map( withDefaults( slaveForMember(), Functions.map( slaves ) ),
-                filter( ClusterMembers.ALIVE,
+                filter( HAClusterMembers.ALIVE,
                         filter( inRole( HighAvailabilityModeSwitcher.SLAVE ),
                                 clusterMembers.getMembers() ) ) );
     }

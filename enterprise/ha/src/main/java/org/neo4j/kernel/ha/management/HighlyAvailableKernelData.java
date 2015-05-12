@@ -29,6 +29,7 @@ import org.neo4j.kernel.Version;
 import org.neo4j.kernel.configuration.Config;
 import org.neo4j.kernel.ha.cluster.member.ClusterMember;
 import org.neo4j.kernel.ha.cluster.member.ClusterMembers;
+import org.neo4j.kernel.ha.cluster.member.HAClusterMembers;
 import org.neo4j.kernel.lifecycle.Lifecycle;
 import org.neo4j.management.ClusterDatabaseInfo;
 import org.neo4j.management.ClusterMemberInfo;

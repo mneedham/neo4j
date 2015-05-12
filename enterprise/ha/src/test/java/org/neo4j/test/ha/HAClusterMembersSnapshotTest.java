@@ -43,7 +43,7 @@ import static org.neo4j.kernel.ha.cluster.HighAvailabilityModeSwitcher.MASTER;
 import static org.neo4j.kernel.ha.cluster.HighAvailabilityModeSwitcher.SLAVE;
 import static org.neo4j.kernel.impl.store.StoreId.DEFAULT;
 
-public class ClusterMembersSnapshotTest
+public class HAClusterMembersSnapshotTest
 {
     private static final String URI = "http://me";
 

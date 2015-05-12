@@ -69,6 +69,4 @@ public abstract class EditionModule
         diagnosticsManager.appendProvider( new KernelDiagnostics.StoreFiles( neoStoreDataSource.getStoreDir() ) );
 
     }
-
-
 }

@@ -32,11 +32,11 @@ import org.neo4j.kernel.impl.store.StoreId;
 
 public class ClusterMemberVersionCheck
 {
-    private final ClusterMembers clusterMembers;
+    private final HAClusterMembers clusterMembers;
     private final InstanceId myId;
     private final Clock clock;
 
-    public ClusterMemberVersionCheck( ClusterMembers clusterMembers, InstanceId myId, Clock clock )
+    public ClusterMemberVersionCheck( HAClusterMembers clusterMembers, InstanceId myId, Clock clock )
     {
         this.clusterMembers = clusterMembers;
         this.myId = myId;

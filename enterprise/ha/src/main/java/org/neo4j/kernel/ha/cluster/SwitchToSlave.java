@@ -56,7 +56,7 @@ import org.neo4j.kernel.ha.UpdatePuller;
 import org.neo4j.kernel.ha.cluster.member.ClusterMember;
 import org.neo4j.kernel.ha.cluster.member.ClusterMemberVersionCheck;
 import org.neo4j.kernel.ha.cluster.member.ClusterMemberVersionCheck.Outcome;
-import org.neo4j.kernel.ha.cluster.member.ClusterMembers;
+import org.neo4j.kernel.ha.cluster.member.HAClusterMembers;
 import org.neo4j.kernel.ha.com.RequestContextFactory;
 import org.neo4j.kernel.ha.com.master.HandshakeResult;
 import org.neo4j.kernel.ha.com.master.Master;
@@ -88,7 +88,7 @@ import static org.neo4j.helpers.collection.Iterables.filter;
 import static org.neo4j.helpers.collection.Iterables.first;
 import static org.neo4j.kernel.ha.cluster.HighAvailabilityModeSwitcher.MASTER;
 import static org.neo4j.kernel.ha.cluster.HighAvailabilityModeSwitcher.getServerId;
-import static org.neo4j.kernel.ha.cluster.member.ClusterMembers.inRole;
+import static org.neo4j.kernel.ha.cluster.member.HAClusterMembers.inRole;
 import static org.neo4j.kernel.impl.store.NeoStore.isStorePresent;
 import static org.neo4j.kernel.impl.transaction.log.TransactionIdStore.BASE_TX_ID;
 
@@ -289,7 +289,7 @@ public class SwitchToSlave
 
             if ( masterIsOld )
             {
-                ClusterMembers members = resolver.resolveDependency( ClusterMembers.class );
+                HAClusterMembers members = resolver.resolveDependency( HAClusterMembers.class );
                 ClusterMemberVersionCheck checker = new ClusterMemberVersionCheck( members, myId, SYSTEM_CLOCK );
 
                 Outcome outcome = checker.doVersionCheck( myStoreId, VERSION_CHECK_TIMEOUT, SECONDS );
@@ -367,7 +367,7 @@ public class SwitchToSlave
         {
             StoreId myStoreId = neoDataSource.getStoreId();
 
-            ClusterMembers clusterMembers = resolver.resolveDependency( ClusterMembers.class );
+            HAClusterMembers clusterMembers = resolver.resolveDependency( HAClusterMembers.class );
             ClusterMember master = first( filter( inRole( MASTER ), clusterMembers.getMembers() ) );
             StoreId masterStoreId = master.getStoreId();
 
