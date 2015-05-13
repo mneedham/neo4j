@@ -65,7 +65,7 @@ public class CoreEdgeClusterIT
         Cluster cluster = Cluster.start( dir.directory(), 3, 0 );
 
         // when
-        cluster.removeCoreServer();
+        cluster.removeCoreServerWithServerId( 1 );
 
         // then
         assertEquals( 2, cluster.getCoreServers() );
@@ -95,8 +95,24 @@ public class CoreEdgeClusterIT
         Cluster cluster = Cluster.start( dir.directory(), 3, 0 );
 
         // when
-        cluster.removeCoreServer();
-        cluster.addCoreServer(4);
+        cluster.removeCoreServerWithServerId( 1 );
+        cluster.addCoreServerWithServerId( 4 );
+
+        // then
+        assertEquals( 3, cluster.getCoreServers() );
+
+        cluster.shutdown();
+    }
+
+    @Test
+    public void shouldBeAbleToRemoveACoreServerFromTheClusterAndThenAddItBackIn() throws Exception
+    {
+        // given
+        Cluster cluster = Cluster.start( dir.directory(), 3, 0 );
+
+        // when
+        cluster.removeCoreServerWithServerId( 1 );
+        cluster.addCoreServerWithServerId( 1 );
 
         // then
         assertEquals( 3, cluster.getCoreServers() );

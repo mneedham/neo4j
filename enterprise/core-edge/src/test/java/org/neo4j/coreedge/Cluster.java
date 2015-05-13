@@ -156,11 +156,24 @@ public class Cluster
         }
     }
 
-    public void removeCoreServer()
+    public void removeCoreServerWithServerId( int serverId )
     {
-        CoreGraphDatabase aCoreServer = findExistingCoreServer();
-        aCoreServer.shutdown();
-        coreServers.remove( aCoreServer );
+        CoreGraphDatabase serverToRemove = null;
+        for ( CoreGraphDatabase coreServer : coreServers )
+        {
+            if(coreServer.getDependencyResolver().resolveDependency( Config.class ).get( ClusterSettings.server_id )
+                    .toIntegerIndex() == serverId) {
+                coreServer.shutdown();
+                serverToRemove = coreServer;
+            }
+        }
+
+        if ( serverToRemove == null )
+        {
+            throw new RuntimeException( "Could not remove core server with server id " + serverId );
+        } else {
+            coreServers.remove( serverToRemove );
+        }
     }
 
     public void removeEdgeServer()
@@ -170,7 +183,7 @@ public class Cluster
         edgeServers.remove( anEdgeServer );
     }
 
-    public void addCoreServer( int serverId )
+    public void addCoreServerWithServerId( int serverId )
     {
         Config config = findExistingCoreServer().getDependencyResolver().resolveDependency( Config.class );
         HostnamePort hostnamePort = config.get( ClusterSettings.cluster_server );
@@ -181,7 +194,7 @@ public class Cluster
         final Map<String,String> params = serverParams( "CORE", serverId, initialHostsConfig );
         params.put( ClusterSettings.cluster_server.name(), "localhost:" + port );
 
-        final File storeDir = new File( parentDir, "server-core-" + port );
+        final File storeDir = new File( parentDir, "server-core-add" + port );
 
         CoreGraphDatabase coreGraphDatabase =
                 new CoreGraphDatabase( management, storeDir, params, GraphDatabaseDependencies.newDependencies() );
