@@ -32,9 +32,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import org.neo4j.cluster.ClusterSettings;
-import org.neo4j.function.Supplier;
 import org.neo4j.helpers.ArrayUtil;
+import org.neo4j.helpers.HostnamePort;
 import org.neo4j.kernel.GraphDatabaseDependencies;
+import org.neo4j.kernel.configuration.Config;
 import org.neo4j.kernel.impl.factory.GraphDatabaseFacadeFactory;
 
 import static org.neo4j.helpers.collection.MapUtil.stringMap;
@@ -42,6 +43,8 @@ import static org.neo4j.helpers.collection.MapUtil.stringMap;
 public class Cluster
 {
     private static final String CLUSTER_NAME = "core-neo4j";
+
+    private final File parentDir;
     private Set<CoreGraphDatabase> coreServers = new HashSet<>();
     private Set<EdgeGraphDatabase> edgeServers = new HashSet<>();
     private HazelcastClusterManagement management;
@@ -55,10 +58,11 @@ public class Cluster
     Cluster( File parentDir, int noOfCoreServers, int noOfEdgeServers )
             throws ExecutionException, InterruptedException
     {
+        this.parentDir = parentDir;
         ExecutorService executor = Executors.newCachedThreadPool();
         try
         {
-            startServers( executor, parentDir, noOfCoreServers, noOfEdgeServers );
+            startServers( executor, noOfCoreServers, noOfEdgeServers );
         }
         finally
         {
@@ -68,7 +72,6 @@ public class Cluster
 
     private void startServers(
             ExecutorService executor,
-            File parentDir,
             int noOfCoreServers, int noOfEdgeServers ) throws ExecutionException, InterruptedException
     {
         String[] initialHosts = buildInitialHosts( noOfCoreServers );
@@ -130,28 +133,6 @@ public class Cluster
         }
     }
 
-    private static Map<String,String> serverParams( String serverType, int serverId, String initialHosts )
-    {
-        Map<String,String> params = stringMap();
-        params.put( "org.neo4j.server.database.mode", "CORE_EDGE" );
-        params.put( ClusterSettings.cluster_name.name(), CLUSTER_NAME );
-        params.put( ClusterSettings.server_type.name(), serverType );
-        params.put( ClusterSettings.server_id.name(), String.valueOf( serverId ) );
-        params.put( ClusterSettings.initial_hosts.name(), initialHosts );
-        return params;
-    }
-
-    private static String[] buildInitialHosts( int noOfCoreServers )
-    {
-        String[] initialHosts = new String[noOfCoreServers];
-        for ( int i = 0; i < noOfCoreServers; i++ )
-        {
-            int port = 5000 + i;
-            initialHosts[i] = "localhost:" + port;
-        }
-        return initialHosts;
-    }
-
     public int getCoreServers()
     {
         return management.getNumberOfCoreServers();
@@ -173,5 +154,69 @@ public class Cluster
         {
             edgeServer.shutdown();
         }
+    }
+
+    public void removeCoreServer()
+    {
+        CoreGraphDatabase aCoreServer = findExistingCoreServer();
+        aCoreServer.shutdown();
+        coreServers.remove( aCoreServer );
+    }
+
+    public void removeEdgeServer()
+    {
+        EdgeGraphDatabase anEdgeServer = findExistingEdgeServer();
+        anEdgeServer.shutdown();
+        edgeServers.remove( anEdgeServer );
+    }
+
+    public void addCoreServer( int serverId )
+    {
+        Config config = findExistingCoreServer().getDependencyResolver().resolveDependency( Config.class );
+        HostnamePort hostnamePort = config.get( ClusterSettings.cluster_server );
+        String initialHostsConfig = hostnamePort.getHost() + ":" + hostnamePort.getPort();
+
+        // start up a core server
+        int port = 5000 + serverId;
+        final Map<String,String> params = serverParams( "CORE", serverId, initialHostsConfig );
+        params.put( ClusterSettings.cluster_server.name(), "localhost:" + port );
+
+        final File storeDir = new File( parentDir, "server-core-" + port );
+
+        CoreGraphDatabase coreGraphDatabase =
+                new CoreGraphDatabase( management, storeDir, params, GraphDatabaseDependencies.newDependencies() );
+        coreServers.add(coreGraphDatabase);
+    }
+
+    private CoreGraphDatabase findExistingCoreServer()
+    {
+        return coreServers.iterator().next();
+    }
+
+    private EdgeGraphDatabase findExistingEdgeServer()
+    {
+        return edgeServers.iterator().next();
+    }
+
+    private static Map<String,String> serverParams( String serverType, int serverId, String initialHosts )
+    {
+        Map<String,String> params = stringMap();
+        params.put( "org.neo4j.server.database.mode", "CORE_EDGE" );
+        params.put( ClusterSettings.cluster_name.name(), CLUSTER_NAME );
+        params.put( ClusterSettings.server_type.name(), serverType );
+        params.put( ClusterSettings.server_id.name(), String.valueOf( serverId ) );
+        params.put( ClusterSettings.initial_hosts.name(), initialHosts );
+        return params;
+    }
+
+    private static String[] buildInitialHosts( int noOfCoreServers )
+    {
+        String[] initialHosts = new String[noOfCoreServers];
+        for ( int i = 0; i < noOfCoreServers; i++ )
+        {
+            int port = 5000 + i;
+            initialHosts[i] = "localhost:" + port;
+        }
+        return initialHosts;
     }
 }

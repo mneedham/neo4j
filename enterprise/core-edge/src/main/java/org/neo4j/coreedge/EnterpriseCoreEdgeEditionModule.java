@@ -22,6 +22,10 @@ package org.neo4j.coreedge;
 import com.hazelcast.client.HazelcastClient;
 import com.hazelcast.client.config.ClientConfig;
 import com.hazelcast.core.HazelcastInstance;
+import com.hazelcast.core.InitialMembershipEvent;
+import com.hazelcast.core.InitialMembershipListener;
+import com.hazelcast.core.MemberAttributeEvent;
+import com.hazelcast.core.MembershipEvent;
 import org.jboss.netty.logging.InternalLoggerFactory;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
@@ -118,17 +122,9 @@ public class EnterpriseCoreEdgeEditionModule extends EditionModule
         }
         else
         {
-            List<HostnamePort> hostnamePorts = config.get( ClusterSettings.initial_hosts );
+            HazelcastClientLifeCycle hazelcastClient = new HazelcastClientLifeCycle(config) ;
+            life.add(hazelcastClient);
 
-            ClientConfig clientConfig = new ClientConfig();
-            clientConfig.getGroupConfig().setName( config.get( ClusterSettings.cluster_name ) );
-
-            HostnamePort hostnamePort = hostnamePorts.get( 0 );
-            clientConfig.getNetworkConfig().addAddress( hostnamePort.getHost() + ":" + hostnamePort.getPort() );
-
-            HazelcastInstance hazelcastInstance = HazelcastClient.newHazelcastClient( clientConfig );
-            hazelcastInstance.getMap( HazelcastClusterManagement.EDGE_SERVERS )
-                    .put( config.get( ClusterSettings.server_id ), 1 );
         }
 
         // TODO: log events in the HC cluster

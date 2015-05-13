@@ -56,4 +56,51 @@ public class CoreEdgeClusterIT
 
         cluster.shutdown();
     }
+
+
+    @Test
+    public void shouldBeAbleToRemoveACoreServerFromTheCluster() throws Exception
+    {
+        // given
+        Cluster cluster = Cluster.start( dir.directory(), 3, 0 );
+
+        // when
+        cluster.removeCoreServer();
+
+        // then
+        assertEquals( 2, cluster.getCoreServers() );
+
+        cluster.shutdown();
+    }
+
+    @Test
+    public void shouldBeAbleToRemoveAnEdgeServerFromTheCluster() throws Exception
+    {
+        // given
+        Cluster cluster = Cluster.start( dir.directory(), 3, 3 );
+
+        // when
+        cluster.removeEdgeServer();
+
+        // then
+        assertEquals( 2, cluster.getEdgeServers() );
+
+        cluster.shutdown();
+    }
+
+    @Test
+    public void shouldBeAbleToRemoveACoreServerFromTheClusterAndThenAddOneBackIn() throws Exception
+    {
+        // given
+        Cluster cluster = Cluster.start( dir.directory(), 3, 0 );
+
+        // when
+        cluster.removeCoreServer();
+        cluster.addCoreServer(4);
+
+        // then
+        assertEquals( 3, cluster.getCoreServers() );
+
+        cluster.shutdown();
+    }
 }
