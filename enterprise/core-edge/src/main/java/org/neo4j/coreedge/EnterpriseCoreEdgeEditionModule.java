@@ -19,29 +19,30 @@
  */
 package org.neo4j.coreedge;
 
+import com.hazelcast.client.HazelcastClient;
+import com.hazelcast.client.config.ClientConfig;
+import com.hazelcast.core.HazelcastInstance;
 import org.jboss.netty.logging.InternalLoggerFactory;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
-import sun.util.logging.resources.logging;
 
 import java.lang.reflect.Proxy;
+import java.util.List;
 
 import org.neo4j.cluster.ClusterSettings;
 import org.neo4j.cluster.InstanceId;
-import org.neo4j.cluster.client.ClusterClient;
+import org.neo4j.cluster.client.Clusters;
 import org.neo4j.cluster.logging.NettyLoggerFactory;
-import org.neo4j.cluster.member.ClusterMemberEvents;
 import org.neo4j.com.RequestContext;
 import org.neo4j.com.Response;
 import org.neo4j.function.Supplier;
 import org.neo4j.graphdb.factory.GraphDatabaseSettings;
-import org.neo4j.kernel.AvailabilityGuard;
+import org.neo4j.helpers.HostnamePort;
 import org.neo4j.kernel.IdGeneratorFactory;
 import org.neo4j.kernel.KernelHealth;
 import org.neo4j.kernel.api.KernelAPI;
 import org.neo4j.kernel.api.exceptions.InvalidTransactionTypeKernelException;
 import org.neo4j.kernel.configuration.Config;
 import org.neo4j.kernel.ha.BranchedDataMigrator;
-import org.neo4j.kernel.ha.CommitProcessSwitcher;
 import org.neo4j.kernel.ha.DelegateInvocationHandler;
 import org.neo4j.kernel.ha.HaSettings;
 import org.neo4j.kernel.ha.LabelTokenCreatorModeSwitcher;
@@ -49,28 +50,17 @@ import org.neo4j.kernel.ha.LastUpdateTime;
 import org.neo4j.kernel.ha.PropertyKeyCreatorModeSwitcher;
 import org.neo4j.kernel.ha.RelationshipTypeCreatorModeSwitcher;
 import org.neo4j.kernel.ha.UpdatePuller;
-import org.neo4j.kernel.ha.UpdatePullerClient;
-import org.neo4j.kernel.ha.UpdatePullingTransactionObligationFulfiller;
-import org.neo4j.kernel.ha.cluster.HighAvailabilityMemberContext;
 import org.neo4j.kernel.ha.cluster.HighAvailabilityMemberStateMachine;
-import org.neo4j.kernel.ha.cluster.member.ClusterMembers;
-import org.neo4j.kernel.ha.cluster.member.HighAvailabilitySlaves;
 import org.neo4j.kernel.ha.com.RequestContextFactory;
-import org.neo4j.kernel.ha.com.master.DefaultSlaveFactory;
 import org.neo4j.kernel.ha.com.master.Master;
-import org.neo4j.kernel.ha.com.master.Slaves;
 import org.neo4j.kernel.ha.com.master.UpdateSource;
 import org.neo4j.kernel.ha.com.slave.InvalidEpochExceptionHandler;
 import org.neo4j.kernel.ha.id.HaIdGeneratorFactory;
-import org.neo4j.kernel.ha.transaction.CommitPusher;
-import org.neo4j.kernel.ha.transaction.TransactionPropagator;
 import org.neo4j.kernel.impl.api.CommitProcessFactory;
 import org.neo4j.kernel.impl.api.CoreEdgeTransactionCommitProcess;
-import org.neo4j.kernel.impl.api.ReadOnlyTransactionCommitProcess;
 import org.neo4j.kernel.impl.api.SchemaWriteGuard;
 import org.neo4j.kernel.impl.api.TransactionApplicationMode;
 import org.neo4j.kernel.impl.api.TransactionCommitProcess;
-import org.neo4j.kernel.impl.api.TransactionRepresentationCommitProcess;
 import org.neo4j.kernel.impl.api.TransactionRepresentationStoreApplier;
 import org.neo4j.kernel.impl.api.index.IndexUpdatesValidator;
 import org.neo4j.kernel.impl.core.LabelTokenHolder;
@@ -85,9 +75,7 @@ import org.neo4j.kernel.impl.store.NeoStore;
 import org.neo4j.kernel.impl.transaction.log.LogicalTransactionStore;
 import org.neo4j.kernel.impl.transaction.state.NeoStoreInjectedTransactionValidator;
 import org.neo4j.kernel.impl.util.Dependencies;
-import org.neo4j.kernel.impl.util.JobScheduler;
 import org.neo4j.kernel.lifecycle.LifeSupport;
-import org.neo4j.kernel.monitoring.Monitors;
 import org.neo4j.logging.LogProvider;
 import org.neo4j.logging.NullLogProvider;
 
@@ -97,12 +85,20 @@ import org.neo4j.logging.NullLogProvider;
  */
 public class EnterpriseCoreEdgeEditionModule extends EditionModule
 {
+    private final boolean isCoreServer;
+
     public EnterpriseCoreEdgeEditionModule( final PlatformModule platformModule )
     {
         final LifeSupport life = platformModule.getLife();
         final Config config = platformModule.getConfig();
+
+        System.out.println(config);
+
         final Dependencies dependencies = platformModule.getDependencies();
         final LogService logging = platformModule.getLogging();
+        this.isCoreServer = config.get( ClusterSettings.server_type ).equalsIgnoreCase( "CORE" );
+        InstanceId serverId = config.get( ClusterSettings.server_id );
+        this.transactionStartTimeout = config.get( HaSettings.state_switch_timeout );
 
         // Set Netty logger
         InternalLoggerFactory.setDefaultFactory( new NettyLoggerFactory( logging.getInternalLogProvider() ) );
@@ -110,28 +106,35 @@ public class EnterpriseCoreEdgeEditionModule extends EditionModule
         life.add( new BranchedDataMigrator( platformModule.getStoreDir() ) );
         DelegateInvocationHandler<Master> masterDelegateInvocationHandler = new DelegateInvocationHandler<>( Master
                 .class );
-        InstanceId serverId = config.get( ClusterSettings.server_id );
+
         RequestContextFactory requestContextFactory = dependencies.satisfyDependency( new RequestContextFactory(
                 serverId.toIntegerIndex(),
                 dependencies ) );
 
-        transactionStartTimeout = config.get( HaSettings.state_switch_timeout );
-
-        if ( platformModule.getConfig().get( ClusterSettings.server_type ).equalsIgnoreCase( "core" ) )
+        if ( isCoreServer )
         {
             HazelcastLifecycle hazelcast = new HazelcastLifecycle( config );
             life.add( hazelcast );
         }
         else
         {
+            List<HostnamePort> hostnamePorts = config.get( ClusterSettings.initial_hosts );
 
+            ClientConfig clientConfig = new ClientConfig();
+            clientConfig.getGroupConfig().setName( config.get( ClusterSettings.cluster_name ) );
+
+            HostnamePort hostnamePort = hostnamePorts.get( 0 );
+            clientConfig.getNetworkConfig().addAddress( hostnamePort.getHost() + ":" + hostnamePort.getPort() );
+
+            HazelcastInstance hazelcastInstance = HazelcastClient.newHazelcastClient( clientConfig );
+            hazelcastInstance.getMap( HazelcastClusterManagement.EDGE_SERVERS )
+                    .put( config.get( ClusterSettings.server_id ), 1 );
         }
 
         // TODO: log events in the HC cluster
-        idGeneratorFactory = dependencies.satisfyDependency(
+        this.idGeneratorFactory = dependencies.satisfyDependency(
                 createIdGeneratorFactory( masterDelegateInvocationHandler, logging.getInternalLogProvider(),
                         requestContextFactory ) );
-
 
         LastUpdateTime lastUpdateTime = new LastUpdateTime();
 
@@ -153,12 +156,12 @@ public class EnterpriseCoreEdgeEditionModule extends EditionModule
 //        dependencies.satisfyDependency( life.add( new UpdatePullingTransactionObligationFulfiller(
 //                updatePuller, memberStateMachine, serverId, dependencies ) ) );
 
-        schemaWriteGuard = new SchemaWriteGuard()
+        this.schemaWriteGuard = new SchemaWriteGuard()
         {
             @Override
             public void assertSchemaWritesAllowed() throws InvalidTransactionTypeKernelException
             {
-                if ( !aCoreMachine( config ) )
+                if ( !isCoreSever() )
                 {
                     throw new InvalidTransactionTypeKernelException(
                             "Modifying database schema can only be done on a core server, this is an edge server." );
@@ -166,16 +169,20 @@ public class EnterpriseCoreEdgeEditionModule extends EditionModule
             }
         };
 
-        propertyKeyTokenHolder = new PropertyKeyTokenHolder( null );
-        labelTokenHolder = new LabelTokenHolder( null );
-        relationshipTypeTokenHolder = new RelationshipTypeTokenHolder( null );
-
-        commitProcessFactory = createCommitProcessFactory();
+        this.propertyKeyTokenHolder = new PropertyKeyTokenHolder( null );
+        this.labelTokenHolder = new LabelTokenHolder( null );
+        this.relationshipTypeTokenHolder = new RelationshipTypeTokenHolder( null );
+        this.commitProcessFactory = createCommitProcessFactory();
     }
 
-    private boolean aCoreMachine( Config config )
+    private boolean isCoreSever()
     {
-        return config.get( ClusterSettings.server_type ).equalsIgnoreCase( "core" );
+        return this.isCoreServer;
+    }
+
+    private boolean isEdgeServer()
+    {
+        return !this.isCoreServer;
     }
 
     private UpdateSource anyCoreMachine()

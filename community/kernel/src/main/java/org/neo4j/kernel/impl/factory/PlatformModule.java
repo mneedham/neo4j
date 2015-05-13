@@ -77,7 +77,7 @@ public class PlatformModule
 
     private final LifeSupport life;
 
-    private final File theStoreDir;
+    private final File storeDir;
 
     private final DiagnosticsManager diagnosticsManager;
 
@@ -116,7 +116,7 @@ public class PlatformModule
         config = getDependencies().satisfyDependency( new Config( params, getSettingsClasses(
                 externalDependencies.settingsClasses(), externalDependencies.kernelExtensions() ) ) );
 
-        theStoreDir = storeDir.getAbsoluteFile();
+        this.storeDir = storeDir.getAbsoluteFile();
 
 //        kernelExtensions = getDependencies().satisfyDependency( new KernelExtensions(
 //                externalDependencies.kernelExtensions(),
@@ -141,7 +141,7 @@ public class PlatformModule
 
         StoreLockerLifecycleAdapter storeLocker = getLife()
                 .add( getDependencies().satisfyDependency( new StoreLockerLifecycleAdapter(
-                        new StoreLocker( getFileSystem() ), getTheStoreDir() ) ) );
+                        new StoreLocker( getFileSystem() ), getStoreDir() ) ) );
 
         new JvmChecker( getLogging().getInternalLog( JvmChecker.class ), new JvmMetadataRepository() )
                 .checkJvmCompatibilityAndIssueWarning();
@@ -180,7 +180,7 @@ public class PlatformModule
             @Override
             public File storeDir()
             {
-                return PlatformModule.this.getTheStoreDir();
+                return PlatformModule.this.getStoreDir();
             }
         };
 
@@ -215,7 +215,7 @@ public class PlatformModule
         LogService logService;
         try
         {
-            logService = new StoreLogService( userLogProvider, getFileSystem(), getTheStoreDir(),
+            logService = new StoreLogService( userLogProvider, getFileSystem(), getStoreDir(),
                     internalLogRotationThreshold, internalLogRotationDelay, internalLogMaxArchives,
                     getJobScheduler(), new Consumer<LogProvider>()
             {
@@ -302,9 +302,9 @@ public class PlatformModule
         return life;
     }
 
-    public File getTheStoreDir()
+    public File getStoreDir()
     {
-        return theStoreDir;
+        return storeDir;
     }
 
     public DiagnosticsManager getDiagnosticsManager()

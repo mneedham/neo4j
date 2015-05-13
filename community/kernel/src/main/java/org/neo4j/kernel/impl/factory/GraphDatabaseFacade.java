@@ -154,7 +154,7 @@ public class GraphDatabaseFacade
         this.transactionStartTimeout = editionModule.transactionStartTimeout;
         this.dependencies = platformModule.getDependencies();
         this.storeId = dataSourceModule.storeId;
-        this.storeDir = platformModule.getTheStoreDir();
+        this.storeDir = platformModule.getStoreDir();
 
         initialized = true;
     }

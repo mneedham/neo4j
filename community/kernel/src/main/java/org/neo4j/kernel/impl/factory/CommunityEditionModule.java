@@ -80,7 +80,7 @@ public class CommunityEditionModule
         Config config = platformModule.getConfig();
         LogService logging = platformModule.getLogging();
         FileSystemAbstraction fileSystem = platformModule.getFileSystem();
-        File storeDir = platformModule.getTheStoreDir();
+        File storeDir = platformModule.getStoreDir();
         DataSourceManager dataSourceManager = platformModule.getDataSourceManager();
         LifeSupport life = platformModule.getLife();
         GraphDatabaseFacade graphDatabaseFacade = platformModule.getGraphDatabaseFacade();

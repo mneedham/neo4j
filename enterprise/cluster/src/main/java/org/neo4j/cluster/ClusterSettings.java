@@ -81,8 +81,9 @@ public class ClusterSettings
             illegalValueMessage( "must be a valid cluster name", matches( ANY ) ) );
 
     @Description( "The server type." )
-    public static final Setting<String> server_type = setting( "ha.server_type", STRING, "core",
-            illegalValueMessage( "must be a valid server type (core or edge)", matches( ANY ) ) );
+    public static final Setting<String> server_type = setting(
+            "ha.server_type",
+            options( "CORE", "EDGE" ), "CORE" );
 
     @Description( "A comma-separated list of other members of the cluster to join." )
     public static final Setting<List<HostnamePort>> initial_hosts = setting( "ha.initial_hosts",

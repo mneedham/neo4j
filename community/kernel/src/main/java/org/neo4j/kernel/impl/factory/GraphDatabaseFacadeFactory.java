@@ -138,7 +138,7 @@ public abstract class GraphDatabaseFacadeFactory
         catch ( final Throwable throwable )
         {
             error = new RuntimeException( "Error starting " + getClass().getName() + ", " +
-                    platform.getTheStoreDir(), throwable );
+                    platform.getStoreDir(), throwable );
 
         }
         finally

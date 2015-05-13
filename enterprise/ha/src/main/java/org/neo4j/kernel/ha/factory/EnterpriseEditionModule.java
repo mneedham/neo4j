@@ -152,7 +152,7 @@ public class EnterpriseEditionModule
     public EnterpriseEditionModule( final PlatformModule platformModule )
     {
         final LifeSupport life = platformModule.getLife();
-        final File storeDir = platformModule.getTheStoreDir();
+        final File storeDir = platformModule.getStoreDir();
         final Config config = platformModule.getConfig();
         final Dependencies dependencies = platformModule.getDependencies();
         final LogService logging = platformModule.getLogging();
@@ -163,7 +163,7 @@ public class EnterpriseEditionModule
         // Set Netty logger
         InternalLoggerFactory.setDefaultFactory( new NettyLoggerFactory( logging.getInternalLogProvider() ) );
 
-        life.add( new BranchedDataMigrator( platformModule.getTheStoreDir() ) );
+        life.add( new BranchedDataMigrator( platformModule.getStoreDir() ) );
         DelegateInvocationHandler<Master> masterDelegateInvocationHandler = new DelegateInvocationHandler<>( Master
                 .class );
         Master master = (Master) Proxy.newProxyInstance( Master.class.getClassLoader(), new Class[]{Master.class},
@@ -500,7 +500,7 @@ public class EnterpriseEditionModule
         idGeneratorFactory = new HaIdGeneratorFactory( masterDelegateInvocationHandler, logging,
                 requestContextFactory );
 
-        /*
+        /*e
          * We don't really switch to master here. We just need to initialize the idGenerator so the initial store
          * can be started (if required). In any case, the rest of the database is in pending state, so nothing will
          * happen until events start arriving and that will set us to the proper state anyway.

@@ -1,7 +1,28 @@
+/*
+ * Copyright (c) 2002-2015 "Neo Technology,"
+ * Network Engine for Objects in Lund AB [http://neotechnology.com]
+ *
+ * This file is part of Neo4j.
+ *
+ * Neo4j is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
 package org.neo4j.coreedge;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -11,91 +32,124 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import org.neo4j.cluster.ClusterSettings;
+import org.neo4j.function.Supplier;
+import org.neo4j.helpers.ArrayUtil;
 import org.neo4j.kernel.GraphDatabaseDependencies;
-import org.neo4j.kernel.configuration.Config;
 import org.neo4j.kernel.impl.factory.GraphDatabaseFacadeFactory;
 
 import static org.neo4j.helpers.collection.MapUtil.stringMap;
 
 public class Cluster
 {
-    private File parentDir;
-    private Set<CoreGraphDatabaseProxy> coreServers = new HashSet<>();
-    private Set<EdgeGraphDatabaseProxy> edgeServers = new HashSet<>();
+    private static final String CLUSTER_NAME = "core-neo4j";
+    private Set<CoreGraphDatabase> coreServers = new HashSet<>();
+    private Set<EdgeGraphDatabase> edgeServers = new HashSet<>();
     private HazelcastClusterManagement management;
 
-    public Cluster( File parentDir )
+    public static Cluster start( File parentDir, int noOfCoreServers, int noOfEdgeServers )
+            throws ExecutionException, InterruptedException
     {
-        this.parentDir = parentDir;
-
-        Map<String,String> params = stringMap();
-        params.put( ClusterSettings.cluster_name.name(), coreClusterName() );
-        Config config = new Config( params );
-        this.management = new HazelcastClusterManagement( config );
+        return new Cluster( parentDir, noOfCoreServers, noOfEdgeServers );
     }
 
-    public void start( int noOfCoreServers, int noOfEdgeServers )
+    Cluster( File parentDir, int noOfCoreServers, int noOfEdgeServers )
+            throws ExecutionException, InterruptedException
     {
-        String initialHosts = getInitialHosts( noOfCoreServers );
-        GraphDatabaseFacadeFactory.Dependencies dependencies = GraphDatabaseDependencies.newDependencies();
+        ExecutorService executor = Executors.newCachedThreadPool();
+        try
+        {
+            startServers( executor, parentDir, noOfCoreServers, noOfEdgeServers );
+        }
+        finally
+        {
+            executor.shutdownNow();
+        }
+    }
 
+    private void startServers(
+            ExecutorService executor,
+            File parentDir,
+            int noOfCoreServers, int noOfEdgeServers ) throws ExecutionException, InterruptedException
+    {
+        String[] initialHosts = buildInitialHosts( noOfCoreServers );
+        this.management = new HazelcastClusterManagement( CLUSTER_NAME, initialHosts );
 
+        final GraphDatabaseFacadeFactory.Dependencies dependencies = GraphDatabaseDependencies.newDependencies();
+
+        String initialHostsConfig = ArrayUtil.join( initialHosts, "," );
+
+        List<Callable<CoreGraphDatabase>> coreServerSuppliers = new ArrayList<>();
         for ( int i = 0; i < noOfCoreServers; i++ )
         {
-            int port = 5000 + i;
-            Map<String,String> params = stringMap();
-            params.put( ClusterSettings.cluster_server.name(), "localhost:" + port );
-            params.put( "org.neo4j.server.database.mode", "CORE_EDGE" );
-            params.put( ClusterSettings.server_id.name(), String.valueOf( i ) );
-            params.put( ClusterSettings.initial_hosts.name(), initialHosts );
-            params.put( ClusterSettings.cluster_name.name(), coreClusterName() );
-            params.put( ClusterSettings.server_type.name(), "core" );
-
             // start up a core server
+            int port = 5000 + i;
+            final Map<String,String> params = serverParams( "CORE", i, initialHostsConfig );
+            params.put( ClusterSettings.cluster_server.name(), "localhost:" + port );
 
-            File storeDir = new File( parentDir, "server-core-" + port );
+            final File storeDir = new File( parentDir, "server-core-" + port );
 
-            CoreGraphDatabaseProxy dbProxy = new CoreGraphDatabaseProxy( management, storeDir, params, dependencies );
-            coreServers.add( dbProxy );
+            coreServerSuppliers.add( new Callable<CoreGraphDatabase>()
+            {
+                @Override
+                public CoreGraphDatabase call()
+                {
+                    return new CoreGraphDatabase( management, storeDir, params, dependencies );
+                }
+            } );
         }
 
+        List<Future<CoreGraphDatabase>> coreServerFutures = executor.invokeAll( coreServerSuppliers );
+        for ( Future<CoreGraphDatabase> coreServer : coreServerFutures )
+        {
+            this.coreServers.add( coreServer.get() );
+        }
+
+        List<Callable<EdgeGraphDatabase>> edgeServerSuppliers = new ArrayList<>();
         for ( int i = 0; i < noOfEdgeServers; i++ )
         {
             // start up an edge server
+            final Map<String,String> params = serverParams( "EDGE", i, initialHostsConfig );
 
-            Map<String,String> params = stringMap();
-            params.put( "org.neo4j.server.database.mode", "CORE_EDGE" );
-            params.put( ClusterSettings.server_id.name(), String.valueOf( i ) );
-            params.put( ClusterSettings.initial_hosts.name(), initialHosts );
-            params.put( ClusterSettings.cluster_name.name(), coreClusterName() );
-            params.put( ClusterSettings.server_type.name(), "edge" );
+            final File storeDir = new File( parentDir, "server-edge-" + i );
 
-            File storeDir = new File( parentDir, "server-edge-" + i );
-
-            EdgeGraphDatabaseProxy dbProxy = new EdgeGraphDatabaseProxy( management, storeDir, params, dependencies );
-            this.edgeServers.add( dbProxy );
-        }
-    }
-
-    private String getInitialHosts( int noOfCoreServers )
-    {
-        StringBuilder initialHosts = new StringBuilder();
-        for ( int i1 = 0; i1 < noOfCoreServers; i1++ )
-        {
-            int port = 5000 + i1;
-            initialHosts.append( "localhost:" ).append( port );
-
-            if ( i1 != noOfCoreServers - 1 )
+            edgeServerSuppliers.add( new Callable<EdgeGraphDatabase>()
             {
-                initialHosts.append( "," );
-            }
+                @Override
+                public EdgeGraphDatabase call()
+                {
+                    return new EdgeGraphDatabase( management, storeDir, params, dependencies );
+                }
+            } );
         }
-        return initialHosts.toString();
+
+        List<Future<EdgeGraphDatabase>> edgeServerFutures = executor.invokeAll( edgeServerSuppliers );
+
+        for ( Future<EdgeGraphDatabase> edgeServer : edgeServerFutures )
+        {
+            this.edgeServers.add( edgeServer.get() );
+        }
     }
 
-    private String coreClusterName()
+    private static Map<String,String> serverParams( String serverType, int serverId, String initialHosts )
     {
-        return "core-neo4j";
+        Map<String,String> params = stringMap();
+        params.put( "org.neo4j.server.database.mode", "CORE_EDGE" );
+        params.put( ClusterSettings.cluster_name.name(), CLUSTER_NAME );
+        params.put( ClusterSettings.server_type.name(), serverType );
+        params.put( ClusterSettings.server_id.name(), String.valueOf( serverId ) );
+        params.put( ClusterSettings.initial_hosts.name(), initialHosts );
+        return params;
+    }
+
+    private static String[] buildInitialHosts( int noOfCoreServers )
+    {
+        String[] initialHosts = new String[noOfCoreServers];
+        for ( int i = 0; i < noOfCoreServers; i++ )
+        {
+            int port = 5000 + i;
+            initialHosts[i] = "localhost:" + port;
+        }
+        return initialHosts;
     }
 
     public int getCoreServers()
@@ -108,111 +162,16 @@ public class Cluster
         return management.getNumberOfEdgeServers();
     }
 
-    public void waitAllAvailable()
-    {
-        for ( CoreGraphDatabaseProxy coreServer : coreServers )
-        {
-            coreServer.get();
-        }
-
-    }
-
     public void shutdown()
     {
-        for ( CoreGraphDatabaseProxy coreServer : coreServers )
+        for ( CoreGraphDatabase coreServer : coreServers )
         {
-            coreServer.get().shutdown();
+            coreServer.shutdown();
         }
 
-        for ( EdgeGraphDatabaseProxy edgeServer : edgeServers )
+        for ( EdgeGraphDatabase edgeServer : edgeServers )
         {
-            edgeServer.get().shutdown();
-        }
-    }
-
-    private static final class CoreGraphDatabaseProxy
-    {
-        private final ExecutorService executor;
-        private CoreGraphDatabase result;
-        private Future<CoreGraphDatabase> untilThen;
-
-        public CoreGraphDatabaseProxy( final HazelcastClusterManagement management, final File storeDir,
-                final Map<String,String> params, final GraphDatabaseFacadeFactory.Dependencies dependencies )
-        {
-            Callable<CoreGraphDatabase> starter = new Callable<CoreGraphDatabase>()
-            {
-                @Override
-                public CoreGraphDatabase call() throws Exception
-                {
-                    return new CoreGraphDatabase( management, storeDir.getAbsolutePath(), params, dependencies );
-                }
-            };
-
-            executor = Executors.newFixedThreadPool( 1 );
-            untilThen = executor.submit( starter );
-        }
-
-        public CoreGraphDatabase get()
-        {
-            if ( result == null )
-            {
-                try
-                {
-                    result = untilThen.get();
-                }
-                catch ( InterruptedException | ExecutionException e )
-                {
-                    throw new RuntimeException( e );
-                }
-                finally
-                {
-                    executor.shutdownNow();
-                }
-            }
-            return result;
-        }
-    }
-
-    private static final class EdgeGraphDatabaseProxy
-    {
-        private final ExecutorService executor;
-        private EdgeGraphDatabase result;
-        private Future<EdgeGraphDatabase> untilThen;
-
-        public EdgeGraphDatabaseProxy( final HazelcastClusterManagement management, final File storeDir,
-                final Map<String,String> params, final GraphDatabaseFacadeFactory.Dependencies dependencies )
-        {
-            Callable<EdgeGraphDatabase> starter = new Callable<EdgeGraphDatabase>()
-            {
-                @Override
-                public EdgeGraphDatabase call() throws Exception
-                {
-                    return new EdgeGraphDatabase( management, storeDir.getAbsolutePath(), params, dependencies );
-                }
-            };
-
-            executor = Executors.newFixedThreadPool( 1 );
-            untilThen = executor.submit( starter );
-        }
-
-        public EdgeGraphDatabase get()
-        {
-            if ( result == null )
-            {
-                try
-                {
-                    result = untilThen.get();
-                }
-                catch ( InterruptedException | ExecutionException e )
-                {
-                    throw new RuntimeException( e );
-                }
-                finally
-                {
-                    executor.shutdownNow();
-                }
-            }
-            return result;
+            edgeServer.shutdown();
         }
     }
 }

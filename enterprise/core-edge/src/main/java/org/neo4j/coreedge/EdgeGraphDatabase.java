@@ -19,12 +19,14 @@
  */
 package org.neo4j.coreedge;
 
+import java.io.File;
 import java.util.Map;
 
 import org.neo4j.cluster.ClusterSettings;
 import org.neo4j.graphdb.factory.GraphDatabaseSettings;
 import org.neo4j.kernel.extension.KernelExtensionFactory;
 import org.neo4j.kernel.ha.HaSettings;
+import org.neo4j.kernel.ha.factory.EnterpriseCoreEdgeFacadeFactory;
 import org.neo4j.kernel.ha.factory.EnterpriseFacadeFactory;
 import org.neo4j.kernel.impl.factory.DataSourceModule;
 import org.neo4j.kernel.impl.factory.EditionModule;
@@ -39,11 +41,10 @@ public class EdgeGraphDatabase extends GraphDatabaseFacade
 {
     private EnterpriseCoreEdgeEditionModule enterpriseCoreEdgeEditionModule;
 
-    public EdgeGraphDatabase( ClusterManagement management, String storeDir, Map<String,String> params,
+    public EdgeGraphDatabase( ClusterManagement management, File storeDir, Map<String,String> params,
             GraphDatabaseFacadeFactory.Dependencies dependencies )
     {
-        params.put( GraphDatabaseSettings.store_dir.name(), storeDir );
-        new EnterpriseFacadeFactory().newFacade( params, dependencies, this );
+        new EnterpriseCoreEdgeFacadeFactory().newFacade( storeDir, params, dependencies, this );
     }
 
     @Override

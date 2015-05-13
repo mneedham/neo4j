@@ -210,7 +210,7 @@ public class ImpermanentGraphDatabase extends EmbeddedGraphDatabase
             try
             {
                 logService = new StoreLogService( NullLogProvider.getInstance(), getFileSystem(),
-                        getTheStoreDir(), getJobScheduler() );
+                        getStoreDir(), getJobScheduler() );
             } catch ( IOException e )
             {
                 throw new RuntimeException( e );

@@ -102,7 +102,6 @@ public class EnterpriseNeoServer extends AdvancedNeoServer
         default:
             return lifecycleManagingDatabase( COMMUNITY_FACTORY );
         }
-
     }
 
     @Override

@@ -122,7 +122,7 @@ public class DataSourceModule
         LifeSupport life = platformModule.getLife();
         final GraphDatabaseFacade graphDatabaseFacade = platformModule.getGraphDatabaseFacade();
         RelationshipTypeTokenHolder relationshipTypeTokenHolder = editionModule.relationshipTypeTokenHolder;
-        File storeDir = platformModule.getTheStoreDir();
+        File storeDir = platformModule.getStoreDir();
         DiagnosticsManager diagnosticsManager = platformModule.getDiagnosticsManager();
 
         threadToTransactionBridge = deps.satisfyDependency( life.add( new ThreadToStatementContextBridge() ) );
