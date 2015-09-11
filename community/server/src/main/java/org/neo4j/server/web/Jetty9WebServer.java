@@ -51,10 +51,13 @@ import org.eclipse.jetty.server.handler.HandlerList;
 import org.eclipse.jetty.server.handler.MovedContextHandler;
 import org.eclipse.jetty.server.handler.RequestLogHandler;
 import org.eclipse.jetty.server.session.HashSessionManager;
+import java.lang.management.ManagementFactory;
+import org.eclipse.jetty.jmx.MBeanContainer;
 import org.eclipse.jetty.server.session.SessionHandler;
 import org.eclipse.jetty.servlet.FilterHolder;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.util.BlockingArrayQueue;
+import org.eclipse.jetty.util.log.Log;
 import org.eclipse.jetty.util.resource.Resource;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 import org.eclipse.jetty.webapp.WebAppContext;
@@ -152,6 +155,14 @@ public class Jetty9WebServer implements WebServer
             QueuedThreadPool pool = createQueuedThreadPool( jettyThreadCalculator );
 
             jetty = new Server( pool );
+
+            // Setup JMX
+            MBeanContainer mbContainer=new MBeanContainer(ManagementFactory.getPlatformMBeanServer());
+            jetty.addEventListener(mbContainer);
+            jetty.addBean(mbContainer);
+
+            // Add loggers MBean to server (will be picked up by MBeanContainer above)
+            jetty.addBean(Log.getLog());
 
             jetty.addConnector( connectorFactory.createConnector( jetty, jettyAddr, jettyHttpPort, jettyThreadCalculator ) );
 
