@@ -19,9 +19,9 @@
  */
 package org.neo4j.metrics.source;
 
-import com.codahale.metrics.MetricRegistry;
-
 import java.io.IOException;
+
+import com.codahale.metrics.MetricRegistry;
 
 import org.neo4j.function.Factory;
 import org.neo4j.graphdb.DependencyResolver;
@@ -72,10 +72,11 @@ public class Neo4jMetricsFactory implements Factory<Lifecycle>
         final DBMetrics dbMetrics = new DBMetrics( registry, config,
                 transactionCounters, pageCacheCounters, checkPointerMonitor, logRotationMonitor, idGeneratorFactory );
         final NetworkMetrics networkMetrics = new NetworkMetrics( config, monitors, registry );
+        final CoreEdgeMetrics coreEdgeMetrics = new CoreEdgeMetrics( config, monitors, registry );
+        final JvmMetrics jvmMetrics = new JvmMetrics( config, registry );
         final ClusterMetrics clusterMetrics = new ClusterMetrics( config, monitors, registry, dependencyResolver,
                 logService );
         final CypherMetrics cypherMetrics = new CypherMetrics( config, monitors, registry );
-        final JvmMetrics jvmMetrics = new JvmMetrics( config, registry );
         return new LifecycleAdapter()
         {
             @Override
@@ -83,6 +84,7 @@ public class Neo4jMetricsFactory implements Factory<Lifecycle>
             {
                 dbMetrics.start();
                 networkMetrics.start();
+                coreEdgeMetrics.start();
                 clusterMetrics.start();
                 jvmMetrics.start();
                 cypherMetrics.start();
@@ -93,6 +95,7 @@ public class Neo4jMetricsFactory implements Factory<Lifecycle>
             {
                 dbMetrics.stop();
                 networkMetrics.stop();
+                coreEdgeMetrics.stop();
                 clusterMetrics.stop();
                 jvmMetrics.stop();
                 cypherMetrics.stop();
