@@ -100,8 +100,8 @@ public class RaftMessageEncoder extends MessageToMessageEncoder<RaftMessages.Mes
         else if ( message instanceof RaftMessages.Heartbeat )
         {
             RaftMessages.Heartbeat<CoreMember> heartbeat = (RaftMessages.Heartbeat<CoreMember>) message;
-            buf.writeLong( heartbeat.commitIndexTerm() );
             buf.writeLong( heartbeat.leaderTerm() );
+            buf.writeLong( heartbeat.commitIndexTerm() );
             buf.writeLong( heartbeat.commitIndex() );
         }
         else

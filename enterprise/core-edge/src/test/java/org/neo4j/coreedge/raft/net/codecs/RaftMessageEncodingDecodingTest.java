@@ -27,14 +27,14 @@ import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.ChannelHandlerContext;
 import org.junit.Test;
 
-import org.neo4j.coreedge.raft.replication.MarshallingException;
-import org.neo4j.coreedge.server.CoreMember;
 import org.neo4j.coreedge.raft.AppendEntriesRequestBuilder;
-import org.neo4j.coreedge.raft.ReplicatedInteger;
 import org.neo4j.coreedge.raft.RaftMessages;
+import org.neo4j.coreedge.raft.ReplicatedInteger;
 import org.neo4j.coreedge.raft.log.RaftLogEntry;
+import org.neo4j.coreedge.raft.replication.MarshallingException;
 import org.neo4j.coreedge.raft.replication.ReplicatedContent;
 import org.neo4j.coreedge.raft.replication.ReplicatedContentMarshal;
+import org.neo4j.coreedge.server.CoreMember;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
@@ -69,6 +69,34 @@ public class RaftMessageEncodingDecodingTest
                 .leaderCommit( 2 )
                 .leaderTerm( 4 ).build();
         serializeReadBackAndVerifyMessage( request );
+    }
+
+    @Test
+    public void shouldSerializeHeartbeats(  ) throws Exception
+    {
+        // Given
+        RaftMessageEncoder encoder = new RaftMessageEncoder( serializer );
+        RaftMessageDecoder decoder = new RaftMessageDecoder( serializer );
+
+        // Netty puts buffers with serialized content in this list
+        LinkedList<Object> resultingBuffers = new LinkedList<>();
+        // Deserialization adds read objects in this list
+        ArrayList<Object> thingsRead = new ArrayList<>( 1 );
+
+        // When
+        CoreMember sender = new CoreMember( address( "127.0.0.1:5001" ), address( "127.0.0.2:5001" ) );
+        RaftMessages.Heartbeat<CoreMember> message = new RaftMessages.Heartbeat<>( sender, 1, 2, 3 );
+        encoder.encode( setupContext(), message, resultingBuffers );
+
+        // Then
+        assertEquals( 1, resultingBuffers.size() );
+
+        // When
+        decoder.decode( null, (ByteBuf) resultingBuffers.get( 0 ), thingsRead );
+
+        // Then
+        assertEquals( 1, thingsRead.size() );
+        assertEquals( message, thingsRead.get( 0 ) );
     }
 
     public void serializeReadBackAndVerifyMessage( RaftMessages.Message message ) throws Exception

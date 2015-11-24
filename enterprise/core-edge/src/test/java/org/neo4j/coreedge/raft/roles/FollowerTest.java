@@ -514,6 +514,42 @@ public class FollowerTest
         assertEquals( 3, state.entryLog().commitIndex() );
     }
 
+    @Test
+    public void shouldRenewElectionTimeoutOnReceiptOfHeartbeatInCurrentOrHigherTerm() throws Exception
+    {
+        // given
+        RaftState<RaftTestMember> state = raftState()
+                .myself( myself )
+                .term(0)
+                .build();
+
+        Follower follower = new Follower();
+
+        Outcome<RaftTestMember> outcome = follower.handle( new RaftMessages.Heartbeat<>( myself, 1, 1, 1 ),
+                state, log() );
+
+        // then
+        assertTrue( outcome.renewElectionTimeout );
+    }
+
+    @Test
+    public void shouldNotRenewElectionTimeoutOnReceiptOfHeartbeatInLowerTerm() throws Exception
+    {
+        // given
+        RaftState<RaftTestMember> state = raftState()
+                .myself( myself )
+                .term( 2 )
+                .build();
+
+        Follower follower = new Follower();
+
+        Outcome<RaftTestMember> outcome = follower.handle( new RaftMessages.Heartbeat<>( myself, 1, 1, 1 ),
+                state, log() );
+
+        // then
+        assertFalse( outcome.renewElectionTimeout );
+    }
+
     private void appendSomeEntriesToLog( RaftState raft, Follower follower, int numberOfEntriesToAppend, int
             term ) throws RaftStorageException
     {
