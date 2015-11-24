@@ -100,12 +100,11 @@ public class Follower implements RaftMessageHandler
                     break;
                 }
 
-                if ( !logHistoryMatches( ctx, req ) )
+                if ( logHistoryMatches( ctx, req ) )
                 {
-                    break;
+                    logCommands.add( new CommitCommand( req.commitIndex() ) );
                 }
 
-                logCommands.add( new CommitCommand( req.commitIndex() ) );
                 renewElectionTimeout = true;
                 break;
             }

@@ -106,7 +106,7 @@ public class CoreServerReplicationIT
 
                 Config config = db.getDependencyResolver().resolveDependency( Config.class );
 
-                assertEventually( "node to appear on core server " + config.get( HaSettings.ha_server ), nodeCount,
+                assertEventually( "node to appear on core server " + config.get( CoreEdgeClusterSettings.raft_advertised_address ), nodeCount,
                         greaterThan( 0L ), 15, SECONDS );
 
                 for ( Node node : GlobalGraphOperations.at( db ).getAllNodes() )

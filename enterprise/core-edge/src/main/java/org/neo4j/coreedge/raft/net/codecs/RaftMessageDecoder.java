@@ -121,8 +121,8 @@ public class RaftMessageDecoder extends MessageToMessageDecoder<ByteBuf>
         else if ( messageType.equals( HEARTBEAT ) )
         {
             long leaderTerm = buffer.readLong();
-            long commitIndex = buffer.readLong();
             long commitIndexTerm = buffer.readLong();
+            long commitIndex = buffer.readLong();
 
             list.add( new RaftMessages.Heartbeat<>( from, leaderTerm, commitIndex, commitIndexTerm ) );
         }
