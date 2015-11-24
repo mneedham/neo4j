@@ -28,8 +28,11 @@ import io.netty.channel.ChannelHandlerContext;
 import org.junit.Test;
 
 import org.neo4j.coreedge.raft.AppendEntriesRequestBuilder;
+import org.neo4j.coreedge.raft.AppendEntriesResponseBuilder;
 import org.neo4j.coreedge.raft.RaftMessages;
 import org.neo4j.coreedge.raft.ReplicatedInteger;
+import org.neo4j.coreedge.raft.VoteRequestBuilder;
+import org.neo4j.coreedge.raft.VoteResponseBuilder;
 import org.neo4j.coreedge.raft.log.RaftLogEntry;
 import org.neo4j.coreedge.raft.replication.MarshallingException;
 import org.neo4j.coreedge.raft.replication.ReplicatedContent;
@@ -67,7 +70,20 @@ public class RaftMessageEncodingDecodingTest
                 .from( sender )
                 .leader( sender )
                 .leaderCommit( 2 )
-                .leaderTerm( 4 ).build();
+                .leaderTerm( 4 )
+                .build();
+        serializeReadBackAndVerifyMessage( request );
+    }
+
+    @Test
+    public void shouldSerializeAppendResponse() throws Exception
+    {
+        CoreMember sender = new CoreMember( address( "127.0.0.1:5001" ), address( "127.0.0.2:5001" ) );
+        RaftMessages.AppendEntries.Response<CoreMember> request = new AppendEntriesResponseBuilder<CoreMember>()
+                .from( sender )
+                .success()
+                .matchIndex( 12 )
+                .build();
         serializeReadBackAndVerifyMessage( request );
     }
 
@@ -97,6 +113,32 @@ public class RaftMessageEncodingDecodingTest
         // Then
         assertEquals( 1, thingsRead.size() );
         assertEquals( message, thingsRead.get( 0 ) );
+    }
+
+    @Test
+    public void shouldSerializeVoteRequest() throws Exception
+    {
+        CoreMember sender = new CoreMember( address( "127.0.0.1:5001" ), address( "127.0.0.2:5001" ) );
+        RaftMessages.Vote.Request<Object> request = new VoteRequestBuilder<>()
+                .candidate( sender )
+                .from( sender )
+                .lastLogIndex( 2 )
+                .lastLogTerm( 1 )
+                .term( 3 )
+                .build();
+        serializeReadBackAndVerifyMessage( request );
+    }
+
+    @Test
+    public void shouldSerializeVoteResponse() throws Exception
+    {
+        CoreMember sender = new CoreMember( address( "127.0.0.1:5001" ), address( "127.0.0.2:5001" ) );
+        RaftMessages.Vote.Response<Object> request = new VoteResponseBuilder<>()
+                .from( sender )
+                .grant()
+                .term( 3 )
+                .build();
+        serializeReadBackAndVerifyMessage( request );
     }
 
     public void serializeReadBackAndVerifyMessage( RaftMessages.Message message ) throws Exception
