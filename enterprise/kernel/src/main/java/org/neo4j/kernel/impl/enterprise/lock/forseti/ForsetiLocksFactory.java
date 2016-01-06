@@ -22,6 +22,7 @@ package org.neo4j.kernel.impl.enterprise.lock.forseti;
 import org.neo4j.helpers.Service;
 import org.neo4j.kernel.impl.locking.Locks;
 import org.neo4j.kernel.impl.locking.ResourceTypes;
+import org.neo4j.kernel.impl.logging.LogService;
 
 @Service.Implementation(Locks.Factory.class)
 public class ForsetiLocksFactory extends Locks.Factory
@@ -32,8 +33,8 @@ public class ForsetiLocksFactory extends Locks.Factory
     }
 
     @Override
-    public Locks newInstance( Locks.ResourceType[] resourceTypes )
+    public Locks newInstance( LogService logging, Locks.ResourceType[] resourceTypes )
     {
-        return new ForsetiLockManager( ResourceTypes.values() );
+        return new ForsetiLockManager( logging, ResourceTypes.values() );
     }
 }

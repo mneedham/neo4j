@@ -20,6 +20,7 @@
 package org.neo4j.kernel.impl.locking;
 
 import org.neo4j.helpers.Service;
+import org.neo4j.kernel.impl.logging.LogService;
 import org.neo4j.kernel.impl.util.concurrent.WaitStrategy;
 
 /**
@@ -50,7 +51,7 @@ public interface Locks
             super( key, altKeys );
         }
 
-        public abstract Locks newInstance( ResourceType[] resourceTypes );
+        public abstract Locks newInstance( LogService logging, ResourceType[] resourceTypes );
     }
 
     /** For introspection and debugging. */

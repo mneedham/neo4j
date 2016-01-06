@@ -30,6 +30,8 @@ import org.neo4j.collection.pool.LinkedQueuePool;
 import org.neo4j.collection.pool.Pool;
 import org.neo4j.kernel.impl.locking.AcquireLockTimeoutException;
 import org.neo4j.kernel.impl.locking.Locks;
+import org.neo4j.kernel.impl.logging.LogService;
+import org.neo4j.kernel.impl.logging.NullLogService;
 import org.neo4j.kernel.impl.util.collection.SimpleBitSet;
 import org.neo4j.kernel.impl.util.concurrent.WaitStrategy;
 
@@ -120,6 +122,12 @@ public class ForsetiLockManager implements Locks
     @SuppressWarnings( "unchecked" )
     public ForsetiLockManager( ResourceType... resourceTypes )
     {
+        this( NullLogService.getInstance(), resourceTypes);
+    }
+
+    @SuppressWarnings( "unchecked" )
+    public ForsetiLockManager( LogService logService, ResourceType... resourceTypes )
+    {
         int maxResourceId = findMaxResourceId( resourceTypes );
         this.lockMaps = new ConcurrentMap[maxResourceId];
         this.resourceTypes = new ResourceType[maxResourceId];
@@ -138,7 +146,7 @@ public class ForsetiLockManager implements Locks
         // TODO be good enough. In fact, we could add the required fields for such a stack
         // TODO to the ForsetiClient objects themselves, making the stack garbage-free in
         // TODO the (presumably) common case of client re-use.
-        clientPool = new ForsetiClientFlyweightPool( lockMaps, waitStrategies );
+        clientPool = new ForsetiClientFlyweightPool( lockMaps, waitStrategies, logService );
     }
 
     /**
@@ -203,14 +211,16 @@ public class ForsetiLockManager implements Locks
         private final Queue<Integer> unusedIds = new ConcurrentLinkedQueue<>();
         private final ConcurrentMap<Long, ForsetiLockManager.Lock>[] lockMaps;
         private final WaitStrategy<AcquireLockTimeoutException>[] waitStrategies;
+        private LogService logging;
 
         public ForsetiClientFlyweightPool(
-                ConcurrentMap<Long, ForsetiLockManager.Lock>[] lockMaps,
-                WaitStrategy<AcquireLockTimeoutException>[] waitStrategies )
+                ConcurrentMap<Long, Lock>[] lockMaps,
+                WaitStrategy<AcquireLockTimeoutException>[] waitStrategies, LogService logging )
         {
             super( 128, null);
             this.lockMaps = lockMaps;
             this.waitStrategies = waitStrategies;
+            this.logging = logging;
         }
 
         @Override
@@ -221,7 +231,7 @@ public class ForsetiLockManager implements Locks
             {
                 id = clientIds.getAndIncrement();
             }
-            return new ForsetiClient( id, lockMaps, waitStrategies, this );
+            return new ForsetiClient( id, lockMaps, waitStrategies, this, logging );
         }
 
         @Override

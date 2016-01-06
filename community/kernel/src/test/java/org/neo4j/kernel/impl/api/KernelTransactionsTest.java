@@ -32,6 +32,7 @@ import org.neo4j.kernel.impl.api.store.StoreReadLayer;
 import org.neo4j.kernel.impl.api.store.StoreStatement;
 import org.neo4j.kernel.impl.locking.Locks;
 import org.neo4j.kernel.impl.locking.ReentrantLockService;
+import org.neo4j.kernel.impl.logging.NullLogService;
 import org.neo4j.kernel.impl.storageengine.StorageEngine;
 import org.neo4j.kernel.impl.store.MetaDataStore;
 import org.neo4j.kernel.impl.store.NeoStores;
@@ -229,7 +230,7 @@ public class KernelTransactionsTest
                 null, null, null, TransactionHeaderInformationFactory.DEFAULT,
                 commitProcess, null,
                 null, new TransactionHooks(), mock( TransactionMonitor.class ), life,
-                tracers, storageEngine );
+                tracers, storageEngine, NullLogService.getInstance() );
     }
 
     private static Collection<Command> sillyCommandList()

@@ -41,7 +41,9 @@ import org.neo4j.kernel.api.txstate.TxStateVisitor;
 import org.neo4j.kernel.impl.api.state.ConstraintIndexCreator;
 import org.neo4j.kernel.impl.api.state.TxState;
 import org.neo4j.kernel.impl.api.store.StoreStatement;
+import org.neo4j.kernel.impl.factory.GraphDatabaseFacade;
 import org.neo4j.kernel.impl.locking.Locks;
+import org.neo4j.kernel.impl.logging.LogService;
 import org.neo4j.kernel.impl.storageengine.StorageEngine;
 import org.neo4j.kernel.impl.transaction.TransactionHeaderInformationFactory;
 import org.neo4j.kernel.impl.transaction.TransactionMonitor;
@@ -50,6 +52,7 @@ import org.neo4j.kernel.impl.transaction.log.PhysicalTransactionRepresentation;
 import org.neo4j.kernel.impl.transaction.tracing.CommitEvent;
 import org.neo4j.kernel.impl.transaction.tracing.TransactionEvent;
 import org.neo4j.kernel.impl.transaction.tracing.TransactionTracer;
+import org.neo4j.logging.Log;
 
 import static org.neo4j.kernel.impl.api.TransactionApplicationMode.INTERNAL;
 
@@ -60,6 +63,10 @@ import static org.neo4j.kernel.impl.api.TransactionApplicationMode.INTERNAL;
  */
 public class KernelTransactionImplementation implements KernelTransaction, TxStateHolder
 {
+
+    private final Log log;
+    private long lastCommittedTxId;
+
     private enum TransactionType
     {
         ANY,
@@ -130,19 +137,19 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
     private final TransactionEvent transactionEvent;
 
     public KernelTransactionImplementation( StatementOperationParts operations,
-            SchemaWriteGuard schemaWriteGuard,
-            Locks.Client locks,
-            TransactionHooks hooks,
-            ConstraintIndexCreator constraintIndexCreator,
-            TransactionHeaderInformationFactory headerInformationFactory,
-            TransactionCommitProcess commitProcess,
-            TransactionMonitor transactionMonitor,
-            LegacyIndexTransactionState legacyIndexTransactionState,
-            KernelTransactions kernelTransactions,
-            Clock clock,
-            TransactionTracer tracer,
-            StorageEngine storageEngine,
-            long lastTransactionIdWhenStarted )
+                                            SchemaWriteGuard schemaWriteGuard,
+                                            Locks.Client locks,
+                                            TransactionHooks hooks,
+                                            ConstraintIndexCreator constraintIndexCreator,
+                                            TransactionHeaderInformationFactory headerInformationFactory,
+                                            TransactionCommitProcess commitProcess,
+                                            TransactionMonitor transactionMonitor,
+                                            LegacyIndexTransactionState legacyIndexTransactionState,
+                                            KernelTransactions kernelTransactions,
+                                            Clock clock,
+                                            TransactionTracer tracer,
+                                            StorageEngine storageEngine,
+                                            long lastTransactionIdWhenStarted, LogService logService )
     {
         this.operations = operations;
         this.schemaWriteGuard = schemaWriteGuard;
@@ -160,6 +167,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
         this.startTimeMillis = clock.currentTimeMillis();
         this.lastTransactionIdWhenStarted = lastTransactionIdWhenStarted;
         this.transactionEvent = tracer.beginTransaction();
+        this.log = logService.getInternalLog( getClass() );
     }
 
     @Override
@@ -366,6 +374,13 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
             }
             finally
             {
+                if ( lastCommittedTxId != 0 )
+                {
+                    log.error( "Thread [" + Thread.currentThread().getId() + "] applied [last: " +
+                            lastTransactionIdWhenStarted + ", committed: " + lastCommittedTxId + "]" );
+
+                }
+
                 locks.close();
                 storeStatement.close();
                 kernelTransactions.transactionClosed( this );
@@ -431,7 +446,8 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
                             locks.getLockSessionId() );
 
                     // Commit the transaction
-                    commitProcess.commit( new TransactionToApply( transactionRepresentation ), commitEvent, INTERNAL );
+                    lastCommittedTxId = commitProcess.commit( new TransactionToApply( transactionRepresentation ), commitEvent,
+                            INTERNAL );
                 }
             }
             success = true;

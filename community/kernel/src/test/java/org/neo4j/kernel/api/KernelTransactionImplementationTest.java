@@ -47,6 +47,7 @@ import org.neo4j.kernel.impl.api.store.StoreReadLayer;
 import org.neo4j.kernel.impl.api.store.StoreStatement;
 import org.neo4j.kernel.impl.locking.Locks;
 import org.neo4j.kernel.impl.locking.NoOpClient;
+import org.neo4j.kernel.impl.logging.NullLogService;
 import org.neo4j.kernel.impl.storageengine.StorageEngine;
 import org.neo4j.kernel.impl.store.MetaDataStore;
 import org.neo4j.kernel.impl.store.NeoStores;
@@ -459,7 +460,7 @@ public class KernelTransactionImplementationTest
     {
         return new KernelTransactionImplementation( null, null, new NoOpClient(), hooks, null, headerInformationFactory,
                 commitProcess, transactionMonitor, legacyIndexState, kernelTransactions, clock, TransactionTracer.NULL,
-                storageEngine, lastTransactionIdWhenStarted );
+                storageEngine, lastTransactionIdWhenStarted, NullLogService.getInstance() );
     }
 
     public class CapturingCommitProcess implements TransactionCommitProcess

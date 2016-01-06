@@ -26,6 +26,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 
+import com.hazelcast.logging.LoggingService;
+
 import org.neo4j.coreedge.raft.replication.ReplicatedContent;
 import org.neo4j.coreedge.raft.replication.Replicator;
 import org.neo4j.coreedge.raft.replication.session.GlobalSession;
@@ -38,8 +40,15 @@ import org.neo4j.kernel.api.exceptions.TransactionFailureException;
 import org.neo4j.kernel.impl.api.TransactionApplicationMode;
 import org.neo4j.kernel.impl.api.TransactionCommitProcess;
 import org.neo4j.kernel.impl.api.TransactionToApply;
+import org.neo4j.kernel.impl.factory.GraphDatabaseFacade;
+import org.neo4j.kernel.impl.logging.LogService;
+import org.neo4j.kernel.impl.logging.NullLogService;
 import org.neo4j.kernel.impl.transaction.TransactionRepresentation;
 import org.neo4j.kernel.impl.transaction.tracing.CommitEvent;
+import org.neo4j.logging.Log;
+
+import static java.lang.String.format;
+import static java.lang.Thread.currentThread;
 
 import static org.neo4j.coreedge.raft.replication.tx.LogIndexTxHeaderEncoding.encodeLogIndexAsTxHeader;
 
@@ -50,16 +59,26 @@ public class ReplicatedTransactionStateMachine implements Replicator.ReplicatedC
     private final CurrentReplicatedLockState currentReplicatedLockState;
     private final TransactionCommitProcess commitProcess;
     private final Map<LocalOperationId, FutureTxId> outstanding = new ConcurrentHashMap<>();
+    private final Log log;
     private long lastCommittedIndex = -1;
 
     public ReplicatedTransactionStateMachine( TransactionCommitProcess commitProcess,
                                               GlobalSession myGlobalSession,
-                                              CurrentReplicatedLockState currentReplicatedLockState )
+                                              CurrentReplicatedLockState currentReplicatedLockState)
+    {
+        this( commitProcess, myGlobalSession, currentReplicatedLockState, NullLogService.getInstance() );
+    }
+
+    public ReplicatedTransactionStateMachine( TransactionCommitProcess commitProcess,
+                                              GlobalSession myGlobalSession,
+                                              CurrentReplicatedLockState currentReplicatedLockState,
+                                              LogService logging)
     {
         this.commitProcess = commitProcess;
         this.myGlobalSession = myGlobalSession;
         this.currentReplicatedLockState = currentReplicatedLockState;
         this.sessionTracker = new GlobalSessionTracker();
+        this.log = logging.getInternalLog( getClass() );
     }
 
     public Future<Long> getFutureTxId( LocalOperationId localOperationId )
@@ -107,8 +126,13 @@ public class ReplicatedTransactionStateMachine implements Replicator.ReplicatedC
 
             try
             {
+                log.error( format( "Thread [%d] starting a transaction for raft index [%d]", currentThread().getId(), logIndex) );
+
                long txId = commitProcess.commit( new TransactionToApply( tx ), CommitEvent.NULL,
                         TransactionApplicationMode.EXTERNAL );
+
+                log.error( format( "Thread [%d] completed transaction [%d], raft index [%d]", currentThread().getId(), txId, logIndex) );
+
                 future.ifPresent( txFuture -> txFuture.complete( txId ) );
             }
             catch ( TransientFailureException e )

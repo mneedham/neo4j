@@ -196,7 +196,7 @@ public class EnterpriseCoreEditionModule
         ReplicatedLockStateMachine<CoreMember> replicatedLockStateMachine = new ReplicatedLockStateMachine<>( myself, replicator );
 
         commitProcessFactory = createCommitProcessFactory( replicator, localSessionPool, replicatedLockStateMachine,
-                dependencies, SYSTEM_CLOCK );
+                dependencies, SYSTEM_CLOCK, logging );
 
         ReplicatedIdAllocationStateMachine idAllocationStateMachine = new ReplicatedIdAllocationStateMachine( myself,
                 new InMemoryIdAllocationStateStore() );
@@ -300,7 +300,7 @@ public class EnterpriseCoreEditionModule
                                                                    CurrentReplicatedLockState
                                                                            currentReplicatedLockState,
                                                                    final Dependencies dependencies,
-                                                                   final Clock clock )
+                                                                   final Clock clock, LogService logging )
     {
         return ( appender, applier, config ) -> {
             TransactionRepresentationCommitProcess localCommit =
@@ -308,7 +308,7 @@ public class EnterpriseCoreEditionModule
             dependencies.satisfyDependencies( localCommit );
 
             ReplicatedTransactionStateMachine replicatedTxStateMachine = new ReplicatedTransactionStateMachine(
-                    localCommit, localSessionPool.getGlobalSession(), currentReplicatedLockState );
+                    localCommit, localSessionPool.getGlobalSession(), currentReplicatedLockState, logging );
 
             dependencies.satisfyDependencies( replicatedTxStateMachine );
 
@@ -415,7 +415,7 @@ public class EnterpriseCoreEditionModule
     {
         Locks local = CommunityEditionModule.createLockManager( config, logging );
 
-        return new LeaderOnlyLockManager<CoreMember>( myself, replicator, local, replicatedLockStateMachine );
+        return new LeaderOnlyLockManager<CoreMember>( myself, replicator, local, replicatedLockStateMachine, logging );
     }
 
     protected TransactionHeaderInformationFactory createHeaderInformationFactory()

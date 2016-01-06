@@ -30,6 +30,7 @@ import org.neo4j.kernel.impl.api.TransactionHooks;
 import org.neo4j.kernel.impl.api.TransactionRepresentationCommitProcess;
 import org.neo4j.kernel.impl.api.state.ConstraintIndexCreator;
 import org.neo4j.kernel.impl.api.store.StoreReadLayer;
+import org.neo4j.kernel.impl.logging.NullLogService;
 import org.neo4j.kernel.impl.storageengine.StorageEngine;
 import org.neo4j.kernel.impl.store.NeoStores;
 import org.neo4j.kernel.impl.transaction.TransactionHeaderInformationFactory;
@@ -63,6 +64,6 @@ public class KernelTransactionFactory
                 Clock.SYSTEM_CLOCK,
                 TransactionTracer.NULL,
                 storageEngine,
-                lastTransactionIdWhenStarted );
+                lastTransactionIdWhenStarted, NullLogService.getInstance() );
     }
 }

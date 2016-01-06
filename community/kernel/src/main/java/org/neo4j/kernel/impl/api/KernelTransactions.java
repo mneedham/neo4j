@@ -33,6 +33,7 @@ import org.neo4j.kernel.impl.api.state.ConstraintIndexCreator;
 import org.neo4j.kernel.impl.api.state.LegacyIndexTransactionStateImpl;
 import org.neo4j.kernel.impl.index.IndexConfigStore;
 import org.neo4j.kernel.impl.locking.Locks;
+import org.neo4j.kernel.impl.logging.LogService;
 import org.neo4j.kernel.impl.storageengine.StorageEngine;
 import org.neo4j.kernel.impl.transaction.TransactionHeaderInformationFactory;
 import org.neo4j.kernel.impl.transaction.TransactionMonitor;
@@ -66,6 +67,7 @@ public class KernelTransactions extends LifecycleAdapter implements Factory<Kern
     private final LifeSupport dataSourceLife;
     private final Tracers tracers;
     private final StorageEngine storageEngine;
+    private LogService logService;
 
     private final Set<KernelTransaction> allTransactions = newSetFromMap( new ConcurrentHashMap<>() );
 
@@ -81,7 +83,8 @@ public class KernelTransactions extends LifecycleAdapter implements Factory<Kern
                                TransactionMonitor transactionMonitor,
                                LifeSupport dataSourceLife,
                                Tracers tracers,
-                               StorageEngine storageEngine )
+                               StorageEngine storageEngine,
+                               LogService logService )
     {
         this.locks = locks;
         this.constraintIndexCreator = constraintIndexCreator;
@@ -96,6 +99,7 @@ public class KernelTransactions extends LifecycleAdapter implements Factory<Kern
         this.dataSourceLife = dataSourceLife;
         this.tracers = tracers;
         this.storageEngine = storageEngine;
+        this.logService = logService;
     }
 
     @Override
@@ -112,7 +116,8 @@ public class KernelTransactions extends LifecycleAdapter implements Factory<Kern
         KernelTransactionImplementation tx = new KernelTransactionImplementation( statementOperations, schemaWriteGuard,
                 locksClient, hooks, constraintIndexCreator, transactionHeaderInformationFactory,
                 transactionCommitProcess, transactionMonitor, legacyIndexTransactionState,
-                this, Clock.SYSTEM_CLOCK, tracers.transactionTracer, storageEngine, lastTransactionIdWhenStarted );
+                this, Clock.SYSTEM_CLOCK, tracers.transactionTracer, storageEngine, lastTransactionIdWhenStarted,
+                this.logService);
 
         allTransactions.add( tx );
 

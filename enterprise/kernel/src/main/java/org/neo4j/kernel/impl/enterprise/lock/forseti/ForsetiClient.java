@@ -27,14 +27,20 @@ import org.neo4j.collection.primitive.PrimitiveIntIterator;
 import org.neo4j.collection.primitive.PrimitiveLongIntMap;
 import org.neo4j.collection.primitive.PrimitiveLongVisitor;
 import org.neo4j.kernel.DeadlockDetectedException;
+import org.neo4j.kernel.impl.factory.GraphDatabaseFacade;
 import org.neo4j.kernel.impl.locking.AcquireLockTimeoutException;
 import org.neo4j.kernel.impl.locking.LockClientAlreadyClosedException;
 import org.neo4j.kernel.impl.locking.LockClientStateHolder;
 import org.neo4j.kernel.impl.locking.Locks;
+import org.neo4j.kernel.impl.locking.ResourceTypes;
+import org.neo4j.kernel.impl.logging.LogService;
+import org.neo4j.kernel.impl.logging.NullLogService;
 import org.neo4j.kernel.impl.util.collection.SimpleBitSet;
 import org.neo4j.kernel.impl.util.concurrent.WaitStrategy;
+import org.neo4j.logging.Log;
 
 import static java.lang.String.format;
+import static java.lang.Thread.currentThread;
 
 // Please note. Except separate test cases for particular classes related to community locking
 // see also org.neo4j.kernel.ha.lock.forseti.ForsetiLocksCompatibility test suite
@@ -88,11 +94,13 @@ public class ForsetiClient implements Locks.Client
      * For exclusive locks, we only need a single re-usable one per client. We simply CAS this lock into whatever slots
      * we want to hold in the global lock map. */
     private final ExclusiveLock myExclusiveLock = new ExclusiveLock(this);
+    private Log log;
 
     public ForsetiClient( int id,
                           ConcurrentMap<Long, ForsetiLockManager.Lock>[] lockMaps,
                           WaitStrategy<AcquireLockTimeoutException>[] waitStrategies,
-                          LinkedQueuePool<ForsetiClient> clientPool )
+                          LinkedQueuePool<ForsetiClient> clientPool,
+                          LogService logService)
     {
         this.clientId = id;
         this.lockMaps = lockMaps;
@@ -106,6 +114,8 @@ public class ForsetiClient implements Locks.Client
             sharedLockCounts[i] = Primitive.longIntMap();
             exclusiveLockCounts[i] = Primitive.longIntMap();
         }
+
+        log = logService.getInternalLog( getClass() );
     }
 
     /**
@@ -246,6 +256,7 @@ public class ForsetiClient implements Locks.Client
             {
                 // We already have a lock on this, just increment our local reference counter.
                 heldLocks.put( resourceId, heldCount + 1 );
+                log.error( format( "Thread [%d] acquired existing %s [%s]", currentThread().getId(), resourceType, resourceId ) );
                 return;
             }
 
@@ -278,6 +289,7 @@ public class ForsetiClient implements Locks.Client
 
             clearWaitList();
             heldLocks.put( resourceId, 1 );
+            log.error( format( "Thread [%d] acquired %s [%s]", currentThread().getId(), resourceType, resourceId ) );
         }
         finally
         {
@@ -532,7 +544,8 @@ public class ForsetiClient implements Locks.Client
             if(exclusiveLocks != null)
             {
                 int size = exclusiveLocks.size();
-                exclusiveLocks.visitKeys( releaseExclusiveAndClearSharedVisitor.initialize( sharedLocks, lockMaps[i] ));
+                exclusiveLocks.visitKeys( releaseExclusiveAndClearSharedVisitor.initialize( sharedLocks, lockMaps[i],
+                        ResourceTypes.fromId( i ) ));
                 if(size <= 32)
                 {
                     // If the map is small, its fast and nice to GC to clear it. However, if its large, it is
@@ -839,18 +852,22 @@ public class ForsetiClient implements Locks.Client
     {
         private PrimitiveLongIntMap sharedLockCounts;
         private ConcurrentMap<Long, ForsetiLockManager.Lock> lockMap;
+        private Locks.ResourceType resourceType;
 
         private PrimitiveLongVisitor<RuntimeException> initialize( PrimitiveLongIntMap sharedLockCounts,
-                                                 ConcurrentMap<Long, ForsetiLockManager.Lock> lockMap )
+                                                                   ConcurrentMap<Long, ForsetiLockManager.Lock> lockMap,
+                                                                   Locks.ResourceType resourceType )
         {
             this.sharedLockCounts = sharedLockCounts;
             this.lockMap = lockMap;
+            this.resourceType = resourceType;
             return this;
         }
 
         @Override
         public boolean visited( long resourceId )
         {
+            log.error( format( "Thread [%d] releasing %s [%s]", currentThread().getId(), resourceType, resourceId ) );
             releaseGlobalLock( lockMap, resourceId );
 
             // If we hold this as a shared lock, we can throw that shared lock away directly, since we haven't

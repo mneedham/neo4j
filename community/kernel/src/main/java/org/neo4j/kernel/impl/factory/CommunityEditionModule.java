@@ -218,13 +218,13 @@ public class CommunityEditionModule
             String candidateId = candidate.getKeys().iterator().next();
             if ( candidateId.equals( key ) )
             {
-                return candidate.newInstance( ResourceTypes.values() );
+                return candidate.newInstance( logging, ResourceTypes.values() );
             }
             else if ( key.equals( "" ) )
             {
                 logging.getInternalLog( CommunityFacadeFactory.class )
                         .info( "No locking implementation specified, defaulting to '" + candidateId + "'" );
-                return candidate.newInstance( ResourceTypes.values() );
+                return candidate.newInstance( logging, ResourceTypes.values() );
             }
         }
 

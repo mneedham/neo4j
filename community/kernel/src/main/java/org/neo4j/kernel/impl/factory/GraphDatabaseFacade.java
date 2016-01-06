@@ -88,6 +88,8 @@ import org.neo4j.kernel.security.URLAccessValidationError;
 import org.neo4j.logging.Log;
 
 import static java.lang.String.format;
+import static java.lang.Thread.currentThread;
+
 import static org.neo4j.collection.primitive.PrimitiveLongCollections.map;
 import static org.neo4j.helpers.collection.IteratorUtil.emptyIterator;
 import static org.neo4j.kernel.impl.api.operations.KeyReadOperations.NO_SUCH_LABEL;
@@ -307,6 +309,10 @@ public class GraphDatabaseFacade
          try
          {
              KernelTransaction transaction = kernel.get().newTransaction();
+
+             Log log = platformModule.logging.getInternalLog( getClass() );
+             log.error( format( "Thread [%d] started new transaction", currentThread().getId()) );
+
              topLevelTransaction = new TopLevelTransaction( transaction, threadToTransactionBridge );
              threadToTransactionBridge.bindTransactionToCurrentThread( topLevelTransaction );
              return topLevelTransaction;
