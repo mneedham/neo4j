@@ -80,6 +80,7 @@ import static org.neo4j.helpers.collection.Iterables.count;
 import static org.neo4j.helpers.collection.IteratorUtil.asList;
 import static org.neo4j.test.Assert.assertEventually;
 
+@Ignore
 public class LockingIT
 {
     public static final int LABELS = 10;

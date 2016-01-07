@@ -48,4 +48,12 @@ public class OperationContext
     {
         return localSession;
     }
+
+
+    @Override
+    public String toString()
+    {
+        return String.format( "OperationContext{globalSession=%s, localOperationId=%s}",
+                globalSession, localOperationId );
+    }
 }

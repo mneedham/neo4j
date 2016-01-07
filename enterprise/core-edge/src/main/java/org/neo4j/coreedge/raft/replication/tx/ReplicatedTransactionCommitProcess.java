@@ -36,6 +36,9 @@ import org.neo4j.kernel.impl.api.TransactionCommitProcess;
 import org.neo4j.kernel.impl.api.TransactionToApply;
 import org.neo4j.kernel.impl.transaction.tracing.CommitEvent;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
+import org.neo4j.logging.Log;
+import org.neo4j.logging.LogProvider;
+import org.neo4j.logging.NullLogProvider;
 
 import static org.neo4j.coreedge.raft.replication.tx.ReplicatedTransactionFactory.createImmutableReplicatedTransaction;
 
@@ -47,10 +50,19 @@ public class ReplicatedTransactionCommitProcess extends LifecycleAdapter impleme
     private final long retryIntervalMillis;
     private final long maxRetryTimeMillis;
     private final LocalSessionPool sessionPool;
+    private Log log;
 
     public ReplicatedTransactionCommitProcess( Replicator replicator, LocalSessionPool sessionPool,
-            ReplicatedTransactionStateMachine replicatedTxListener, Clock clock,
-            long retryIntervalMillis, long maxRetryTimeMillis )
+                                               ReplicatedTransactionStateMachine replicatedTxListener, Clock clock,
+                                               long retryIntervalMillis, long maxRetryTimeMillis )
+    {
+        this(replicator, sessionPool, replicatedTxListener, clock, retryIntervalMillis, maxRetryTimeMillis,
+            NullLogProvider.getInstance());
+    }
+
+    public ReplicatedTransactionCommitProcess( Replicator replicator, LocalSessionPool sessionPool,
+                                               ReplicatedTransactionStateMachine replicatedTxListener, Clock clock,
+                                               long retryIntervalMillis, long maxRetryTimeMillis, LogProvider logProvider )
     {
         this.sessionPool = sessionPool;
         this.replicatedTxListener = replicatedTxListener;
@@ -58,6 +70,7 @@ public class ReplicatedTransactionCommitProcess extends LifecycleAdapter impleme
         this.clock = clock;
         this.retryIntervalMillis = retryIntervalMillis;
         this.maxRetryTimeMillis = maxRetryTimeMillis;
+        log = logProvider.getLog( getClass() );
         replicator.subscribe( this.replicatedTxListener );
     }
 
@@ -67,6 +80,8 @@ public class ReplicatedTransactionCommitProcess extends LifecycleAdapter impleme
                         TransactionApplicationMode mode ) throws TransactionFailureException
     {
         OperationContext operationContext = sessionPool.acquireSession();
+
+        log.info( "Thread [" + Thread.currentThread().getId() + "] Trying to commit operation [" + operationContext.globalSession().sessionId() + " " + operationContext.localOperationId() + "]" );
 
         ReplicatedTransaction transaction;
         try
@@ -114,7 +129,7 @@ public class ReplicatedTransactionCommitProcess extends LifecycleAdapter impleme
             {
                 throw new TransactionFailureException( "Failed to replicate transaction", e );
             }
-            System.out.println( "Retrying replication" );
+            log.info( "Thread [" + Thread.currentThread().getId() + "] Retrying replication for operation [" + operationContext.globalSession().sessionId() + " " + operationContext.localOperationId() + "]" );
         }
     }
 

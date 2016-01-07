@@ -317,7 +317,7 @@ public class EnterpriseCoreEditionModule
             return new ReplicatedTransactionCommitProcess( replicator, localSessionPool,
                     replicatedTxStateMachine, clock,
                     config.get( CoreEdgeClusterSettings.tx_replication_retry_interval ),
-                    config.get( CoreEdgeClusterSettings.tx_replication_timeout ) );
+                    config.get( CoreEdgeClusterSettings.tx_replication_timeout ), logging.getInternalLogProvider() );
         };
     }
 

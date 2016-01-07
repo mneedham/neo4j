@@ -84,6 +84,7 @@ public class CoreServerReplicationIT
     {
         // given
         File dbDir = dir.directory();
+        System.out.println( "dbDir = " + dbDir );
         cluster = Cluster.start( dbDir, 3, 0 );
 
         // when
@@ -116,6 +117,8 @@ public class CoreServerReplicationIT
                 tx.success();
             }
         }
+
+        System.exit( 1 );
     }
 
     @Test

@@ -378,7 +378,9 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
                 {
                     log.error( "Thread [" + Thread.currentThread().getId() + "] applied [last: " +
                             lastTransactionIdWhenStarted + ", committed: " + lastCommittedTxId + "]" );
-
+                } else {
+                    log.error( "Thread [" + Thread.currentThread().getId() + "] probably aborted [last: " +
+                            lastTransactionIdWhenStarted + ", committed: " + lastCommittedTxId + "]" );
                 }
 
                 locks.close();

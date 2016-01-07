@@ -126,12 +126,16 @@ public class ReplicatedTransactionStateMachine implements Replicator.ReplicatedC
 
             try
             {
-                log.error( format( "Thread [%d] starting a transaction for raft index [%d]", currentThread().getId(), logIndex) );
+                log.error( format( "Thread [%d] starting a transaction for operation [%s, %s] raft index [%d]",
+                        currentThread().getId(),
+                        replicatedTx.globalSession().sessionId(), replicatedTx.localOperationId(), logIndex) );
 
                long txId = commitProcess.commit( new TransactionToApply( tx ), CommitEvent.NULL,
                         TransactionApplicationMode.EXTERNAL );
 
-                log.error( format( "Thread [%d] completed transaction [%d], raft index [%d]", currentThread().getId(), txId, logIndex) );
+                log.error( format( "Thread [%d] completed transaction [%d] for operation [%s, %s] raft index [%d]",
+                        currentThread().getId(), txId,
+                        replicatedTx.globalSession().sessionId(), replicatedTx.localOperationId(), logIndex) );
 
                 future.ifPresent( txFuture -> txFuture.complete( txId ) );
             }
