@@ -62,6 +62,9 @@ import org.neo4j.coreedge.raft.replication.shipping.RaftLogShippingManager;
 import org.neo4j.coreedge.raft.replication.token.ReplicatedLabelTokenHolder;
 import org.neo4j.coreedge.raft.replication.token.ReplicatedPropertyKeyTokenHolder;
 import org.neo4j.coreedge.raft.replication.token.ReplicatedRelationshipTypeTokenHolder;
+import org.neo4j.coreedge.raft.replication.token.ReplicatedTokenStateMachine;
+import org.neo4j.coreedge.raft.replication.token.TokenRegistry;
+import org.neo4j.coreedge.raft.replication.token.TokenType;
 import org.neo4j.coreedge.raft.replication.tx.CommittingTransactions;
 import org.neo4j.coreedge.raft.replication.tx.CommittingTransactionsRegistry;
 import org.neo4j.coreedge.raft.replication.tx.ExponentialBackoffStrategy;
@@ -85,9 +88,9 @@ import org.neo4j.coreedge.server.Expiration;
 import org.neo4j.coreedge.server.ExpiryScheduler;
 import org.neo4j.coreedge.server.ListenSocketAddress;
 import org.neo4j.coreedge.server.SenderService;
-import org.neo4j.coreedge.server.core.locks.ReplicatedLockTokenState;
 import org.neo4j.coreedge.server.core.locks.LeaderOnlyLockManager;
 import org.neo4j.coreedge.server.core.locks.LockTokenManager;
+import org.neo4j.coreedge.server.core.locks.ReplicatedLockTokenState;
 import org.neo4j.coreedge.server.core.locks.ReplicatedLockTokenStateMachine;
 import org.neo4j.coreedge.server.logging.BetterMessageLogger;
 import org.neo4j.coreedge.server.logging.MessageLogger;
@@ -106,6 +109,7 @@ import org.neo4j.kernel.impl.api.SchemaWriteGuard;
 import org.neo4j.kernel.impl.api.TransactionHeaderInformation;
 import org.neo4j.kernel.impl.api.TransactionRepresentationCommitProcess;
 import org.neo4j.kernel.impl.api.index.RemoveOrphanConstraintIndexesOnStartup;
+import org.neo4j.kernel.impl.core.RelationshipTypeToken;
 import org.neo4j.kernel.impl.enterprise.EnterpriseConstraintSemantics;
 import org.neo4j.kernel.impl.factory.CommunityEditionModule;
 import org.neo4j.kernel.impl.factory.DatabaseInfo;
@@ -114,6 +118,9 @@ import org.neo4j.kernel.impl.factory.GraphDatabaseFacade;
 import org.neo4j.kernel.impl.factory.PlatformModule;
 import org.neo4j.kernel.impl.locking.Locks;
 import org.neo4j.kernel.impl.logging.LogService;
+import org.neo4j.kernel.impl.store.record.LabelTokenRecord;
+import org.neo4j.kernel.impl.store.record.PropertyKeyTokenRecord;
+import org.neo4j.kernel.impl.store.record.RelationshipTypeTokenRecord;
 import org.neo4j.kernel.impl.store.stats.IdBasedStoreEntityCounters;
 import org.neo4j.kernel.impl.transaction.TransactionHeaderInformationFactory;
 import org.neo4j.kernel.impl.transaction.log.LogicalTransactionStore;
@@ -126,6 +133,7 @@ import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 import org.neo4j.kernel.lifecycle.LifecycleStatus;
 import org.neo4j.kernel.monitoring.Monitors;
 import org.neo4j.logging.LogProvider;
+import org.neo4j.storageengine.api.Token;
 import org.neo4j.udc.UsageData;
 
 import static org.neo4j.helpers.Clock.SYSTEM_CLOCK;
@@ -279,21 +287,39 @@ public class EnterpriseCoreEditionModule
         dependencies.satisfyDependency( new IdBasedStoreEntityCounters( this.idGeneratorFactory ) );
 
         Long tokenCreationTimeout = config.get( CoreEdgeClusterSettings.token_creation_timeout );
-        ReplicatedRelationshipTypeTokenHolder relationshipTypeTokenHolder = new ReplicatedRelationshipTypeTokenHolder(
-                replicator, this.idGeneratorFactory, dependencies, tokenCreationTimeout, logProvider );
-        ReplicatedPropertyKeyTokenHolder propertyKeyTokenHolder = new ReplicatedPropertyKeyTokenHolder(
-                replicator, this.idGeneratorFactory, dependencies, tokenCreationTimeout, logProvider );
-        ReplicatedLabelTokenHolder labelTokenHolder = new ReplicatedLabelTokenHolder(
-                replicator, this.idGeneratorFactory, dependencies, tokenCreationTimeout, logProvider );
 
-        stateMachines.add( labelTokenHolder );
-        stateMachines.add( relationshipTypeTokenHolder );
-        stateMachines.add( propertyKeyTokenHolder );
+        TokenRegistry<RelationshipTypeToken, RelationshipTypeTokenRecord> relationshipTypeTokenRegistry = new TokenRegistry<>();
+        ReplicatedRelationshipTypeTokenHolder relationshipTypeTokenHolder = new ReplicatedRelationshipTypeTokenHolder(
+                relationshipTypeTokenRegistry, replicator, this.idGeneratorFactory, dependencies, tokenCreationTimeout );
+        ReplicatedTokenStateMachine<RelationshipTypeToken, RelationshipTypeTokenRecord>
+                relationshipTypeTokenStateMachine = new ReplicatedTokenStateMachine<>(
+                relationshipTypeTokenRegistry, dependencies, new RelationshipTypeToken.Factory(),
+                TokenType.RELATIONSHIP, logProvider );
+
+        TokenRegistry<Token, PropertyKeyTokenRecord> propertyKeyTokenRegistry = new TokenRegistry<>();
+        ReplicatedPropertyKeyTokenHolder propertyKeyTokenHolder = new ReplicatedPropertyKeyTokenHolder(
+                propertyKeyTokenRegistry, replicator, this.idGeneratorFactory, dependencies, tokenCreationTimeout );
+        ReplicatedTokenStateMachine<Token, PropertyKeyTokenRecord>
+                propertyKeyTokenStateMachine = new ReplicatedTokenStateMachine<>(
+                propertyKeyTokenRegistry, dependencies, new Token.Factory(),
+                TokenType.PROPERTY, logProvider );
+
+        TokenRegistry<Token, LabelTokenRecord> labelTokenRegistry = new TokenRegistry<>();
+        ReplicatedLabelTokenHolder labelTokenHolder = new ReplicatedLabelTokenHolder(
+                labelTokenRegistry, replicator, this.idGeneratorFactory, dependencies, tokenCreationTimeout );
+        ReplicatedTokenStateMachine<Token, LabelTokenRecord>
+                labelTokenStateMachine = new ReplicatedTokenStateMachine<>(
+                labelTokenRegistry, dependencies, new Token.Factory(),
+                TokenType.LABEL, logProvider );
 
         LifeSupport tokenLife = new LifeSupport();
-        this.relationshipTypeTokenHolder = tokenLife.add( relationshipTypeTokenHolder );
-        this.propertyKeyTokenHolder = tokenLife.add( propertyKeyTokenHolder );
-        this.labelTokenHolder = tokenLife.add( labelTokenHolder );
+        stateMachines.add( tokenLife.add( relationshipTypeTokenStateMachine ) );
+        stateMachines.add( tokenLife.add( propertyKeyTokenStateMachine ) );
+        stateMachines.add( tokenLife.add( labelTokenStateMachine ) );
+
+        this.relationshipTypeTokenHolder = relationshipTypeTokenHolder;
+        this.propertyKeyTokenHolder = propertyKeyTokenHolder;
+        this.labelTokenHolder = labelTokenHolder;
 
         dependencies.satisfyDependency( createKernelData( fileSystem, platformModule.pageCache, storeDir,
                 config, graphDatabaseFacade, life ) );
@@ -339,7 +365,7 @@ public class EnterpriseCoreEditionModule
                 catchupServer, raftTimeoutService, membershipWaiter,
                 joinCatchupTimeout,
                 new RecoverTransactionLogState( dependencies, logProvider,
-                        relationshipTypeTokenHolder, propertyKeyTokenHolder, labelTokenHolder ),
+                        relationshipTypeTokenStateMachine, propertyKeyTokenStateMachine, labelTokenStateMachine ),
                 tokenLife
         ) );
     }
