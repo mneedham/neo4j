@@ -117,13 +117,7 @@ public class EnterpriseEdgeEditionModule extends EditionModule
 
         headerInformationFactory = TransactionHeaderInformationFactory.DEFAULT;
 
-        schemaWriteGuard = new SchemaWriteGuard()
-        {
-            @Override
-            public void assertSchemaWritesAllowed() throws InvalidTransactionTypeKernelException
-            {
-            }
-        };
+        schemaWriteGuard = () -> {};
 
         transactionStartTimeout = config.get( GraphDatabaseSettings.transaction_start_timeout );
 
@@ -136,7 +130,7 @@ public class EnterpriseEdgeEditionModule extends EditionModule
 
         LogProvider logProvider = platformModule.logging.getInternalLogProvider();
 
-        EdgeDiscoveryService discoveryService = discoveryServiceFactory.edgeDiscoveryService( config );
+        EdgeDiscoveryService discoveryService = discoveryServiceFactory.edgeDiscoveryService( config, logProvider);
         life.add(dependencies.satisfyDependency( discoveryService ));
 
         Supplier<TransactionApplier> transactionApplierSupplier =
@@ -181,30 +175,17 @@ public class EnterpriseEdgeEditionModule extends EditionModule
     protected void registerRecovery( final DatabaseInfo databaseInfo, LifeSupport life,
                                      final DependencyResolver dependencyResolver )
     {
-        life.addLifecycleListener( new LifecycleListener()
-        {
-            @Override
-            public void notifyStatusChanged( Object instance, LifecycleStatus from, LifecycleStatus to )
+        life.addLifecycleListener( ( instance, from, to ) -> {
+            if ( instance instanceof DatabaseAvailability && to.equals( LifecycleStatus.STARTED ) )
             {
-                if ( instance instanceof DatabaseAvailability && to.equals( LifecycleStatus.STARTED ) )
-                {
-                    doAfterRecoveryAndStartup( databaseInfo, dependencyResolver );
-                }
+                doAfterRecoveryAndStartup( databaseInfo, dependencyResolver );
             }
         } );
     }
 
     private CommitProcessFactory readOnly()
     {
-        return new CommitProcessFactory()
-        {
-            @Override
-            public TransactionCommitProcess create( TransactionAppender appender, StorageEngine storageEngine,
-                    Config config )
-            {
-                return new ReadOnlyTransactionCommitProcess();
-            }
-        };
+        return ( appender, storageEngine, config ) -> new ReadOnlyTransactionCommitProcess();
     }
 
     protected final class DefaultKernelData extends KernelData implements Lifecycle

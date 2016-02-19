@@ -19,13 +19,9 @@
  */
 package org.neo4j.coreedge.discovery;
 
+import com.hazelcast.core.HazelcastInstance;
 
-import org.neo4j.kernel.configuration.Config;
-import org.neo4j.logging.LogProvider;
-
-public interface DiscoveryServiceFactory
+public interface HazelcastConnector
 {
-    CoreDiscoveryService coreDiscoveryService( Config config );
-
-    EdgeDiscoveryService edgeDiscoveryService( Config config, LogProvider logProvider );
+    HazelcastInstance connectToHazelcast();
 }
