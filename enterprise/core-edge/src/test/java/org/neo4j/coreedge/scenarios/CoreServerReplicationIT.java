@@ -32,6 +32,7 @@ import org.junit.Test;
 
 import org.neo4j.cluster.InstanceId;
 import org.neo4j.coreedge.discovery.Cluster;
+import org.neo4j.coreedge.discovery.TestOnlyDiscoveryServiceFactory;
 import org.neo4j.coreedge.server.CoreEdgeClusterSettings;
 import org.neo4j.coreedge.server.core.CoreGraphDatabase;
 import org.neo4j.function.ThrowingSupplier;
@@ -86,7 +87,7 @@ public class CoreServerReplicationIT
     {
         // given
         File dbDir = dir.directory();
-        cluster = Cluster.start( dbDir, 3, 0 );
+        cluster = Cluster.start( dbDir, 3, 0, new TestOnlyDiscoveryServiceFactory() );
 
         // when
         GraphDatabaseService coreDB = cluster.findLeader( 5000 );
@@ -108,7 +109,7 @@ public class CoreServerReplicationIT
                 Config config = db.getDependencyResolver().resolveDependency( Config.class );
 
                 assertEventually( "node to appear on core server " + config.get( raft_advertised_address ), nodeCount,
-                        greaterThan(  0L ), 15, SECONDS );
+                        greaterThan( 0L ), 15, SECONDS );
 
                 for ( Node node : GlobalGraphOperations.at( db ).getAllNodes() )
                 {
