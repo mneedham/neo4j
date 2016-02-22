@@ -126,7 +126,7 @@ public class CoreServerReplicationIT
     {
         // given
         File dbDir = dir.directory();
-        cluster = Cluster.start( dbDir, 3, 0 );
+        cluster = Cluster.start( dbDir, 3, 0, new TestOnlyDiscoveryServiceFactory() );
 
         cluster.addCoreServerWithServerId( 3, 4 );
 
@@ -177,7 +177,7 @@ public class CoreServerReplicationIT
     public void shouldReplicateTransactionAfterOneOriginalServerRemovedFromCluster() throws Exception
     {
         File dbDir = dir.directory();
-        cluster = Cluster.start( dbDir, 3, 0 );
+        cluster = Cluster.start( dbDir, 3, 0, new TestOnlyDiscoveryServiceFactory() );
         CoreGraphDatabase leader = cluster.findLeader( 5000 );
         try ( Transaction tx = leader.beginTx() )
         {
@@ -233,7 +233,7 @@ public class CoreServerReplicationIT
     {
         // given
         File dbDir = dir.directory();
-        cluster = Cluster.start( dbDir, 3, 0 );
+        cluster = Cluster.start( dbDir, 3, 0, new TestOnlyDiscoveryServiceFactory() );
 
         // when
         for ( int i = 0; i < 15; i++ )
