@@ -82,6 +82,68 @@ public class CoreServerReplicationIT
     }
 
     @Test
+    public void shouldSendSomeLoadIntoTheCluster() throws Exception
+    {
+        // given
+        cluster = Cluster.start( dir.directory(), 3, 0 );
+        CoreGraphDatabase server = cluster.findLeader( 5000 );
+
+        // when
+        try ( Transaction tx = server.beginTx() )
+        {
+            Node node = server.createNode( label( "boo" ) );
+            node.setProperty( "foobar", "baz_bat" );
+            tx.success();
+        }
+        catch ( Exception e )
+        {
+            System.out.printf( e.toString() );
+        }
+
+        // then
+    }
+
+    @Test
+    @Ignore
+    public void shouldTestPerformance() throws Exception
+    {
+        // given
+        cluster = Cluster.start( dir.directory(), 3, 0 );
+        ExecutorService executorService = Executors.newCachedThreadPool();
+
+        for ( int j = 0; j < 1; j++ )
+        {
+            executorService.submit( () -> {
+                while ( true )
+                {
+                    CoreGraphDatabase server = cluster.findLeader( 5000 );
+                    long startTime = System.currentTimeMillis();
+                    int QUANTA = 1000;
+                    for ( int i = 0; i < QUANTA; i++ )
+                    {
+                        try ( Transaction tx = server.beginTx() )
+                        {
+                            Node node = server.createNode( label( "boo" ) );
+                            node.setProperty( "foobar", "baz_bat" );
+                            tx.success();
+                        }
+                        catch ( Exception e )
+                        {
+                            System.out.printf( e.toString() );
+                        }
+                    }
+                    long endTime = System.currentTimeMillis();
+
+                    System.out.println( "tx/s: " + QUANTA * 1000 / (endTime - startTime) );
+                }
+            } );
+        }
+
+        executorService.awaitTermination( 3, TimeUnit.MINUTES );
+    }
+
+
+    @Test
     public void shouldReplicateTransactionToCoreServers() throws Exception
     {
         // given
