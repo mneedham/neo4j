@@ -68,6 +68,7 @@ public class PhysicalRaftLog implements RaftLog, Lifecycle
     private final RaftEntryStore entryStore;
 
     private final PhysicalLogFiles logFiles;
+    private CoolCache coolCache = new CoolCache( 100 );
 
     public PhysicalRaftLog( FileSystemAbstraction fileSystem, File directory, long rotateAtSize,
                             int entryCacheSize, PhysicalLogFile.Monitor monitor,
@@ -193,27 +194,14 @@ public class PhysicalRaftLog implements RaftLog, Lifecycle
     @Override
     public RaftLogEntry readLogEntry( long logIndex ) throws RaftStorageException
     {
-        try ( IOCursor<RaftLogAppendRecord> entriesFrom = entryStore.getEntriesFrom( logIndex ) )
+        try ( IOCursor<RaftLogAppendRecord> cursor = entryStore.getEntriesFrom( logIndex ) )
         {
-            while ( entriesFrom.next() )
-            {
-                RaftLogAppendRecord raftLogAppendRecord = entriesFrom.get();
-                if ( raftLogAppendRecord.getLogIndex() == logIndex )
-                {
-                    return raftLogAppendRecord.getLogEntry();
-                }
-                else if ( raftLogAppendRecord.getLogIndex() > logIndex )
-                {
-                    throw new IllegalStateException( format( "Asked for index %d but got up to %d without " +
-                            "finding it.", logIndex, raftLogAppendRecord.getLogIndex() ) );
-                }
-            }
+            return coolCache.get( cursor, logIndex );
         }
-        catch ( IOException e )
+        catch ( IOException exception )
         {
-            throw new RaftStorageException( e );
+            throw new RaftStorageException( exception );
         }
-        return null;
     }
 
     @Override
@@ -246,7 +234,7 @@ public class PhysicalRaftLog implements RaftLog, Lifecycle
     public void start() throws Throwable
     {
         this.logRotation =
-                new LogRotationImpl( new LoggingLogFileMonitor( log ), logFile,  databaseHealthSupplier.get() );
+                new LogRotationImpl( new LoggingLogFileMonitor( log ), logFile, databaseHealthSupplier.get() );
 
         logFile.start();
         restoreIndexes();
@@ -271,7 +259,8 @@ public class PhysicalRaftLog implements RaftLog, Lifecycle
                         appendIndex.set( record.getLogIndex() );
                         break;
                     case TRUNCATE:
-                        long truncateAtIndex = record.getLogIndex() - 1; // we must restore append/commit at before this index
+                        long truncateAtIndex = record.getLogIndex() - 1; // we must restore append/commit at before
+                        // this index
                         appendIndex.set( truncateAtIndex );
                         commitIndex = Math.min( commitIndex, truncateAtIndex );
                         break;
