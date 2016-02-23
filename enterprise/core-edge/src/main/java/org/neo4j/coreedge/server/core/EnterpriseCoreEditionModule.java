@@ -118,9 +118,6 @@ import org.neo4j.kernel.impl.factory.GraphDatabaseFacade;
 import org.neo4j.kernel.impl.factory.PlatformModule;
 import org.neo4j.kernel.impl.locking.Locks;
 import org.neo4j.kernel.impl.logging.LogService;
-import org.neo4j.kernel.impl.store.record.LabelTokenRecord;
-import org.neo4j.kernel.impl.store.record.PropertyKeyTokenRecord;
-import org.neo4j.kernel.impl.store.record.RelationshipTypeTokenRecord;
 import org.neo4j.kernel.impl.store.stats.IdBasedStoreEntityCounters;
 import org.neo4j.kernel.impl.transaction.TransactionHeaderInformationFactory;
 import org.neo4j.kernel.impl.transaction.log.LogicalTransactionStore;
@@ -249,9 +246,6 @@ public class EnterpriseCoreEditionModule
             throw new RuntimeException( e );
         }
 
-        commitProcessFactory = createCommitProcessFactory( replicator, localSessionPool,
-                replicatedLockTokenStateMachine,
-                dependencies, logging, platformModule.monitors, onDiskGlobalSessionTrackerState, stateMachines );
 
         final StateStorage<IdAllocationState> idAllocationState;
         try
@@ -288,34 +282,64 @@ public class EnterpriseCoreEditionModule
 
         Long tokenCreationTimeout = config.get( CoreEdgeClusterSettings.token_creation_timeout );
 
-        TokenRegistry<RelationshipTypeToken, RelationshipTypeTokenRecord> relationshipTypeTokenRegistry = new TokenRegistry<>( "RelationshipType" );
+        TokenRegistry<RelationshipTypeToken> relationshipTypeTokenRegistry = new TokenRegistry<>( "RelationshipType" );
         ReplicatedRelationshipTypeTokenHolder relationshipTypeTokenHolder = new ReplicatedRelationshipTypeTokenHolder(
                 relationshipTypeTokenRegistry, replicator, this.idGeneratorFactory, dependencies, tokenCreationTimeout );
-        ReplicatedTokenStateMachine<RelationshipTypeToken, RelationshipTypeTokenRecord>
-                relationshipTypeTokenStateMachine = new ReplicatedTokenStateMachine<>(
-                relationshipTypeTokenRegistry, dependencies, new RelationshipTypeToken.Factory(),
-                TokenType.RELATIONSHIP, logProvider );
 
-        TokenRegistry<Token, PropertyKeyTokenRecord> propertyKeyTokenRegistry = new TokenRegistry<>( "PropertyKey" );
+
+        TokenRegistry<Token> propertyKeyTokenRegistry = new TokenRegistry<>( "PropertyKey" );
         ReplicatedPropertyKeyTokenHolder propertyKeyTokenHolder = new ReplicatedPropertyKeyTokenHolder(
                 propertyKeyTokenRegistry, replicator, this.idGeneratorFactory, dependencies, tokenCreationTimeout );
-        ReplicatedTokenStateMachine<Token, PropertyKeyTokenRecord>
-                propertyKeyTokenStateMachine = new ReplicatedTokenStateMachine<>(
-                propertyKeyTokenRegistry, dependencies, new Token.Factory(),
-                TokenType.PROPERTY, logProvider );
 
-        TokenRegistry<Token, LabelTokenRecord> labelTokenRegistry = new TokenRegistry<>( "Label" );
+
+        TokenRegistry<Token> labelTokenRegistry = new TokenRegistry<>( "Label" );
         ReplicatedLabelTokenHolder labelTokenHolder = new ReplicatedLabelTokenHolder(
                 labelTokenRegistry, replicator, this.idGeneratorFactory, dependencies, tokenCreationTimeout );
-        ReplicatedTokenStateMachine<Token, LabelTokenRecord>
-                labelTokenStateMachine = new ReplicatedTokenStateMachine<>(
-                labelTokenRegistry, dependencies, new Token.Factory(),
-                TokenType.LABEL, logProvider );
+
 
         LifeSupport tokenLife = new LifeSupport();
-        stateMachines.add( tokenLife.add( relationshipTypeTokenStateMachine ) );
-        stateMachines.add( tokenLife.add( propertyKeyTokenStateMachine ) );
-        stateMachines.add( tokenLife.add( labelTokenStateMachine ) );
+
+        commitProcessFactory = ( appender, applier, aConfig ) -> {
+            TransactionRepresentationCommitProcess localCommit =
+                    new TransactionRepresentationCommitProcess( appender, applier );
+            dependencies.satisfyDependencies( localCommit );
+
+            RecoverTransactionLogState txLogState = new RecoverTransactionLogState( dependencies, logProvider );
+
+            CommittingTransactions committingTransactions = new CommittingTransactionsRegistry();
+            ReplicatedTransactionStateMachine<CoreMember> replicatedTxStateMachine =
+                    new ReplicatedTransactionStateMachine<>( localCommit, localSessionPool.getGlobalSession(),
+                            replicatedLockTokenStateMachine, committingTransactions, onDiskGlobalSessionTrackerState,
+                            logging.getInternalLogProvider(), txLogState );
+            dependencies.satisfyDependencies( replicatedTxStateMachine );
+
+            ReplicatedTokenStateMachine<Token>
+                    labelTokenStateMachine = new ReplicatedTokenStateMachine<>(
+                    labelTokenRegistry, dependencies, new Token.Factory(),
+                    TokenType.LABEL, logProvider, txLogState );
+
+            ReplicatedTokenStateMachine<Token>
+                    propertyKeyTokenStateMachine = new ReplicatedTokenStateMachine<>(
+                    propertyKeyTokenRegistry, dependencies, new Token.Factory(),
+                    TokenType.PROPERTY, logProvider, txLogState );
+
+            ReplicatedTokenStateMachine<RelationshipTypeToken>
+                    relationshipTypeTokenStateMachine = new ReplicatedTokenStateMachine<>(
+                    relationshipTypeTokenRegistry, dependencies, new RelationshipTypeToken.Factory(),
+                    TokenType.RELATIONSHIP, logProvider, txLogState );
+
+
+            stateMachines.add( replicatedTxStateMachine );
+            stateMachines.add( labelTokenStateMachine );
+            stateMachines.add( relationshipTypeTokenStateMachine );
+            stateMachines.add( propertyKeyTokenStateMachine );
+
+            return new ReplicatedTransactionCommitProcess( replicator, localSessionPool,
+                    new ExponentialBackoffStrategy( 10, TimeUnit.SECONDS ), logging, committingTransactions,
+                    platformModule.monitors
+            );
+        };
+
 
         this.relationshipTypeTokenHolder = relationshipTypeTokenHolder;
         this.propertyKeyTokenHolder = propertyKeyTokenHolder;
@@ -364,8 +388,6 @@ public class EnterpriseCoreEditionModule
                 new RaftLogReplay( lastAppliedStateMachine, monitoredRaftLog, logProvider, flushAfter ), raftServer,
                 catchupServer, raftTimeoutService, membershipWaiter,
                 joinCatchupTimeout,
-                new RecoverTransactionLogState( dependencies, logProvider,
-                        relationshipTypeTokenStateMachine, propertyKeyTokenStateMachine, labelTokenStateMachine ),
                 tokenLife
         ) );
     }
@@ -389,34 +411,6 @@ public class EnterpriseCoreEditionModule
             throw new RuntimeException( e );
         }
 
-    }
-
-    public static CommitProcessFactory createCommitProcessFactory(
-            final Replicator replicator, final LocalSessionPool localSessionPool,
-            final LockTokenManager currentReplicatedLockState, final Dependencies dependencies,
-            final LogService logging, Monitors monitors,
-            StateStorage<GlobalSessionTrackerState<CoreMember>> globalSessionTrackerState,
-            StateMachines stateMachines )
-    {
-        return ( appender, applier, config ) -> {
-            TransactionRepresentationCommitProcess localCommit =
-                    new TransactionRepresentationCommitProcess( appender, applier );
-            dependencies.satisfyDependencies( localCommit );
-
-            CommittingTransactions committingTransactions = new CommittingTransactionsRegistry();
-            ReplicatedTransactionStateMachine<CoreMember> replicatedTxStateMachine = new
-                    ReplicatedTransactionStateMachine<>(
-                    localCommit, localSessionPool.getGlobalSession(), currentReplicatedLockState,
-                    committingTransactions, globalSessionTrackerState, logging.getInternalLogProvider() );
-
-            dependencies.satisfyDependencies( replicatedTxStateMachine );
-
-            stateMachines.add( replicatedTxStateMachine );
-
-            return new ReplicatedTransactionCommitProcess( replicator, localSessionPool,
-                    new ExponentialBackoffStrategy( 10, TimeUnit.SECONDS ), logging, committingTransactions, monitors
-            );
-        };
     }
 
     private static RaftInstance<CoreMember> createRaft( LifeSupport life,

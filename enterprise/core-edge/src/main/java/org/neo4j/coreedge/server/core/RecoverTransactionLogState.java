@@ -32,35 +32,18 @@ import org.neo4j.logging.LogProvider;
  * Retrieves last raft log index that was appended to the transaction log, so that raft log replay can recover while
  * preserving idempotency (avoid appending the same transaction twice).
  */
-public class RecoverTransactionLogState extends LifecycleAdapter
+public class RecoverTransactionLogState
 {
     private final Dependencies dependencies;
     private final LogProvider logProvider;
-    private final ReplicatedTokenStateMachine<?, ?>[] tokenStateMachines;
 
-    public RecoverTransactionLogState( Dependencies dependencies, LogProvider logProvider,
-                                       ReplicatedTokenStateMachine<?, ?>... tokenStateMachines )
+    public RecoverTransactionLogState( Dependencies dependencies, LogProvider logProvider )
     {
         this.dependencies = dependencies;
         this.logProvider = logProvider;
-        this.tokenStateMachines = tokenStateMachines;
     }
 
-    @Override
-    public void start() throws Throwable
-    {
-        long lastCommittedIndex = findLastCommittedIndex();
-
-        dependencies.resolveDependency( ReplicatedTransactionStateMachine.class )
-                .setLastCommittedIndex( lastCommittedIndex );
-
-        for ( ReplicatedTokenStateMachine<?, ?> tokenStateMachine : tokenStateMachines )
-        {
-            tokenStateMachine.setLastCommittedIndex( lastCommittedIndex );
-        }
-    }
-
-    private long findLastCommittedIndex()
+    public long findLastCommittedIndex()
     {
         TransactionIdStore transactionIdStore = dependencies.resolveDependency( TransactionIdStore.class );
         LogicalTransactionStore transactionStore = dependencies.resolveDependency( LogicalTransactionStore.class );

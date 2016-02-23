@@ -27,6 +27,7 @@ import org.neo4j.coreedge.raft.replication.session.GlobalSession;
 import org.neo4j.coreedge.raft.replication.session.GlobalSessionTrackerState;
 import org.neo4j.coreedge.raft.state.StateMachine;
 import org.neo4j.coreedge.raft.state.StateStorage;
+import org.neo4j.coreedge.server.core.RecoverTransactionLogState;
 import org.neo4j.coreedge.server.core.locks.LockTokenManager;
 import org.neo4j.kernel.api.exceptions.TransactionFailureException;
 import org.neo4j.kernel.impl.api.TransactionCommitProcess;
@@ -60,7 +61,8 @@ public class ReplicatedTransactionStateMachine<MEMBER> implements StateMachine
                                               LockTokenManager lockTokenManager,
                                               CommittingTransactions transactionFutures,
                                               StateStorage<GlobalSessionTrackerState<MEMBER>> storage,
-                                              LogProvider logProvider )
+                                              LogProvider logProvider,
+                                              RecoverTransactionLogState recoverTransactionLogState )
     {
         this.commitProcess = commitProcess;
         this.myGlobalSession = myGlobalSession;
@@ -69,6 +71,7 @@ public class ReplicatedTransactionStateMachine<MEMBER> implements StateMachine
         this.storage = storage;
         this.sessionTracker = storage.getInitialState();
         this.log = logProvider.getLog( getClass() );
+        this.lastCommittedIndex = recoverTransactionLogState.findLastCommittedIndex();
     }
 
     @Override

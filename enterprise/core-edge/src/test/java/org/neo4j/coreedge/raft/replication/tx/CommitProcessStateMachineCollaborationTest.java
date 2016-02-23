@@ -35,6 +35,7 @@ import org.neo4j.coreedge.raft.state.StateMachines;
 import org.neo4j.coreedge.raft.state.StubStateStorage;
 import org.neo4j.coreedge.server.AdvertisedSocketAddress;
 import org.neo4j.coreedge.server.CoreMember;
+import org.neo4j.coreedge.server.core.RecoverTransactionLogState;
 import org.neo4j.coreedge.server.core.locks.LockTokenManager;
 import org.neo4j.coreedge.server.core.locks.ReplicatedLockTokenRequest;
 import org.neo4j.kernel.api.exceptions.TransactionFailureException;
@@ -76,9 +77,14 @@ public class CommitProcessStateMachineCollaborationTest
 
         LocalSessionPool sessionPool = new LocalSessionPool( coreMember );
         LockTokenManager lockState = lockState( 0 );
+
+        RecoverTransactionLogState recoverTransactionLogState = mock( RecoverTransactionLogState.class );
+        when(recoverTransactionLogState.findLastCommittedIndex()).thenReturn( -1L );
+
         final ReplicatedTransactionStateMachine stateMachine = new ReplicatedTransactionStateMachine<>(
                 localCommitProcess, sessionPool.getGlobalSession(), lockState, txFutures,
-                new StubStateStorage<>( new GlobalSessionTrackerState<>() ), NullLogProvider.getInstance() );
+                new StubStateStorage<>( new GlobalSessionTrackerState<>() ), NullLogProvider.getInstance(),
+                recoverTransactionLogState);
         stateMachines.add( stateMachine );
 
         ReplicatedTransactionCommitProcess commitProcess = new ReplicatedTransactionCommitProcess(
@@ -108,9 +114,13 @@ public class CommitProcessStateMachineCollaborationTest
         LocalSessionPool sessionPool = new LocalSessionPool( coreMember );
         LockTokenManager lockState = lockState( 1 );
 
+        RecoverTransactionLogState recoverTransactionLogState = mock( RecoverTransactionLogState.class );
+        when(recoverTransactionLogState.findLastCommittedIndex()).thenReturn( -1L );
+
         final ReplicatedTransactionStateMachine stateMachine = new ReplicatedTransactionStateMachine<>(
                 localCommitProcess, sessionPool.getGlobalSession(), lockState, txFutures,
-                new StubStateStorage<>( new GlobalSessionTrackerState<>() ), NullLogProvider.getInstance() );
+                new StubStateStorage<>( new GlobalSessionTrackerState<>() ), NullLogProvider.getInstance(),
+                recoverTransactionLogState);
         stateMachines.add( stateMachine );
 
         ReplicatedTransactionCommitProcess commitProcess = new ReplicatedTransactionCommitProcess(

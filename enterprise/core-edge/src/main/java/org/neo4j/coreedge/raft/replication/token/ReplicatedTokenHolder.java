@@ -37,21 +37,18 @@ import org.neo4j.kernel.impl.core.TokenHolder;
 import org.neo4j.kernel.impl.core.TokenNotFoundException;
 import org.neo4j.kernel.impl.store.id.IdGeneratorFactory;
 import org.neo4j.kernel.impl.store.id.IdType;
-import org.neo4j.kernel.impl.store.record.TokenRecord;
-
 import org.neo4j.kernel.impl.util.Dependencies;
 import org.neo4j.storageengine.api.StorageCommand;
 import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.storageengine.api.Token;
 import org.neo4j.storageengine.api.lock.ResourceLocker;
 
-public abstract class ReplicatedTokenHolder<TOKEN extends Token, RECORD extends TokenRecord>
-        implements TokenHolder<TOKEN>
+public abstract class ReplicatedTokenHolder<TOKEN extends Token> implements TokenHolder<TOKEN>
 {
     protected final Dependencies dependencies;
 
     private final Replicator replicator;
-    private final TokenRegistry<TOKEN, RECORD> tokenRegistry;
+    private final TokenRegistry<TOKEN> tokenRegistry;
     private final IdGeneratorFactory idGeneratorFactory;
     private final IdType tokenIdType;
     private final TokenType type;
@@ -59,7 +56,7 @@ public abstract class ReplicatedTokenHolder<TOKEN extends Token, RECORD extends 
 
     // TODO: Clean up all the resolving, which now happens every time with special selection strategies.
 
-    public ReplicatedTokenHolder( TokenRegistry<TOKEN, RECORD> tokenRegistry, Replicator replicator,
+    public ReplicatedTokenHolder( TokenRegistry<TOKEN> tokenRegistry, Replicator replicator,
                                   IdGeneratorFactory idGeneratorFactory, IdType tokenIdType,
                                   Dependencies dependencies, TokenType type,
                                   long timeoutMillis )

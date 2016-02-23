@@ -30,6 +30,7 @@ import org.neo4j.coreedge.raft.replication.session.LocalOperationId;
 import org.neo4j.coreedge.raft.state.StubStateStorage;
 import org.neo4j.coreedge.server.AdvertisedSocketAddress;
 import org.neo4j.coreedge.server.CoreMember;
+import org.neo4j.coreedge.server.core.RecoverTransactionLogState;
 import org.neo4j.coreedge.server.core.locks.LockTokenManager;
 import org.neo4j.coreedge.server.core.locks.ReplicatedLockTokenRequest;
 import org.neo4j.kernel.api.exceptions.Status;
@@ -69,9 +70,13 @@ public class ReplicatedTransactionStateMachineTest
 
         TransactionCommitProcess localCommitProcess = mock( TransactionCommitProcess.class );
 
+        RecoverTransactionLogState recoverTransactionLogState = mock( RecoverTransactionLogState.class );
+        when(recoverTransactionLogState.findLastCommittedIndex()).thenReturn( -1L );
+
         final ReplicatedTransactionStateMachine listener = new ReplicatedTransactionStateMachine<>(
                 localCommitProcess, globalSession, lockState( lockSessionId ), new CommittingTransactionsRegistry(),
-                new StubStateStorage<>( new GlobalSessionTrackerState<>() ), NullLogProvider.getInstance() );
+                new StubStateStorage<>( new GlobalSessionTrackerState<>() ), NullLogProvider.getInstance(),
+                recoverTransactionLogState);
 
         // when
         listener.applyCommand( tx, 0 );
@@ -91,10 +96,14 @@ public class ReplicatedTransactionStateMachineTest
         ReplicatedTransaction tx = ReplicatedTransactionFactory.createImmutableReplicatedTransaction(
                 physicalTx( lockSessionId ), globalSession, localOperationId );
 
+        RecoverTransactionLogState recoverTransactionLogState = mock( RecoverTransactionLogState.class );
+        when(recoverTransactionLogState.findLastCommittedIndex()).thenReturn( -1L );
+
         TransactionCommitProcess localCommitProcess = mock( TransactionCommitProcess.class );
         ReplicatedTransactionStateMachine<CoreMember> listener = new ReplicatedTransactionStateMachine<>(
                 localCommitProcess, globalSession, lockState( lockSessionId ), new CommittingTransactionsRegistry(),
-                new StubStateStorage<>( new GlobalSessionTrackerState<>() ), NullLogProvider.getInstance() );
+                new StubStateStorage<>( new GlobalSessionTrackerState<>() ), NullLogProvider.getInstance(),
+                recoverTransactionLogState);
 
         // when
         listener.applyCommand( tx, 0 );
@@ -118,10 +127,14 @@ public class ReplicatedTransactionStateMachineTest
 
         TransactionCommitProcess localCommitProcess = mock( TransactionCommitProcess.class );
 
+        RecoverTransactionLogState recoverTransactionLogState = mock( RecoverTransactionLogState.class );
+        when(recoverTransactionLogState.findLastCommittedIndex()).thenReturn( -1L );
+
         CommittingTransactions committingTransactions = new CommittingTransactionsRegistry();
         final ReplicatedTransactionStateMachine listener = new ReplicatedTransactionStateMachine<>(
                 localCommitProcess, globalSession, lockState( currentLockSessionId ), committingTransactions,
-                new StubStateStorage<>( new GlobalSessionTrackerState<>() ), NullLogProvider.getInstance() );
+                new StubStateStorage<>( new GlobalSessionTrackerState<>() ), NullLogProvider.getInstance(),
+                recoverTransactionLogState);
 
         CommittingTransaction future = committingTransactions.register( localOperationId );
 
@@ -153,10 +166,14 @@ public class ReplicatedTransactionStateMachineTest
 
         TransactionCommitProcess localCommitProcess = mock( TransactionCommitProcess.class );
 
+        RecoverTransactionLogState recoverTransactionLogState = mock( RecoverTransactionLogState.class );
+        when(recoverTransactionLogState.findLastCommittedIndex()).thenReturn( -1L );
+
         CommittingTransactions committingTransactions = new CommittingTransactionsRegistry();
         final ReplicatedTransactionStateMachine listener = new ReplicatedTransactionStateMachine<>(
                 localCommitProcess, globalSession, lockState( currentLockSessionId ), committingTransactions,
-                new StubStateStorage<>( new GlobalSessionTrackerState<>() ), NullLogProvider.getInstance() );
+                new StubStateStorage<>( new GlobalSessionTrackerState<>() ), NullLogProvider.getInstance(),
+                recoverTransactionLogState);
 
         CommittingTransaction future = committingTransactions.register( localOperationId );
 

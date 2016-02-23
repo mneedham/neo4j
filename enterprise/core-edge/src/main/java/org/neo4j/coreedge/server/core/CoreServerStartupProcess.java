@@ -48,13 +48,11 @@ public class CoreServerStartupProcess
                                                  DelayedRenewableTimeoutService raftTimeoutService,
                                                  MembershipWaiter<CoreMember> membershipWaiter,
                                                  long joinCatchupTimeout,
-                                                 RecoverTransactionLogState recoverTransactionLogState,
                                                  Lifecycle tokenLife )
     {
         LifeSupport services = new LifeSupport();
         services.add( dataSourceManager );
         services.add( idGeneratorFactory );
-        services.add( recoverTransactionLogState );
         services.add( tokenLife );
         services.add( raftLogReplay );
         services.add( raftServer );

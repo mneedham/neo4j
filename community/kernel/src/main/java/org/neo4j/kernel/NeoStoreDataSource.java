@@ -448,6 +448,7 @@ public class NeoStoreDataSource implements Lifecycle, IndexProviders
                     buildTransactionLogs( storeDir, config, logProvider, scheduler, fs,
                             storageEngine, logEntryReader, legacyIndexTransactionOrdering,
                             transactionIdStore, logVersionRepository );
+            satisfyDependencies( transactionLogModule);
 
             buildRecovery( fs,
                     transactionIdStore,
@@ -474,7 +475,7 @@ public class NeoStoreDataSource implements Lifecycle, IndexProviders
             dependencies.satisfyDependency( storageEngine.storeReadLayer() );
             dependencies.satisfyDependency( logEntryReader );
             dependencies.satisfyDependency( storageEngine );
-            satisfyDependencies( transactionLogModule, kernelModule );
+            satisfyDependencies( kernelModule );
         }
         catch ( Throwable e )
         {

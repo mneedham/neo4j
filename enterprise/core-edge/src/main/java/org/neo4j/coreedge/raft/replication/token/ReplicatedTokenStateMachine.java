@@ -24,6 +24,7 @@ import java.util.Collection;
 
 import org.neo4j.coreedge.raft.replication.ReplicatedContent;
 import org.neo4j.coreedge.raft.state.StateMachine;
+import org.neo4j.coreedge.server.core.RecoverTransactionLogState;
 import org.neo4j.kernel.api.exceptions.TransactionFailureException;
 import org.neo4j.kernel.impl.api.TransactionCommitProcess;
 import org.neo4j.kernel.impl.api.TransactionRepresentationCommitProcess;
@@ -45,12 +46,11 @@ import org.neo4j.storageengine.api.TransactionApplicationMode;
 
 import static org.neo4j.coreedge.raft.replication.tx.LogIndexTxHeaderEncoding.encodeLogIndexAsTxHeader;
 
-public class ReplicatedTokenStateMachine<TOKEN extends Token, RECORD extends TokenRecord>
-        extends LifecycleAdapter implements StateMachine
+public class ReplicatedTokenStateMachine<TOKEN extends Token> implements StateMachine
 {
     protected final Dependencies dependencies;
 
-    private final TokenRegistry<TOKEN, RECORD> tokenRegistry;
+    private final TokenRegistry<TOKEN> tokenRegistry;
     private final TokenFactory<TOKEN> tokenFactory;
     private final TokenType type;
 
@@ -59,19 +59,20 @@ public class ReplicatedTokenStateMachine<TOKEN extends Token, RECORD extends Tok
 
     // TODO: Clean up all the resolving, which now happens every time with special selection strategies.
 
-    public ReplicatedTokenStateMachine( TokenRegistry<TOKEN, RECORD> tokenRegistry,
+    public ReplicatedTokenStateMachine( TokenRegistry<TOKEN> tokenRegistry,
                                         Dependencies dependencies, TokenFactory<TOKEN> tokenFactory, TokenType type,
-                                        LogProvider logProvider )
+                                        LogProvider logProvider, RecoverTransactionLogState txLogState )
     {
         this.tokenRegistry = tokenRegistry;
         this.dependencies = dependencies;
         this.tokenFactory = tokenFactory;
         this.type = type;
         this.log = logProvider.getLog( getClass() );
+        this.lastCommittedIndex = txLogState.findLastCommittedIndex();
+        verifyLastCommittedIndexInBounds();
     }
 
-    @Override
-    public void start()
+    private void verifyLastCommittedIndexInBounds()
     {
         if ( lastCommittedIndex == Long.MAX_VALUE )
         {

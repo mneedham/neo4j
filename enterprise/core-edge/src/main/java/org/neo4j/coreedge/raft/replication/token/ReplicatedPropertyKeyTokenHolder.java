@@ -25,26 +25,19 @@ import org.neo4j.kernel.api.txstate.TransactionState;
 import org.neo4j.kernel.impl.core.PropertyKeyTokenHolder;
 import org.neo4j.kernel.impl.store.id.IdGeneratorFactory;
 import org.neo4j.kernel.impl.store.id.IdType;
-import org.neo4j.kernel.impl.store.record.PropertyKeyTokenRecord;
 import org.neo4j.kernel.impl.util.Dependencies;
 import org.neo4j.storageengine.api.Token;
 
-public class ReplicatedPropertyKeyTokenHolder extends ReplicatedTokenHolder<Token, PropertyKeyTokenRecord> implements
+public class ReplicatedPropertyKeyTokenHolder extends ReplicatedTokenHolder<Token> implements
         PropertyKeyTokenHolder
 {
     public ReplicatedPropertyKeyTokenHolder(
-            TokenRegistry<Token, PropertyKeyTokenRecord> registry,
+            TokenRegistry<Token> registry,
             RaftReplicator<CoreMember> replicator,
             IdGeneratorFactory idGeneratorFactory, Dependencies dependencies, Long timeoutMillis )
     {
         super( registry, replicator, idGeneratorFactory, IdType.PROPERTY_KEY_TOKEN, dependencies, TokenType.PROPERTY,
                 timeoutMillis );
-    }
-
-    @Override
-    protected String tokenType()
-    {
-        return "PropertyKey";
     }
 
     @Override
