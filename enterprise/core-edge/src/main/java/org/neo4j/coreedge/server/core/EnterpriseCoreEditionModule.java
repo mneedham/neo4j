@@ -288,7 +288,7 @@ public class EnterpriseCoreEditionModule
 
         Long tokenCreationTimeout = config.get( CoreEdgeClusterSettings.token_creation_timeout );
 
-        TokenRegistry<RelationshipTypeToken, RelationshipTypeTokenRecord> relationshipTypeTokenRegistry = new TokenRegistry<>();
+        TokenRegistry<RelationshipTypeToken, RelationshipTypeTokenRecord> relationshipTypeTokenRegistry = new TokenRegistry<>( "RelationshipType" );
         ReplicatedRelationshipTypeTokenHolder relationshipTypeTokenHolder = new ReplicatedRelationshipTypeTokenHolder(
                 relationshipTypeTokenRegistry, replicator, this.idGeneratorFactory, dependencies, tokenCreationTimeout );
         ReplicatedTokenStateMachine<RelationshipTypeToken, RelationshipTypeTokenRecord>
@@ -296,7 +296,7 @@ public class EnterpriseCoreEditionModule
                 relationshipTypeTokenRegistry, dependencies, new RelationshipTypeToken.Factory(),
                 TokenType.RELATIONSHIP, logProvider );
 
-        TokenRegistry<Token, PropertyKeyTokenRecord> propertyKeyTokenRegistry = new TokenRegistry<>();
+        TokenRegistry<Token, PropertyKeyTokenRecord> propertyKeyTokenRegistry = new TokenRegistry<>( "PropertyKey" );
         ReplicatedPropertyKeyTokenHolder propertyKeyTokenHolder = new ReplicatedPropertyKeyTokenHolder(
                 propertyKeyTokenRegistry, replicator, this.idGeneratorFactory, dependencies, tokenCreationTimeout );
         ReplicatedTokenStateMachine<Token, PropertyKeyTokenRecord>
@@ -304,7 +304,7 @@ public class EnterpriseCoreEditionModule
                 propertyKeyTokenRegistry, dependencies, new Token.Factory(),
                 TokenType.PROPERTY, logProvider );
 
-        TokenRegistry<Token, LabelTokenRecord> labelTokenRegistry = new TokenRegistry<>();
+        TokenRegistry<Token, LabelTokenRecord> labelTokenRegistry = new TokenRegistry<>( "Label" );
         ReplicatedLabelTokenHolder labelTokenHolder = new ReplicatedLabelTokenHolder(
                 labelTokenRegistry, replicator, this.idGeneratorFactory, dependencies, tokenCreationTimeout );
         ReplicatedTokenStateMachine<Token, LabelTokenRecord>

@@ -30,10 +30,9 @@ public class TokenRegistry<TOKEN extends Token, RECORD extends TokenRecord>
     private final InMemoryTokenCache<TOKEN> tokenCache;
     private final TokenFutures tokenFutures = new TokenFutures();
 
-    public TokenRegistry()
+    public TokenRegistry( String tokenType )
     {
-        // TODO null!
-        this.tokenCache = new InMemoryTokenCache<>( null );
+        this.tokenCache = new InMemoryTokenCache<>( tokenType );
     }
 
     public TokenFutures.CompletableFutureTokenId createFuture( String tokenName )
