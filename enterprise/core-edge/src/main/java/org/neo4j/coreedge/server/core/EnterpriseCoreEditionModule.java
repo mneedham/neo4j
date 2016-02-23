@@ -104,7 +104,6 @@ import org.neo4j.kernel.KernelData;
 import org.neo4j.kernel.NeoStoreDataSource;
 import org.neo4j.kernel.Version;
 import org.neo4j.kernel.configuration.Config;
-import org.neo4j.kernel.impl.api.CommitProcessFactory;
 import org.neo4j.kernel.impl.api.SchemaWriteGuard;
 import org.neo4j.kernel.impl.api.TransactionHeaderInformation;
 import org.neo4j.kernel.impl.api.TransactionRepresentationCommitProcess;
@@ -122,7 +121,6 @@ import org.neo4j.kernel.impl.store.stats.IdBasedStoreEntityCounters;
 import org.neo4j.kernel.impl.transaction.TransactionHeaderInformationFactory;
 import org.neo4j.kernel.impl.transaction.log.LogicalTransactionStore;
 import org.neo4j.kernel.impl.transaction.log.TransactionIdStore;
-import org.neo4j.kernel.impl.util.Dependencies;
 import org.neo4j.kernel.internal.DatabaseHealth;
 import org.neo4j.kernel.lifecycle.LifeSupport;
 import org.neo4j.kernel.lifecycle.Lifecycle;
@@ -296,9 +294,6 @@ public class EnterpriseCoreEditionModule
         ReplicatedLabelTokenHolder labelTokenHolder = new ReplicatedLabelTokenHolder(
                 labelTokenRegistry, replicator, this.idGeneratorFactory, dependencies, tokenCreationTimeout );
 
-
-        LifeSupport tokenLife = new LifeSupport();
-
         commitProcessFactory = ( appender, applier, aConfig ) -> {
             TransactionRepresentationCommitProcess localCommit =
                     new TransactionRepresentationCommitProcess( appender, applier );
@@ -387,8 +382,7 @@ public class EnterpriseCoreEditionModule
                 platformModule.dataSourceManager, replicatedIdGeneratorFactory, raft,
                 new RaftLogReplay( lastAppliedStateMachine, monitoredRaftLog, logProvider, flushAfter ), raftServer,
                 catchupServer, raftTimeoutService, membershipWaiter,
-                joinCatchupTimeout,
-                tokenLife
+                joinCatchupTimeout
         ) );
     }
 

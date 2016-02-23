@@ -47,13 +47,11 @@ public class CoreServerStartupProcess
                                                  CatchupServer catchupServer,
                                                  DelayedRenewableTimeoutService raftTimeoutService,
                                                  MembershipWaiter<CoreMember> membershipWaiter,
-                                                 long joinCatchupTimeout,
-                                                 Lifecycle tokenLife )
+                                                 long joinCatchupTimeout )
     {
         LifeSupport services = new LifeSupport();
         services.add( dataSourceManager );
         services.add( idGeneratorFactory );
-        services.add( tokenLife );
         services.add( raftLogReplay );
         services.add( raftServer );
         services.add( catchupServer );
