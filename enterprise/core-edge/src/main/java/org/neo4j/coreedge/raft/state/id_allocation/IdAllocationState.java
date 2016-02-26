@@ -69,10 +69,21 @@ public class IdAllocationState
                 -1L );
     }
 
-    private IdAllocationState( long[] firstUnallocated,
-                               long[] lastIdRangeStartForMe,
-                               int[] lastIdRangeLengthForMe,
-                               long logIndex )
+    @Override
+    public String toString()
+    {
+        return "IdAllocationState{" +
+                "firstUnallocated=" + Arrays.toString( firstUnallocated ) +
+                ", lastIdRangeStartForMe=" + Arrays.toString( lastIdRangeStartForMe ) +
+                ", lastIdRangeLengthForMe=" + Arrays.toString( lastIdRangeLengthForMe ) +
+                ", logIndex=" + logIndex +
+                '}';
+    }
+
+    public IdAllocationState( long[] firstUnallocated,
+                              long[] lastIdRangeStartForMe,
+                              int[] lastIdRangeLengthForMe,
+                              long logIndex )
     {
         this.firstUnallocated = firstUnallocated;
         this.lastIdRangeStartForMe = lastIdRangeStartForMe;

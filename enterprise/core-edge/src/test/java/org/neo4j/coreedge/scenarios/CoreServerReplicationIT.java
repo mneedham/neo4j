@@ -25,6 +25,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import junit.framework.Assert;
 import org.junit.After;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -42,6 +43,7 @@ import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.helpers.collection.IteratorUtil;
 import org.neo4j.kernel.configuration.Config;
 import org.neo4j.kernel.ha.HaSettings;
 import org.neo4j.test.TargetDirectory;
@@ -85,7 +87,8 @@ public class CoreServerReplicationIT
     public void shouldReplicateTransactionToCoreServers() throws Exception
     {
         // given
-        File dbDir = dir.directory();
+//        File dbDir = dir.directory();
+        File dbDir = new File("/tmp/jones/");
         cluster = Cluster.start( dbDir, 3, 0 );
 
         // when
@@ -110,14 +113,18 @@ public class CoreServerReplicationIT
                 assertEventually( "node to appear on core server " + config.get( raft_advertised_address ), nodeCount,
                         greaterThan(  0L ), 15, SECONDS );
 
-                for ( Node node : GlobalGraphOperations.at( db ).getAllNodes() )
-                {
-                    assertEquals( "baz_bat", node.getProperty( "foobar" ) );
-                }
+//                for ( Node node : GlobalGraphOperations.at( db ).getAllNodes() )
+//                {
+//                    assertEquals( "baz_bat", node.getProperty( "foobar" ) );
+//                }
+
+                Assert.assertEquals( 10_001, IteratorUtil.count( GlobalGraphOperations.at( db ).getAllNodes() ) );
 
                 tx.success();
             }
         }
+
+        System.exit(1);
     }
 
     @Test

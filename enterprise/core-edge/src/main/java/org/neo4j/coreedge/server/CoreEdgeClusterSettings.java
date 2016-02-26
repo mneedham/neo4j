@@ -99,7 +99,7 @@ public class CoreEdgeClusterSettings
 
     @Description("Time out for a token to be replicated")
     public static final Setting<Long> token_creation_timeout =
-            setting( "core_edge.token_creation_timeout", DURATION, "1s" );
+            setting( "core_edge.token_creation_timeout", DURATION, "5m" );
 
     @Description("Time out waiting for the leader locking token")
     public static final Setting<Long> leader_lock_token_timeout =

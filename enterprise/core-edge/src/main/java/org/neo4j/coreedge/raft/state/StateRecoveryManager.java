@@ -75,12 +75,18 @@ public class StateRecoveryManager<STATE>
         STATE a = readLastEntryFrom( fileA );
         STATE b = readLastEntryFrom( fileB );
 
-        if ( marshal.ordinal( a ) > marshal.ordinal( b ) )
+        long ordinalA = marshal.ordinal( a );
+        long ordinalB = marshal.ordinal( b );
+
+        System.out.println( "ordinalA = " + ordinalA + ", ordinalB = " + ordinalB );
+        if ( ordinalA > ordinalB )
         {
+            System.out.println("A STATE");
             return new RecoveryStatus<>( fileB, a );
         }
         else
         {
+            System.out.println("B STATE");
             return new RecoveryStatus<>( fileA, b );
         }
     }
