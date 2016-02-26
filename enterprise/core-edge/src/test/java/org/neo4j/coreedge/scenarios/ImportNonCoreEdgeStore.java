@@ -25,18 +25,16 @@ import java.io.UnsupportedEncodingException;
 import java.util.Collection;
 
 import io.airlift.airline.Cli;
-import io.airlift.airline.Command;
 import io.airlift.airline.help.Help;
 
 import static java.util.Arrays.asList;
 
-@Command( name = "import", description = "Import a classic neo4j store into the core-edge format." )
 public class ImportNonCoreEdgeStore
 {
-
-    private static final Cli<Runnable> PARSER = Cli.<Runnable>builder( "neo-integration" )
-            .withDescription( "Neo4j integration tools." )
+    private static final Cli<Runnable> PARSER = Cli.<Runnable>builder( "neo-classic-to-core" )
+            .withDescription( "Neo4j classic to core edge tool" )
             .withDefaultCommand( Help.class )
+            .withCommand( ImportClassicStoreCliCommand.class )
             .withCommand( Help.class )
             .build();
 
