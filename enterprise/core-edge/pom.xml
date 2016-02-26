@@ -141,6 +141,13 @@
           <artifactId>commons-lang3</artifactId>
           <scope>test</scope>
         </dependency>
+
+      <dependency>
+        <groupId>com.github.rvesse</groupId>
+        <artifactId>airline</artifactId>
+        <version>0.9.1</version>
+      </dependency>
+
     </dependencies>
 
     <profiles>
