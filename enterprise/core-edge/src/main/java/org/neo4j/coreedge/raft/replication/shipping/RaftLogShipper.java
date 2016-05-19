@@ -409,6 +409,11 @@ public class RaftLogShipper<MEMBER>
                 }
             }
 
+            if ( ((prevLogIndex == -1 && prevLogTerm != -1) || (prevLogTerm == -1 && prevLogIndex != -1)) )
+            {
+                log.warn(format( "prevLogIndex was %d and prevLogTerm was %d", prevLogIndex, prevLogTerm ));
+            }
+
             RaftMessages.AppendEntries.Request<MEMBER> appendRequest = new RaftMessages.AppendEntries.Request<>(
                     leader, leaderContext.term, prevLogIndex, prevLogTerm, logEntries, leaderContext.commitIndex );
 

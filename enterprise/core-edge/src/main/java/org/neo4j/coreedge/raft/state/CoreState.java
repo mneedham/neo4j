@@ -265,6 +265,7 @@ public class CoreState extends LifecycleAdapter implements RaftStateMachine, Log
     @Override
     public void prune() throws IOException
     {
-        compact();
+//        compact();
+        // temporarily disabled
     }
 }
