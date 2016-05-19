@@ -19,6 +19,7 @@
  */
 package org.neo4j.coreedge.scenarios;
 
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -48,6 +49,7 @@ public class CorePruningIT
             .withSharedCoreParam( CoreEdgeClusterSettings.raft_log_pruning_frequency, "100ms" );
 
     @Test
+    @Ignore
     public void actuallyDeletesTheFiles() throws Exception
     {
         // given
