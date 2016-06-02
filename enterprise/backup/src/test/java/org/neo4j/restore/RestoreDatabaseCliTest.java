@@ -17,14 +17,14 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.coreedge.convert;
+package org.neo4j.restore;
 
 import org.junit.Test;
 
 import static junit.framework.TestCase.fail;
 import static org.junit.Assert.assertTrue;
 
-public class ConvertNonCoreEdgeStoreCliTest
+public class RestoreDatabaseCliTest
 {
     @Test
     public void shouldIndicateMissingHomeDir() throws Throwable
@@ -32,7 +32,7 @@ public class ConvertNonCoreEdgeStoreCliTest
         try
         {
             // given
-            ConvertNonCoreEdgeStoreCli.main( new String[]{""} );
+            RestoreDatabaseCli.main( new String[]{""} );
             fail( "Should have thrown IllegalArgumentException" );
         }
         catch ( IllegalArgumentException exception )
@@ -47,7 +47,7 @@ public class ConvertNonCoreEdgeStoreCliTest
         try
         {
             // given
-            ConvertNonCoreEdgeStoreCli.main( new String[]{"--home-dir", "foo"} );
+            RestoreDatabaseCli.main( new String[]{"--home-dir", "foo"} );
             fail( "Should have thrown IllegalArgumentException" );
         }
         catch ( IllegalArgumentException exception )
@@ -62,7 +62,7 @@ public class ConvertNonCoreEdgeStoreCliTest
         try
         {
             // given
-            ConvertNonCoreEdgeStoreCli.main( new String[]{"--home-dir", "foo", "--database", "foo"} );
+            RestoreDatabaseCli.main( new String[]{"--home-dir", "foo", "--database", "foo"} );
             fail( "Should have thrown IllegalArgumentException" );
         }
         catch ( IllegalArgumentException exception )
@@ -71,4 +71,18 @@ public class ConvertNonCoreEdgeStoreCliTest
         }
     }
 
+    @Test
+    public void shouldIndicateMissingFromLocation() throws Throwable
+    {
+        try
+        {
+            // given
+            RestoreDatabaseCli.main( new String[]{"--home-dir", "foo", "--database", "foo", "--config", "foo"} );
+            fail( "Should have thrown IllegalArgumentException" );
+        }
+        catch ( IllegalArgumentException exception )
+        {
+            assertTrue(exception.getMessage(), exception.getMessage().contains( "Missing argument 'from'" ) );
+        }
+    }
 }

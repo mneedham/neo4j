@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.coreedge.convert;
+package org.neo4j.restore;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -30,16 +30,16 @@ import org.neo4j.dbms.DatabaseManagementSystemSettings;
 import org.neo4j.graphdb.factory.GraphDatabaseSettings;
 import org.neo4j.helpers.Args;
 import org.neo4j.helpers.ArrayUtil;
-import org.neo4j.helpers.Strings;
+import org.neo4j.helpers.collection.MapUtil;
+import org.neo4j.io.fs.DefaultFileSystemAbstraction;
 import org.neo4j.kernel.configuration.Config;
 import org.neo4j.kernel.impl.util.Converters;
 import org.neo4j.logging.NullLog;
 import org.neo4j.server.configuration.ConfigLoader;
 
-import static org.neo4j.helpers.Strings.TAB;
 import static org.neo4j.helpers.collection.MapUtil.stringMap;
 
-public class ConvertNonCoreEdgeStoreCli
+public class RestoreDatabaseCli
 {
     public static void main( String[] incomingArguments ) throws Throwable
     {
@@ -53,17 +53,21 @@ public class ConvertNonCoreEdgeStoreCli
         File homeDir = args.interpretOption( "home-dir", Converters.<File>mandatory(), File::new );
         String databaseName = args.interpretOption( "database", Converters.<String>mandatory(), s -> s );
         String configPath = args.interpretOption( "config", Converters.<String>mandatory(), s -> s );
-
+        String fromPath = args.interpretOption( "from", Converters.<String>mandatory(), s -> s );
+        boolean forceOverwrite = args.getBoolean( "force", Boolean.FALSE, true );
 
         ConfigLoader configLoader = new ConfigLoader( settings() );
         Config config = configLoader.loadConfig( Optional.of( homeDir ),
-                Optional.of( new File( configPath, "neo4j.conf" ) ), NullLog.getInstance() )
-                .with( stringMap( DatabaseManagementSystemSettings.active_database.name(), databaseName ) );
+                Optional.of( new File( configPath, "neo4j.conf" ) ), NullLog.getInstance() );
 
-        new ConvertClassicStoreCommand(
-                config.get( DatabaseManagementSystemSettings.database_path ),
-                config.get( GraphDatabaseSettings.record_format ))
-                .execute();
+        RestoreDatabaseCommand restoreDatabaseCommand = new RestoreDatabaseCommand(
+                new DefaultFileSystemAbstraction(),
+                new File( fromPath ),
+                config,
+                databaseName,
+                forceOverwrite );
+
+        restoreDatabaseCommand.execute();
     }
 
     private static List<Class<?>> settings()
@@ -76,16 +80,17 @@ public class ConvertNonCoreEdgeStoreCli
 
     private static void printUsage( PrintStream out )
     {
-        out.println( "Neo4j Classic to Core Format Conversion Tool" );
-        for ( String line : Args.splitLongLine( "The classic  to core conversion tool is used to convert a classic"
-                + "Neo4j store into one which has a core friendly format.", 80 ) )
+        out.println( "Neo4j Restore Tool" );
+        for ( String line : Args.splitLongLine( "The restore tool is used to restore a backed up database", 80 ) )
         {
             out.println( "\t" + line );
         }
 
         out.println( "Usage:" );
         out.println("--home-dir <path-to-neo4j>");
+        out.println("--from <path-to-backup-directory>");
         out.println("--database <database-name>");
         out.println("--config <path-to-config-directory>");
+        out.println("--force");
     }
 }
