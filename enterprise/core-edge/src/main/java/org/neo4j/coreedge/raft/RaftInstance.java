@@ -86,7 +86,6 @@ public class RaftInstance implements LeaderLocator,
         Inbound.MessageHandler<RaftMessages.RaftMessage>, CoreMetaData
 {
     private final LeaderNotFoundMonitor leaderNotFoundMonitor;
-    private CoreServerSelectionStrategy otherStrategy;
 
     public enum Timeouts implements RenewableTimeoutService.TimeoutName
     {
@@ -98,7 +97,6 @@ public class RaftInstance implements LeaderLocator,
     private final RaftLog entryLog;
 
     private final RenewableTimeoutService renewableTimeoutService;
-    private final CoreTopologyService discoveryService;
     private final long heartbeatInterval;
     private RenewableTimeoutService.RenewableTimeout electionTimer;
     private RaftMembershipManager membershipManager;
@@ -136,7 +134,6 @@ public class RaftInstance implements LeaderLocator,
         this.heartbeatInterval = heartbeatInterval;
 
         this.renewableTimeoutService = renewableTimeoutService;
-        this.discoveryService = discoveryService;
         this.defaultStrategy = new NotMyselfSelectionStrategy( discoveryService, myself );
 
         this.outbound = outbound;
@@ -308,27 +305,6 @@ public class RaftInstance implements LeaderLocator,
         }
 
         return false;
-    }
-
-    @Override
-    public boolean validate( RaftMessages.RaftMessage incomingMessage, StoreId storeId )
-    {
-        try
-        {
-            Outcome outcome = currentRole.handler.validate( incomingMessage, storeId, state, log, localDatabase );
-            boolean processable = outcome.isProcessable();
-            if ( !processable )
-            {
-                checkForSnapshotNeed( outcome );
-            }
-
-            return processable;
-        }
-        catch ( MismatchingStoreIdException e )
-        {
-            panicAndStop( incomingMessage, e );
-            throw e;
-        }
     }
 
     private void panicAndStop( RaftMessages.RaftMessage incomingMessage, Throwable e )
