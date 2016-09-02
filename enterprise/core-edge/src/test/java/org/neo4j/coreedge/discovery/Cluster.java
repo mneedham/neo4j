@@ -95,24 +95,30 @@ public class Cluster
 
     public void start() throws InterruptedException, ExecutionException
     {
-        ExecutorService executor = Executors.newCachedThreadPool( new NamedThreadFactory( "cluster-starter" ) );
-        try
-        {
-            startCoreMembers( executor );
-            startEdgeMembers( executor );
-        }
-        finally
-        {
-            executor.shutdown();
-        }
+        startCoreMembers();
+        startEdgeMembers();
     }
 
     public void startCoreMembers() throws InterruptedException, ExecutionException
     {
-        ExecutorService executor = Executors.newCachedThreadPool( new NamedThreadFactory( "cluster-starter" ) );
+        ExecutorService executor = Executors.newCachedThreadPool( new NamedThreadFactory( "start-core-members" ) );
         try
         {
-            startCoreMembers( executor );
+            CompletionService<CoreGraphDatabase> ecs = new ExecutorCompletionService<>( executor );
+
+            for ( CoreClusterMember coreClusterMember : coreMembers.values() )
+            {
+                ecs.submit( () ->
+                {
+                    coreClusterMember.start();
+                    return coreClusterMember.database();
+                } );
+            }
+
+            for ( int i = 0; i < coreMembers.size(); i++ )
+            {
+                ecs.take().get();
+            }
         }
         finally
         {
@@ -409,41 +415,30 @@ public class Cluster
         }
     }
 
-    private void startCoreMembers( ExecutorService executor ) throws InterruptedException, ExecutionException
+    private void startEdgeMembers() throws InterruptedException, ExecutionException
     {
-        CompletionService<CoreGraphDatabase> ecs = new ExecutorCompletionService<>( executor );
-
-        for ( CoreClusterMember coreClusterMember : coreMembers.values() )
+        ExecutorService executor = Executors.newCachedThreadPool( new NamedThreadFactory( "start-edge-members" ) );
+        try
         {
-            ecs.submit( () ->
+            CompletionService<EdgeGraphDatabase> ecs = new ExecutorCompletionService<>( executor );
+
+            for ( EdgeClusterMember edgeClusterMember : edgeMembers.values() )
             {
-                coreClusterMember.start();
-                return coreClusterMember.database();
-            } );
-        }
+                ecs.submit( () ->
+                {
+                    edgeClusterMember.start();
+                    return edgeClusterMember.database();
+                } );
+            }
 
-        for ( int i = 0; i < coreMembers.size(); i++ )
-        {
-            ecs.take().get();
-        }
-    }
-
-    private void startEdgeMembers( ExecutorService executor ) throws InterruptedException, ExecutionException
-    {
-        CompletionService<EdgeGraphDatabase> ecs = new ExecutorCompletionService<>( executor );
-
-        for ( EdgeClusterMember edgeClusterMember : edgeMembers.values() )
-        {
-            ecs.submit( () ->
+            for ( int i = 0; i < edgeMembers.size(); i++ )
             {
-                edgeClusterMember.start();
-                return edgeClusterMember.database();
-            } );
+                ecs.take().get();
+            }
         }
-
-        for ( int i = 0; i < edgeMembers.size(); i++ )
+        finally
         {
-            ecs.take().get();
+            executor.shutdown();
         }
     }
 

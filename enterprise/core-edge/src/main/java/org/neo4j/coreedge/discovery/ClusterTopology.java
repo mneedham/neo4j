@@ -78,8 +78,12 @@ public class ClusterTopology
     @Override
     public String toString()
     {
-        return String.format( "{coreMembers=%s, bootstrappable=%s, edgeMemberAddresses=%s}",
-                coreMembers.keySet(), canBeBootstrapped(), edgeAddresses );
+        return "ClusterTopology{" +
+                "clusterId=" + clusterId +
+                ", coreMembers=" + coreMembers +
+                ", edgeAddresses=" + edgeAddresses +
+                ", canBeBootstrapped=" + canBeBootstrapped +
+                '}';
     }
 
     public ClusterId clusterId()

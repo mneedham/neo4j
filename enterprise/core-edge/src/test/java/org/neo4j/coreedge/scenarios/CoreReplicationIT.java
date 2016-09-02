@@ -24,8 +24,10 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import org.neo4j.coreedge.core.CoreGraphDatabase;
+import org.neo4j.coreedge.core.consensus.roles.Role;
 import org.neo4j.coreedge.discovery.Cluster;
 import org.neo4j.coreedge.discovery.CoreClusterMember;
+import org.neo4j.coreedge.discovery.HazelcastDiscoveryServiceFactory;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.test.coreedge.ClusterRule;
@@ -40,7 +42,8 @@ public class CoreReplicationIT
     @Rule
     public final ClusterRule clusterRule = new ClusterRule( getClass() )
             .withNumberOfCoreMembers( 3 )
-            .withNumberOfEdgeMembers( 0 );
+            .withNumberOfEdgeMembers( 0 )
+            .withDiscoveryServiceFactory( new HazelcastDiscoveryServiceFactory() );
 
     private Cluster cluster;
 
@@ -67,6 +70,31 @@ public class CoreReplicationIT
         // then
         assertEquals( 1, countNodes( last ) );
         dataMatchesEventually( last, cluster.coreMembers() );
+    }
+
+    @Test
+    public void should() throws Exception
+    {
+        // given
+
+        CoreClusterMember oldLeader = cluster.awaitLeader();
+        System.out.println( "oldLeader = " + oldLeader );
+        oldLeader.shutdown();
+
+        CoreClusterMember newLeader = cluster.awaitLeader();
+        System.out.println( "newLeader = " + newLeader );
+
+        CoreClusterMember aFollower = cluster.awaitCoreMemberWithRole( 5_000, Role.FOLLOWER );
+        System.out.println( "aFollower = " + aFollower );
+        aFollower.shutdown();
+
+        oldLeader.start();
+        aFollower.start();
+
+        CoreClusterMember finalLeader = cluster.awaitLeader();
+        System.out.println( "finalLeader = " + finalLeader );
+
+        System.exit( 1 );
     }
 
     @Test

@@ -98,7 +98,10 @@ class HazelcastClusterTopology
     static boolean casClusterId( HazelcastInstance hazelcastInstance, ClusterId clusterId )
     {
         IAtomicReference<UUID> uuidReference = hazelcastInstance.getAtomicReference( CLUSTER_UUID );
-        return uuidReference.compareAndSet( null, clusterId.uuid() ) || uuidReference.get().equals( clusterId.uuid() );
+
+        boolean previouslyNull = uuidReference.compareAndSet( null, clusterId.uuid() );
+
+        return previouslyNull || uuidReference.get().equals( clusterId.uuid() );
     }
 
     private static class GetConnectedClients implements Callable<Collection<String>>, Serializable, HazelcastInstanceAware

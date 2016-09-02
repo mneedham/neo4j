@@ -22,6 +22,7 @@ package org.neo4j.coreedge.core.state;
 import java.io.IOException;
 import java.time.Clock;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.TimeoutException;
 
 import org.neo4j.coreedge.core.state.storage.SimpleStorage;
@@ -79,45 +80,59 @@ class BindingService extends LifecycleAdapter
      */
     private ClusterId bindToCluster() throws IOException, InterruptedException, TimeoutException, BindingException
     {
-        ClusterId localClusterId = clusterIdStorage.exists() ? clusterIdStorage.readState() : null;
-        BindingProcess binder = new BindingProcess( localClusterId, log );
-
-        long endTime = clock.millis() + timeoutMillis;
-
-        ClusterTopology topology = topologyService.currentTopology();
-        ClusterId commonClusterId;
-
-        while ( (commonClusterId = binder.attempt( topology )) == null )
+        if ( clusterIdStorage.exists() )
         {
-            if ( clock.millis() < endTime )
+            ClusterId localClusterId = clusterIdStorage.readState();
+            publishClusterId( localClusterId );
+            return localClusterId;
+        }
+        else
+        {
+            ClusterId commonClusterId;
+            ClusterTopology topology = topologyService.currentTopology();
+            if ( topology.canBeBootstrapped() )
             {
-                retryWaiter.apply();
-                topology = topologyService.currentTopology();
+                commonClusterId = new ClusterId( UUID.randomUUID() );
+                publishClusterId( commonClusterId );
             }
             else
             {
-                throw new TimeoutException( "Failed binding to cluster in time. Last topology was: " + topology );
-            }
-        }
+                long endTime = clock.millis() + timeoutMillis;
 
-        if ( localClusterId == null )
-        {
+                log.info( "Attempting to bind to : " + topology );
+                while ( (commonClusterId = topology.clusterId()) == null )
+                {
+                    if ( clock.millis() < endTime )
+                    {
+                        retryWaiter.apply();
+                        topology = topologyService.currentTopology();
+                    }
+                    else
+                    {
+                        throw new TimeoutException( "Failed binding to cluster in time. Last topology was: " +
+                                topology );
+                    }
+                }
+
+                log.info( "Bound to cluster: " + commonClusterId );
+            }
+
             clusterIdStorage.writeState( commonClusterId );
-        }
 
-        if ( topology.canBeBootstrapped() )
+            return commonClusterId;
+        }
+    }
+
+    private void publishClusterId( ClusterId localClusterId ) throws BindingException
+    {
+        boolean success = topologyService.publishClusterId( localClusterId );
+        if ( !success )
         {
-            boolean success = topologyService.publishClusterId( commonClusterId );
-            if ( !success )
-            {
-                throw new BindingException( "Failed to publish: " + commonClusterId );
-            }
-            else
-            {
-                log.info( "Published: " + commonClusterId );
-            }
+            throw new BindingException( "Failed to publish: " + localClusterId );
         }
-
-        return commonClusterId;
+        else
+        {
+            log.info( "Published: " + localClusterId );
+        }
     }
 }
