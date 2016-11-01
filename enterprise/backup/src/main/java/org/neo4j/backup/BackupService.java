@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.ConnectException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -175,7 +176,8 @@ class BackupService
     {
         if ( !directoryContainsDb( targetDirectory ) )
         {
-            throw new RuntimeException( targetDirectory + " doesn't contain a database" );
+            throw new RuntimeException( targetDirectory + " doesn't contain a database. Its contents are: " +
+                    Arrays.toString( fileSystem.listFiles( targetDirectory ) ) );
         }
 
         Map<String,String> temporaryDbConfig = getTemporaryDbConfig();
