@@ -19,6 +19,7 @@
  */
 package org.neo4j.causalclustering.stresstests;
 
+import org.junit.Rule;
 import org.junit.Test;
 
 import java.io.File;
@@ -38,6 +39,7 @@ import org.neo4j.helpers.AdvertisedSocketAddress;
 import org.neo4j.helpers.SocketAddress;
 import org.neo4j.io.fs.FileUtils;
 import org.neo4j.kernel.impl.store.format.standard.StandardV3_0;
+import org.neo4j.test.rule.TestDirectory;
 
 import static java.lang.Integer.parseInt;
 import static java.lang.Long.parseLong;
@@ -57,8 +59,12 @@ public class BackupStoreCopyInteractionStressTesting
 {
     private static final String DEFAULT_NUMBER_OF_CORES = "3";
     private static final String DEFAULT_NUMBER_OF_EDGES = "1";
-    private static final String DEFAULT_DURATION_IN_MINUTES = "30";
-    private static final String DEFAULT_WORKING_DIR = new File( getProperty( "java.io.tmpdir" ) ).getPath();
+    private static final String DEFAULT_DURATION_IN_MINUTES = "1";
+
+    @Rule
+    public TestDirectory testDirectory = TestDirectory.testDirectory();
+//    private final String DEFAULT_WORKING_DIR = testDirectory.directory().toPath().toString();
+
     private static final String DEFAULT_BASE_CORE_BACKUP_PORT = "8000";
     private static final String DEFAULT_BASE_EDGE_BACKUP_PORT = "9000";
 
@@ -72,7 +78,7 @@ public class BackupStoreCopyInteractionStressTesting
         long durationInMinutes =
                 parseLong( fromEnv( "BACKUP_STORE_COPY_INTERACTION_STRESS_DURATION", DEFAULT_DURATION_IN_MINUTES ) );
         String workingDirectory =
-                fromEnv( "BACKUP_STORE_COPY_INTERACTION_STRESS_WORKING_DIRECTORY", DEFAULT_WORKING_DIR );
+                fromEnv( "BACKUP_STORE_COPY_INTERACTION_STRESS_WORKING_DIRECTORY", testDirectory.directory().toPath().toString() );
         int baseCoreBackupPort = parseInt( fromEnv( "BACKUP_STORE_COPY_INTERACTION_STRESS_BASE_CORE_BACKUP_PORT",
                 DEFAULT_BASE_CORE_BACKUP_PORT ) );
         int baseEdgeBackupPort = parseInt( fromEnv( "BACKUP_STORE_COPY_INTERACTION_STRESS_BASE_EDGE_BACKUP_PORT",

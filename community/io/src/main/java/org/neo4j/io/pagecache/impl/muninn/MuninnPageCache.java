@@ -20,13 +20,16 @@
 package org.neo4j.io.pagecache.impl.muninn;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.nio.file.CopyOption;
 import java.nio.file.OpenOption;
 import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
@@ -156,6 +159,7 @@ public class MuninnPageCache implements PageCache
     // All PageCursors are initialised with their pointers pointing to the victim page. This way, we can do branch-free
     // bounds checking of page accesses without fear of segfaulting newly allocated cursors.
     final long victimPage;
+    private final UUID uuid;
 
     // The freelist is a thread-safe linked-list of 2 types of objects. A link
     // can either be a MuninnPage or a FreePage.
@@ -245,6 +249,15 @@ public class MuninnPageCache implements PageCache
             }
         }
         UnsafeUtil.putObjectVolatile( this, freelistOffset, pageList );
+        try
+        {
+            uuid = UUID.randomUUID();
+            pageCachePrinter = new PrintWriter( new File( String.format( "/tmp/pageCache-%s.txt", uuid ) ));
+        }
+        catch ( FileNotFoundException e )
+        {
+            throw new RuntimeException( e );
+        }
     }
 
     private static void verifyHacks()
@@ -274,9 +287,13 @@ public class MuninnPageCache implements PageCache
         }
     }
 
+    private PrintWriter pageCachePrinter;
+
     @Override
     public synchronized PagedFile map( File file, int filePageSize, OpenOption... openOptions ) throws IOException
     {
+        new RuntimeException( "Mapping " + file ).printStackTrace( pageCachePrinter );
+
         assertHealthy();
         ensureThreadsInitialised();
         if ( filePageSize > cachePageSize )
@@ -483,6 +500,8 @@ public class MuninnPageCache implements PageCache
 
     synchronized void unmap( MuninnPagedFile file )
     {
+        new RuntimeException( "Unmapping " + file ).printStackTrace( pageCachePrinter );
+
         if ( file.decrementRefCount() )
         {
             // This was the last reference!
@@ -607,6 +626,8 @@ public class MuninnPageCache implements PageCache
                 msg.append( refCount == 1? " mapping)" : " mappings)" );
                 files = files.next;
             }
+            msg.append( "\nAnd the magic UUID is....(not telling)..." ).append( uuid );
+
             throw new IllegalStateException( msg.toString() );
         }
 
