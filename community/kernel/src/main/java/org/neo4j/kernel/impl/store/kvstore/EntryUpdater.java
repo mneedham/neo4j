@@ -57,7 +57,8 @@ public abstract class EntryUpdater<Key> implements AutoCloseable
     {
         if ( thread != Thread.currentThread() )
         {
-            throw new IllegalStateException( "The updater is not available." );
+            throw new IllegalStateException( "The updater used by a different thread. Creator: " + thread + ", " +
+                    "current: " + Thread.currentThread() );
         }
     }
 

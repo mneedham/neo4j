@@ -55,12 +55,14 @@ class BackupLoad extends RepeatUntilOnSelectedMemberCallable
         OnlineBackup backup;
         try
         {
+            System.out.printf( "Backuping from %s into %s%n", address, backupDirectory );
             backup = OnlineBackup.from( address.getHostname(), address.getPort() ).backup( backupDirectory );
         }
         catch ( RuntimeException e )
         {
             if ( isTransientError.test( e ) )
             {
+                System.out.println( "Backup aborted for transient error" );
                 // if we could not connect, wait a bit and try again...
                 LockSupport.parkNanos( 10_000_000 );
                 return;
@@ -72,5 +74,6 @@ class BackupLoad extends RepeatUntilOnSelectedMemberCallable
         {
             throw new RuntimeException( "Not consistent backup from " + address );
         }
+        System.out.println( "Backup successfully completed" );
     }
 }

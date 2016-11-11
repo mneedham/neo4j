@@ -21,9 +21,9 @@ package org.neo4j.causalclustering.catchup.storecopy;
 
 import java.io.File;
 
-import org.neo4j.com.storecopy.ExternallyManagedPageCache;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.factory.GraphDatabaseSettings;
+import org.neo4j.helpers.Exceptions;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.kernel.configuration.Config;
 import org.neo4j.kernel.configuration.Settings;
@@ -65,11 +65,18 @@ public class CopiedStoreRecovery extends LifecycleAdapter
 
         try
         {
+            System.out.println( "Creating temp store on " + tempStore );
             GraphDatabaseService graphDatabaseService = newTempDatabase( tempStore );
+            System.out.println( "Shutting down the store..." );
             graphDatabaseService.shutdown();
+            System.out.println( "done" );
         }
         catch ( Exception e )
         {
+            System.err.printf(
+                    "=== Start store copy recovery failure ====%n%s%n=== End store copy recovery failure ====%n",
+                    Exceptions.stringify( e ) );
+
             if ( e.getCause() != null && e.getCause().getCause() instanceof UpgradeNotAllowedByConfigurationException )
             {
                 throw new RuntimeException( failedToStartMessage(), e );

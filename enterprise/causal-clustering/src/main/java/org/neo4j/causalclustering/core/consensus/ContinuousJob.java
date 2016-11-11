@@ -74,4 +74,5 @@ public class ContinuousJob extends LifecycleAdapter
             }
         }
     }
+
 }

@@ -112,7 +112,7 @@ public class StoreFetcher
                 previousTxId = result.lastTxId();
             }
             while ( lastStatus == SUCCESS_END_OF_BATCH );
-
+            log.info( "Successfully pulled transactions up to %d", fromTxId );
             return lastStatus;
         }
         catch ( CatchUpClientException e )
