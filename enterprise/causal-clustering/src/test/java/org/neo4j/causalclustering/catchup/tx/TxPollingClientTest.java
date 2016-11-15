@@ -41,6 +41,7 @@ import org.neo4j.kernel.impl.transaction.log.TransactionIdStore;
 import org.neo4j.kernel.lifecycle.Lifecycle;
 import org.neo4j.kernel.monitoring.Monitors;
 import org.neo4j.logging.NullLogProvider;
+import org.neo4j.test.OnDemandJobScheduler;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
@@ -74,8 +75,8 @@ public class TxPollingClientTest
 
     private final TxPollingClient txPuller =
             new TxPollingClient( NullLogProvider.getInstance(), fs, localDatabase, startStopOnStoreCopy, storeFetcher,
-                    catchUpClient, serverSelection, timeoutService, txPullIntervalMillis, txApplier, new Monitors(),
-                    copiedStoreRecovery );
+                    catchUpClient, serverSelection, txPullIntervalMillis, txApplier, new Monitors(),
+                    copiedStoreRecovery, new OnDemandJobScheduler() );
 
     @Before
     public void before() throws Throwable

@@ -81,6 +81,7 @@ import org.neo4j.kernel.impl.transaction.TransactionHeaderInformationFactory;
 import org.neo4j.kernel.impl.transaction.log.TransactionAppender;
 import org.neo4j.kernel.impl.transaction.log.TransactionIdStore;
 import org.neo4j.kernel.impl.transaction.state.DataSourceManager;
+import org.neo4j.kernel.impl.util.Neo4jJobScheduler;
 import org.neo4j.kernel.internal.DatabaseHealth;
 import org.neo4j.kernel.internal.DefaultKernelData;
 import org.neo4j.kernel.lifecycle.LifeSupport;
@@ -233,11 +234,13 @@ public class EnterpriseReadReplicaEditionModule extends EditionModule
             } );
         }
 
+        Neo4jJobScheduler scheduler = new Neo4jJobScheduler();
+        txPulling.add( scheduler );
         TxPollingClient txPuller =
                 new TxPollingClient( logProvider, fileSystem, localDatabase, servicesToStopOnStoreCopy, storeFetcher,
-                        catchUpClient, new ConnectToRandomCoreMember( discoveryService ), txPullerTimeoutService,
+                        catchUpClient, new ConnectToRandomCoreMember( discoveryService ),
                         config.get( CausalClusteringSettings.pull_interval ), batchingTxApplier,
-                        platformModule.monitors, copiedStoreRecovery );
+                        platformModule.monitors, copiedStoreRecovery, scheduler );
 
         dependencies.satisfyDependencies( txPuller );
 
