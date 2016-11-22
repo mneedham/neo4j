@@ -24,6 +24,9 @@ import java.util.function.BooleanSupplier;
 
 import org.neo4j.causalclustering.discovery.Cluster;
 import org.neo4j.causalclustering.discovery.ClusterMember;
+import org.neo4j.consistency.ConsistencyCheckService;
+
+import static org.neo4j.consistency.ConsistencyCheckTool.runConsistencyCheckTool;
 
 class StartStopLoad extends RepeatUntilOnSelectedMemberCallable
 {
@@ -37,8 +40,26 @@ class StartStopLoad extends RepeatUntilOnSelectedMemberCallable
     protected void doWorkOnMember( boolean isCore, int id )
     {
         ClusterMember member = isCore ? cluster.getCoreMemberById( id ) : cluster.getReadReplicaById( id );
+        String storeDir = member.database().getStoreDir();
         member.shutdown();
+        assertStoreConsistent( storeDir );
         LockSupport.parkNanos( 5_000_000_000L );
         member.start();
+    }
+
+    private void assertStoreConsistent( String storeDir )
+    {
+        try
+        {
+            ConsistencyCheckService.Result result = runConsistencyCheckTool( new String[]{storeDir} );
+            if ( !result.isSuccessful() )
+            {
+                throw new RuntimeException( "Not consistent database in " + storeDir );
+            }
+        }
+        catch ( Throwable e )
+        {
+            throw new RuntimeException( "Failed to run CC on " + storeDir, e );
+        }
     }
 }
