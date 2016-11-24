@@ -237,10 +237,10 @@ public class EnterpriseReadReplicaEditionModule extends EditionModule
         }
 
         CatchupPollingProcess catchupProcess =
-                new CatchupPollingProcess( logProvider, fileSystem, localDatabase, servicesToStopOnStoreCopy, storeFetcher,
-                        catchUpClient, new ConnectToRandomCoreMember( discoveryService ), catchupTimeoutService,
-                        config.get( CausalClusteringSettings.pull_interval ), batchingTxApplier,
-                        platformModule.monitors, copiedStoreRecovery, databaseHealthSupplier );
+                new CatchupPollingProcess( logProvider, fileSystem, localDatabase, servicesToStopOnStoreCopy,
+                        storeFetcher, catchUpClient, new ConnectToRandomCoreMember( discoveryService ),
+                        platformModule.jobScheduler, config.get( CausalClusteringSettings.pull_interval ),
+                        batchingTxApplier, platformModule.monitors, copiedStoreRecovery, databaseHealthSupplier );
 
         dependencies.satisfyDependencies( catchupProcess );
 
