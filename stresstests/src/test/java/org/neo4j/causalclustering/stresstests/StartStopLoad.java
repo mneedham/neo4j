@@ -19,12 +19,15 @@
  */
 package org.neo4j.causalclustering.stresstests;
 
+import java.io.File;
 import java.util.concurrent.locks.LockSupport;
 import java.util.function.BooleanSupplier;
 
 import org.neo4j.causalclustering.discovery.Cluster;
 import org.neo4j.causalclustering.discovery.ClusterMember;
 import org.neo4j.consistency.ConsistencyCheckService;
+import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 
 import static org.neo4j.consistency.ConsistencyCheckTool.runConsistencyCheckTool;
 
@@ -52,6 +55,9 @@ class StartStopLoad extends RepeatUntilOnSelectedMemberCallable
     {
         try
         {
+            GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase( new File( storeDir ) );
+            db.shutdown();
+
             ConsistencyCheckService.Result result = runConsistencyCheckTool( new String[]{storeDir} );
             if ( !result.isSuccessful() )
             {
