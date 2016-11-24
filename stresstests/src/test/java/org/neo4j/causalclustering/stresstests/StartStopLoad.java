@@ -45,6 +45,7 @@ class StartStopLoad extends RepeatUntilOnSelectedMemberCallable
         assertStoreConsistent( storeDir );
         LockSupport.parkNanos( 5_000_000_000L );
         member.start();
+        LockSupport.parkNanos( 5_000_000_000L );
     }
 
     private void assertStoreConsistent( String storeDir )
