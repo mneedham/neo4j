@@ -118,6 +118,11 @@ public class Neo4jJobScheduler extends LifecycleAdapter implements JobScheduler
     }
 
     @Override
+    public void stop()
+    {
+    }
+
+    @Override
     public void shutdown()
     {
         RuntimeException exception = null;
