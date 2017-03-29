@@ -21,6 +21,7 @@ package org.neo4j.bolt.v1.runtime;
 
 import java.time.Clock;
 import java.time.Duration;
+import java.util.function.Supplier;
 
 import org.neo4j.bolt.security.auth.Authentication;
 import org.neo4j.graphdb.DependencyResolver;
@@ -51,6 +52,7 @@ public class BoltFactoryImpl extends LifecycleAdapter implements BoltFactory
     private GraphDatabaseQueryService queryService;
     private TransactionIdStore transactionIdStore;
     private AvailabilityGuard availabilityGuard;
+    private DependencyResolver dependencyResolver;
 
     public BoltFactoryImpl( GraphDatabaseAPI gds, UsageData usageData, LogService logging,
             ThreadToStatementContextBridge txBridge, Authentication authentication,
@@ -68,7 +70,7 @@ public class BoltFactoryImpl extends LifecycleAdapter implements BoltFactory
     @Override
     public void start() throws Throwable
     {
-        DependencyResolver dependencyResolver = gds.getDependencyResolver();
+        dependencyResolver = gds.getDependencyResolver();
         queryExecutionEngine = dependencyResolver.resolveDependency( QueryExecutionEngine.class );
         queryService = dependencyResolver.resolveDependency( GraphDatabaseQueryService.class );
         transactionIdStore = dependencyResolver.resolveDependency( TransactionIdStore.class );
@@ -98,7 +100,8 @@ public class BoltFactoryImpl extends LifecycleAdapter implements BoltFactory
         long bookmarkReadyTimeout = config.get( GraphDatabaseSettings.bookmark_ready_timeout );
         Duration txAwaitDuration = Duration.ofMillis( bookmarkReadyTimeout );
 
-        return new TransactionStateMachineSPI( gds, txBridge, queryExecutionEngine, transactionIdStore,
+        Supplier<TransactionIdStore> transactionIdStoreSupplier = dependencyResolver.provideDependency( TransactionIdStore.class );
+        return new TransactionStateMachineSPI( gds, txBridge, queryExecutionEngine, transactionIdStoreSupplier,
                 availabilityGuard, queryService, txAwaitDuration, clock );
     }
 }

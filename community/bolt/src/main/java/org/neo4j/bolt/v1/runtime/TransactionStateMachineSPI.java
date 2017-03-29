@@ -22,6 +22,7 @@ package org.neo4j.bolt.v1.runtime;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import org.neo4j.bolt.v1.runtime.TransactionStateMachine.BoltResultHandle;
 import org.neo4j.bolt.v1.runtime.spi.BoltResult;
@@ -64,7 +65,7 @@ class TransactionStateMachineSPI implements TransactionStateMachine.SPI
     TransactionStateMachineSPI( GraphDatabaseAPI db,
                                 ThreadToStatementContextBridge txBridge,
                                 QueryExecutionEngine queryExecutionEngine,
-                                TransactionIdStore transactionIdStoreSupplier,
+                                Supplier<TransactionIdStore> transactionIdStoreSupplier,
                                 AvailabilityGuard availabilityGuard,
                                 GraphDatabaseQueryService queryService,
                                 Duration txAwaitDuration,

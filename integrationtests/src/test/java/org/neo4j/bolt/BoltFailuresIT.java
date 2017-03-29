@@ -32,7 +32,7 @@ import org.neo4j.bolt.v1.runtime.WorkerFactory;
 import org.neo4j.driver.v1.Driver;
 import org.neo4j.driver.v1.GraphDatabase;
 import org.neo4j.driver.v1.Session;
-import org.neo4j.driver.v1.exceptions.ConnectionFailureException;
+import org.neo4j.driver.v1.exceptions.ServiceUnavailableException;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.neo4j.graphdb.factory.GraphDatabaseSettings;
@@ -93,7 +93,7 @@ public class BoltFailuresIT
         }
         catch ( Exception e )
         {
-            assertThat( e, instanceOf( ConnectionFailureException.class ) );
+            assertThat( e, instanceOf( ServiceUnavailableException.class ) );
         }
     }
 
@@ -114,7 +114,7 @@ public class BoltFailuresIT
         }
         catch ( Exception e )
         {
-            assertThat( e, instanceOf( ConnectionFailureException.class ) );
+            assertThat( e, instanceOf( ServiceUnavailableException.class ) );
         }
     }
 
@@ -177,7 +177,7 @@ public class BoltFailuresIT
         }
         catch ( Exception e )
         {
-            assertThat( e, instanceOf( ConnectionFailureException.class ) );
+            assertThat( e, instanceOf( ServiceUnavailableException.class ) );
         }
     }
 
@@ -201,7 +201,7 @@ public class BoltFailuresIT
         }
         catch ( Exception e )
         {
-            assertThat( e, instanceOf( ConnectionFailureException.class ) );
+            assertThat( e, instanceOf( ServiceUnavailableException.class ) );
         }
     }
 
