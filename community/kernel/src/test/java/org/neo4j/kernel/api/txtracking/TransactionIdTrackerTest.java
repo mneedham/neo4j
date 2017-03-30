@@ -64,7 +64,7 @@ public class TransactionIdTrackerTest
         TransactionIdStore transactionIdStore = mock(TransactionIdStore.class);
         when( transactionIdStoreSupplier.get() ).thenReturn( transactionIdStore );
         when( transactionIdStore.getLastClosedTransactionId()).thenReturn( version );
-        
+
         when( availabilityGuard.isAvailable() ).thenReturn( true );
         TransactionIdTracker transactionIdTracker = createTracker();
 
