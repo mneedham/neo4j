@@ -21,6 +21,8 @@ package org.neo4j.kernel.impl.proc;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
@@ -578,6 +580,7 @@ class ReflectiveProcedureCompiler
             // For now, create a new instance of the class for each invocation. In the future, we'd like to keep
             // instances local to
             // at least the executing session, but we don't yet have good interfaces to the kernel to model that with.
+            System.out.println("ctx = " + ctx);
             try
             {
                 int numberOfDeclaredArguments = signature.inputSignature().size();
@@ -610,15 +613,18 @@ class ReflectiveProcedureCompiler
             }
             catch ( Throwable throwable )
             {
+                StringWriter sw = new StringWriter();
+                PrintWriter pw = new PrintWriter(sw);
+                throwable.printStackTrace(pw);
                 if ( throwable instanceof Status.HasStatus )
                 {
                     throw new ProcedureException( ((Status.HasStatus) throwable).status(), throwable,
-                            throwable.getMessage() );
+                            pw.toString() );
                 }
                 else
                 {
                     throw new ProcedureException( Status.Procedure.ProcedureCallFailed, throwable,
-                            "Failed to invoke procedure `%s`: %s", signature.name(), "Caused by: " + throwable );
+                            "Failed to invoke procedure `%s`: %s", signature.name(), "Caused by: " + pw.toString() );
                 }
             }
         }
@@ -648,8 +654,12 @@ class ReflectiveProcedureCompiler
                 }
                 catch ( RuntimeException | IOException e )
                 {
+                    StringWriter sw = new StringWriter();
+                    PrintWriter pw = new PrintWriter(sw);
+                    e.printStackTrace(pw);
+
                     throw new ProcedureException( Status.Procedure.ProcedureCallFailed, e,
-                            "Failed to call procedure `%s`: %s", signature, e.getMessage() );
+                            "Failed to call procedure `%s`: %s", signature, pw.toString() );
                 }
             }
 
@@ -663,8 +673,12 @@ class ReflectiveProcedureCompiler
                 }
                 catch ( RuntimeException e )
                 {
+                    StringWriter sw = new StringWriter();
+                    PrintWriter pw = new PrintWriter(sw);
+                    e.printStackTrace(pw);
+
                     throw new ProcedureException( Status.Procedure.ProcedureCallFailed, e,
-                            "Failed to call procedure `%s`: %s", signature, e.getMessage() );
+                            "Failed to call procedure `%s`: %s", signature, pw.toString() );
                 }
             }
 
