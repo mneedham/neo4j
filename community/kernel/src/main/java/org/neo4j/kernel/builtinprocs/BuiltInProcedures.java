@@ -132,8 +132,14 @@ public class BuiltInProcedures
         {
             // Ownership of the reference to the acquired statement is transfered to the returned iterator stream,
             // but we still want to eagerly consume the labels, so we can catch any exceptions,
+            ReadOperations readOperations = statement.readOperations();
+
             List<RelationshipTypeResult> relationshipTypes =
-                    asList( TokenAccess.RELATIONSHIP_TYPES.inUse( statement ).map( RelationshipTypeResult::new ) );
+                    asList( TokenAccess.RELATIONSHIP_TYPES.inUse( statement ).map( relType -> {
+                        int relTypeId = readOperations.relationshipTypeGetForName( relType.name() );
+                        long count = readOperations.countsForRelationship( -1, relTypeId, -1 );
+                        return new RelationshipTypeResult(relType, count);
+                    }));
             return relationshipTypes.stream();
         }
         catch ( Throwable t )
@@ -726,10 +732,12 @@ public class BuiltInProcedures
     public class RelationshipTypeResult
     {
         public final String relationshipType;
+        public final long count;
 
-        private RelationshipTypeResult( RelationshipType relationshipType )
+        private RelationshipTypeResult( RelationshipType relationshipType, long count )
         {
             this.relationshipType = relationshipType.name();
+            this.count = count;
         }
     }
 
