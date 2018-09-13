@@ -70,7 +70,7 @@ public class BuiltInProceduresIT extends KernelIntegrationTest
                 procedureCallOpsInNewTx().procedureCallRead( procedureName( "db", "labels" ), new Object[0] );
 
         // Then
-        assertThat( asList( stream ), contains( equalTo( new Object[]{"MyLabel"} ) ) );
+        assertThat( asList( stream ), contains( equalTo( new Object[]{"MyLabel", 1L} ) ) );
     }
 
     @Test

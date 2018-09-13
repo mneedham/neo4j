@@ -210,7 +210,7 @@ public class BuiltInProceduresTest
                 record( "db.indexes", "db.indexes() :: (description :: STRING?, label :: STRING?, properties :: LIST? OF STRING?, " +
                                 "state :: STRING?, type :: STRING?, provider :: MAP?)",
                         "List all indexes in the database." ),
-                record( "db.labels", "db.labels() :: (label :: STRING?)", "List all labels in the database." ),
+                record( "db.labels", "db.labels() :: (label :: STRING?, count :: INTEGER?)", "List all labels in the database." ),
                 record( "db.propertyKeys", "db.propertyKeys() :: (propertyKey :: STRING?)",
                         "List all property keys in the database." ),
                 record( "db.relationshipTypes", "db.relationshipTypes() :: (relationshipType :: STRING?)",

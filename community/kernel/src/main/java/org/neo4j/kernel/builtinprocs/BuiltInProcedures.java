@@ -87,7 +87,13 @@ public class BuiltInProcedures
         {
             // Ownership of the reference to the acquired statement is transfered to the returned iterator stream,
             // but we still want to eagerly consume the labels, so we can catch any exceptions,
-            List<LabelResult> labelResults = asList( TokenAccess.LABELS.inUse( statement ).map( LabelResult::new ) );
+            ReadOperations readOperations = statement.readOperations();
+
+            List<LabelResult> labelResults = asList( TokenAccess.LABELS.inUse( statement ).map( label -> {
+                int labelId = readOperations.labelGetForName( label.name() );
+                long count = readOperations.countsForNode( labelId );
+                return new LabelResult( label, count );
+            } ) );
             return labelResults.stream();
         }
         catch ( Throwable t )
@@ -696,10 +702,12 @@ public class BuiltInProcedures
     public class LabelResult
     {
         public final String label;
+        public final long count;
 
-        private LabelResult( Label label )
+        private LabelResult( Label label, long count )
         {
             this.label = label.name();
+            this.count = count;
         }
     }
 
